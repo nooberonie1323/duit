@@ -1,20 +1,60 @@
 import { Tabs } from "expo-router";
-import { View, Text } from "react-native";
+import { View, Text, TouchableOpacity } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
-function TabIcon({ label, focused }) {
+const TAB_CONFIG = {
+  index:        { label: "Home",   icon: "home",               iconOff: "home-outline" },
+  log:          { label: "Log",    icon: "receipt",            iconOff: "receipt-outline" },
+  reservations: { label: "Wallet", icon: "wallet",             iconOff: "wallet-outline" },
+  stats:        { label: "Stats",  icon: "bar-chart",          iconOff: "bar-chart-outline" },
+  settings:     { label: "More",   icon: "ellipsis-horizontal", iconOff: "ellipsis-horizontal-outline" },
+};
+
+function CustomTabBar({ state, navigation }) {
   return (
-    <View
-      className={`items-center justify-center px-3 py-1 rounded-pill ${
-        focused ? "bg-indigo-light" : "bg-transparent"
-      }`}
-    >
-      <Text
-        className={`text-xs ${
-          focused ? "text-indigo font-sans-semibold" : "text-textMuted font-sans"
-        }`}
-      >
-        {label}
-      </Text>
+    <View style={{
+      position: "absolute",
+      bottom: 16,
+      left: 20,
+      right: 20,
+      height: 60,
+      backgroundColor: "#FFFFFF",
+      borderRadius: 28,
+      flexDirection: "row",
+      alignItems: "center",
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.08,
+      shadowRadius: 16,
+      elevation: 10,
+    }}>
+      {state.routes.map((route, index) => {
+        const focused = state.index === index;
+        const config = TAB_CONFIG[route.name];
+        if (!config) return null;
+
+        return (
+          <TouchableOpacity
+            key={route.key}
+            onPress={() => navigation.navigate(route.name)}
+            activeOpacity={0.7}
+            style={{ flex: 1, height: 60, alignItems: "center", justifyContent: "center", gap: 3 }}
+          >
+            <Ionicons
+              name={focused ? config.icon : config.iconOff}
+              size={20}
+              color={focused ? "#4F46E5" : "#9CA3AF"}
+            />
+            <Text style={{
+              fontSize: 10,
+              fontFamily: focused ? "DMSans_600SemiBold" : "DMSans_400Regular",
+              color: focused ? "#4F46E5" : "#9CA3AF",
+            }}>
+              {config.label}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
     </View>
   );
 }
@@ -22,53 +62,14 @@ function TabIcon({ label, focused }) {
 export default function TabLayout() {
   return (
     <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarShowLabel: false,
-        tabBarStyle: {
-          backgroundColor: "#FFFFFF",
-          borderTopColor: "#EAECF0",
-          borderTopWidth: 1,
-          height: 64,
-          paddingBottom: 8,
-          paddingTop: 8,
-        },
-      }}
+      tabBar={(props) => <CustomTabBar {...props} />}
+      screenOptions={{ headerShown: false }}
     >
-      <Tabs.Screen
-        name="index"
-        options={{
-          tabBarIcon: ({ focused }) => <TabIcon label="Home" focused={focused} />,
-        }}
-      />
-      <Tabs.Screen
-        name="log"
-        options={{
-          tabBarIcon: ({ focused }) => <TabIcon label="Log" focused={focused} />,
-        }}
-      />
-      <Tabs.Screen
-        name="reservations"
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <TabIcon label="Reserve" focused={focused} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="stats"
-        options={{
-          tabBarIcon: ({ focused }) => <TabIcon label="Stats" focused={focused} />,
-        }}
-      />
-      <Tabs.Screen
-        name="settings"
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <TabIcon label="Settings" focused={focused} />
-          ),
-        }}
-      />
+      <Tabs.Screen name="index" />
+      <Tabs.Screen name="log" />
+      <Tabs.Screen name="reservations" />
+      <Tabs.Screen name="stats" />
+      <Tabs.Screen name="settings" />
     </Tabs>
   );
 }

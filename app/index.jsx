@@ -1,14 +1,27 @@
-import { View, Text, TouchableOpacity } from "react-native";
+import { useEffect } from "react";
+import { View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
 import { router } from "expo-router";
+import { useSQLiteContext } from "expo-sqlite";
+import { getActiveCycle } from "../services/db";
 
 export default function Welcome() {
+  const db = useSQLiteContext();
+
+  useEffect(() => {
+    async function checkCycle() {
+      const cycle = await getActiveCycle(db);
+      if (cycle) {
+        router.replace("/(tabs)");
+      }
+    }
+    checkCycle();
+  }, []);
+
   return (
     <View className="flex-1 bg-bg px-5 justify-between py-20">
 
-      {/* Top spacer */}
       <View />
 
-      {/* Center content */}
       <View className="items-center gap-4">
         <Text className="text-5xl font-extrabold text-indigo tracking-tight"
           style={{ fontFamily: "DMSans_800ExtraBold" }}>
@@ -20,7 +33,6 @@ export default function Welcome() {
         </Text>
       </View>
 
-      {/* Bottom button */}
       <TouchableOpacity
         onPress={() => router.push("/onboarding")}
         className="bg-indigo rounded-btn py-4 items-center"
