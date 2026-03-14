@@ -5,6 +5,7 @@ import { useFonts, DMSans_400Regular, DMSans_500Medium, DMSans_600SemiBold, DMSa
 import * as SplashScreen from "expo-splash-screen";
 import { initDatabase, getActiveCycle } from "../services/db";
 import "../global.css";
+import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -26,11 +27,20 @@ export default function RootLayout() {
   if (!fontsLoaded) return null;
 
   return (
-    <SQLiteProvider databaseName="duit.db" onInit={initDatabase}>
+    
+    <GluestackUIProvider mode="light">
+      <SQLiteProvider databaseName="duit.db" onInit={initDatabase}>
       <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="onboarding" />
+        <Stack.Screen name="onboarding2" />
+        <Stack.Screen name="onboarding3" />
+        <Stack.Screen name="onboarding4" />
+        <Stack.Screen name="onboarding5" />
       </Stack>
     </SQLiteProvider>
+    </GluestackUIProvider>
+  
   );
 }

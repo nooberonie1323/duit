@@ -1,24 +1,47 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { View, Text, TextInput, TouchableOpacity, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
-import { logDailySpend } from "../../services/db";
+import { getActiveCycle, logDailySpend } from "../../services/db";
 
 const DEFAULT_TAGS = ["Food", "Transport", "Luna", "Emergency", "Fun"];
+const today = new Date().toISOString().split("T")[0];
 
 export default function LogScreen() {
   const db = useSQLiteContext();
+  const [cycle, setCycle] = useState(null);
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
   const [selectedTag, setSelectedTag] = useState(null);
-  const [flag, setFlag] = useState(null); // 'green' | 'red' | null
+  const [flag, setFlag] = useState(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      getActiveCycle(db).then(setCycle);
+      // Reset form each time screen is focused
+      setAmount("");
+      setNote("");
+      setSelectedTag(null);
+      setFlag(null);
+    }, [db])
+  );
 
   async function handleSave() {
-    if (!amount || isNaN(parseFloat(amount))) return;
-    // TODO: get active cycle id and save
-    router.back();
+    if (!amount || isNaN(parseFloat(amount)) || !cycle) return;
+    await logDailySpend(
+      db,
+      cycle.id,
+      today,
+      parseFloat(amount),
+      note || null,
+      flag,
+      selectedTag ? [selectedTag] : null
+    );
+    router.replace("/(tabs)");
   }
+
+  const hasAmount = !!amount && !isNaN(parseFloat(amount));
 
   return (
     <SafeAreaView className="flex-1 bg-bg">
@@ -29,9 +52,7 @@ export default function LogScreen() {
       >
         {/* Header */}
         <View className="flex-row justify-between items-center">
-          <Text className="text-textPrimary text-xl font-sans-bold">
-            Log Spend
-          </Text>
+          <Text className="text-text text-xl font-sans-bold">Log Spend</Text>
           <TouchableOpacity onPress={() => router.back()}>
             <Text className="text-textSub font-sans">Cancel</Text>
           </TouchableOpacity>
@@ -43,9 +64,9 @@ export default function LogScreen() {
             How much did you spend today?
           </Text>
           <View className="flex-row items-center">
-            <Text className="text-textPrimary text-4xl font-sans-extrabold">৳</Text>
+            <Text className="text-text text-4xl font-sans-bold">৳</Text>
             <TextInput
-              className="text-textPrimary text-5xl font-sans-extrabold min-w-[120px]"
+              style={{ color: "#111827", fontSize: 48, fontWeight: "800", minWidth: 120 }}
               value={amount}
               onChangeText={setAmount}
               keyboardType="numeric"
@@ -66,14 +87,14 @@ export default function LogScreen() {
               <TouchableOpacity
                 key={tag}
                 onPress={() => setSelectedTag(selectedTag === tag ? null : tag)}
-                className={`px-4 py-2 rounded-pill border ${
+                className={`px-4 py-2 rounded-full border ${
                   selectedTag === tag
                     ? "bg-indigo-light border-indigo-mid"
                     : "bg-surface border-border"
                 }`}
               >
                 <Text
-                  className={`text-sm font-sans-medium ${
+                  className={`text-sm font-sans ${
                     selectedTag === tag ? "text-indigo" : "text-textSub"
                   }`}
                 >
@@ -90,7 +111,7 @@ export default function LogScreen() {
             Note (optional)
           </Text>
           <TextInput
-            className="bg-surface border border-border rounded-card p-4 text-textPrimary font-sans text-sm"
+            className="bg-surface border border-border rounded-card p-4 text-text font-sans text-sm"
             value={note}
             onChangeText={setNote}
             placeholder="What was it for?"
@@ -112,7 +133,7 @@ export default function LogScreen() {
               }`}
             >
               <Text className="text-lg">🟢</Text>
-              <Text className={`text-xs font-sans-medium mt-1 ${flag === "green" ? "text-green" : "text-textSub"}`}>
+              <Text className={`text-xs font-sans mt-1 ${flag === "green" ? "text-green" : "text-textSub"}`}>
                 Good day
               </Text>
             </TouchableOpacity>
@@ -123,7 +144,7 @@ export default function LogScreen() {
               }`}
             >
               <Text className="text-lg">🔴</Text>
-              <Text className={`text-xs font-sans-medium mt-1 ${flag === "red" ? "text-red" : "text-textSub"}`}>
+              <Text className={`text-xs font-sans mt-1 ${flag === "red" ? "text-red" : "text-textSub"}`}>
                 Rough day
               </Text>
             </TouchableOpacity>
@@ -133,25 +154,20 @@ export default function LogScreen() {
         {/* Save Button */}
         <TouchableOpacity
           onPress={handleSave}
-          className={`rounded-btn py-4 items-center ${
-            amount ? "bg-indigo" : "bg-border"
-          }`}
-          disabled={!amount}
-          style={
-            amount
-              ? {
-                  shadowColor: "#4F46E5",
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.3,
-                  shadowRadius: 8,
-                  elevation: 6,
-                }
-              : undefined
-          }
+          disabled={!hasAmount}
+          style={{
+            backgroundColor: hasAmount ? "#4F46E5" : "#EAECF0",
+            borderRadius: 12,
+            paddingVertical: 16,
+            alignItems: "center",
+            elevation: hasAmount ? 6 : 0,
+            shadowColor: hasAmount ? "#4F46E5" : "transparent",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: hasAmount ? 0.3 : 0,
+            shadowRadius: 8,
+          }}
         >
-          <Text
-            className={`font-sans-bold text-base ${amount ? "text-white" : "text-textMuted"}`}
-          >
+          <Text style={{ color: hasAmount ? "#FFFFFF" : "#9CA3AF", fontWeight: "700", fontSize: 16 }}>
             Save
           </Text>
         </TouchableOpacity>
