@@ -13,22 +13,18 @@ import {
   getDailyBudget,
   getRemainingPool,
 } from "../../services/db";
+import { useDailyContext } from "../../context/DailyContext";
 
 const today = new Date().toISOString().split("T")[0];
 const SCREEN_H = Dimensions.get("window").height;
 
 export default function HomeScreen() {
   const db = useSQLiteContext();
+  const daily = useDailyContext();
   const [cycle, setCycle] = useState(null);
   const [budget, setBudget] = useState({ regular: 0, extra: 0, total: 0 });
   const [pool, setPool] = useState({ regular: 0, extra: 0 });
   const [loading, setLoading] = useState(true);
-
-  // Quick deductions (in-memory)
-  const [pendingDeduction, setPendingDeduction] = useState(0);
-
-  // Big expenses (in-memory, pending midnight review)
-  const [bigExpenses, setBigExpenses] = useState([]);
 
   // Modal visibility
   const [addModalVisible, setAddModalVisible] = useState(false);
@@ -78,7 +74,7 @@ export default function HomeScreen() {
     ? Math.floor((new Date(cycle.end_date) - new Date(cycle.start_date)) / 86400000) + 1
     : 0;
 
-  const remaining = Math.max(0, budget.total - pendingDeduction);
+  const remaining = Math.max(0, budget.total - daily.totalDeductions);
   const avgPerDay = daysLeft > 0 ? pool.regular / daysLeft : 0;
 
   const dateStr = new Date().toLocaleDateString("en-GB", {
@@ -103,12 +99,12 @@ export default function HomeScreen() {
   // ── Quick deduct ───────────────────────────────────────────────────────────
 
   function handleDeduct(amount) {
-    setPendingDeduction((prev) => prev + amount);
+    daily.addDeduction(amount);
     showToast(`−৳${amount}`);
   }
 
   function handleAdd(amount) {
-    setPendingDeduction((prev) => Math.max(0, prev - amount));
+    daily.addCredit(amount);
     showToast(`+৳${amount}`);
   }
 
@@ -135,27 +131,18 @@ export default function HomeScreen() {
 
   function addExpense() {
     if (!canSubmit) return;
-    setBigExpenses((prev) => [
-      ...prev,
-      { id: Date.now(), note: modalNote.trim(), amount: parseFloat(modalAmount) },
-    ]);
+    daily.addBigExpense(modalNote.trim(), parseFloat(modalAmount));
     setAddModalVisible(false);
   }
 
   function saveEdit() {
     if (!canSubmit) return;
-    setBigExpenses((prev) =>
-      prev.map((e) =>
-        e.id === selectedExpense.id
-          ? { ...e, note: modalNote.trim(), amount: parseFloat(modalAmount) }
-          : e
-      )
-    );
+    daily.editBigExpense(selectedExpense.id, modalNote.trim(), parseFloat(modalAmount));
     setEditModalVisible(false);
   }
 
   function confirmDelete() {
-    setBigExpenses((prev) => prev.filter((e) => e.id !== selectedExpense.id));
+    daily.removeBigExpense(selectedExpense.id);
     setDeleteConfirmVisible(false);
     setSelectedExpense(null);
   }
@@ -276,7 +263,7 @@ export default function HomeScreen() {
           </View>
 
           {/* Expense rows */}
-          {bigExpenses.map((expense) => (
+          {daily.bigExpenses.map((expense) => (
             <TouchableOpacity
               key={expense.id}
               onPress={() => openEditModal(expense)}
@@ -315,7 +302,7 @@ export default function HomeScreen() {
               borderWidth: 1.5, borderColor: "#4F46E5", borderStyle: "dashed",
               borderRadius: 10, paddingVertical: 12, flexDirection: "row",
               alignItems: "center", justifyContent: "center", gap: 8,
-              marginTop: bigExpenses.length > 0 ? 8 : 0,
+              marginTop: daily.bigExpenses.length > 0 ? 8 : 0,
             }}
           >
             <Ionicons name="add" size={18} color="#4F46E5" />

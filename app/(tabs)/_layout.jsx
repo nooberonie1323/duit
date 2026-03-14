@@ -1,6 +1,7 @@
 import { Tabs } from "expo-router";
 import { View, Text, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { DailyProvider } from "../../context/DailyContext";
 
 const TAB_CONFIG = {
   index:        { label: "Home",   icon: "home",               iconOff: "home-outline" },
@@ -61,15 +62,17 @@ function CustomTabBar({ state, navigation }) {
 
 export default function TabLayout() {
   return (
-    <Tabs
-      tabBar={(props) => <CustomTabBar {...props} />}
-      screenOptions={{ headerShown: false }}
-    >
-      <Tabs.Screen name="index" />
-      <Tabs.Screen name="log" />
-      <Tabs.Screen name="reservations" />
-      <Tabs.Screen name="stats" />
-      <Tabs.Screen name="settings" />
-    </Tabs>
+    <DailyProvider>
+      <Tabs
+        tabBar={(props) => <CustomTabBar {...props} />}
+        screenOptions={{ headerShown: false }}
+      >
+        <Tabs.Screen name="index" />
+        <Tabs.Screen name="log" />
+        <Tabs.Screen name="reservations" />
+        <Tabs.Screen name="stats" />
+        <Tabs.Screen name="settings" />
+      </Tabs>
+    </DailyProvider>
   );
 }
