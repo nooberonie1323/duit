@@ -1,482 +1,298 @@
-import { useState, useCallback, useRef } from "react";
+import { useEffect, useState } from "react";
 import {
-  View, Text, TouchableOpacity, Animated, Dimensions,
-  ScrollView, Modal, Pressable, TextInput,
+  View, Text, ScrollView, Pressable,
+  Modal, TextInput, KeyboardAvoidingView, Platform,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
-import { LinearGradient } from "expo-linear-gradient";
-import { Ionicons } from "@expo/vector-icons";
-import {
-  getActiveCycle,
-  getDailyBudget,
-  getRemainingPool,
-} from "../../services/db";
+import { getActiveCycle, getDailyBudget, getRemainingPool } from "../../services/db";
 import { useDailyContext } from "../../context/DailyContext";
-
-const today = new Date().toISOString().split("T")[0];
-const SCREEN_H = Dimensions.get("window").height;
 
 export default function HomeScreen() {
   const db = useSQLiteContext();
-  const daily = useDailyContext();
+  const { totalDeductions, addDeduction, addCredit, bigExpenses, addBigExpense, removeBigExpense } = useDailyContext();
+
   const [cycle, setCycle] = useState(null);
-  const [budget, setBudget] = useState({ regular: 0, extra: 0, total: 0 });
-  const [pool, setPool] = useState({ regular: 0, extra: 0 });
-  const [loading, setLoading] = useState(true);
+  const [dailyBudget, setDailyBudget] = useState(0);
+  const [poolLeft, setPoolLeft] = useState(0);
+  const [daysLeft, setDaysLeft] = useState(0);
 
-  // Modal visibility
-  const [addModalVisible, setAddModalVisible] = useState(false);
-  const [editModalVisible, setEditModalVisible] = useState(false);
-  const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
-  const [selectedExpense, setSelectedExpense] = useState(null);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [expenseNote, setExpenseNote] = useState("");
+  const [expenseAmount, setExpenseAmount] = useState("");
 
-  // Modal form state
-  const [modalNote, setModalNote] = useState("");
-  const [modalAmount, setModalAmount] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
-  // Toast
-  const toastOpacity = useRef(new Animated.Value(0)).current;
-  const [toastText, setToastText] = useState("");
-  const toastTimer = useRef(null);
+  useEffect(() => {
+    loadData();
+  }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      let active = true;
-      async function load() {
-        const activeCycle = await getActiveCycle(db);
-        if (!active) return;
-        setCycle(activeCycle);
-        if (activeCycle) {
-          const [b, p] = await Promise.all([
-            getDailyBudget(db, activeCycle.id, today),
-            getRemainingPool(db, activeCycle.id),
-          ]);
-          if (!active) return;
-          setBudget(b);
-          setPool(p);
-        }
-        setLoading(false);
-      }
-      load();
-      return () => { active = false; };
-    }, [db])
-  );
+  async function loadData() {
+    const activeCycle = await getActiveCycle(db);
+    if (!activeCycle) return;
+    setCycle(activeCycle);
 
-  const daysLeft = cycle
-    ? Math.max(1, Math.floor((new Date(cycle.end_date) - new Date(today)) / 86400000) + 1)
-    : 0;
-  const dayNum = cycle
-    ? Math.floor((new Date(today) - new Date(cycle.start_date)) / 86400000) + 1
-    : 0;
-  const totalDays = cycle
-    ? Math.floor((new Date(cycle.end_date) - new Date(cycle.start_date)) / 86400000) + 1
-    : 0;
+    const today = new Date().toISOString().split("T")[0];
+    const budget = await getDailyBudget(db, activeCycle.id, today);
+    setDailyBudget(budget.regular);
 
-  const remaining = Math.max(0, budget.total - daily.totalDeductions);
-  const avgPerDay = daysLeft > 0 ? pool.regular / daysLeft : 0;
+    const pool = await getRemainingPool(db, activeCycle.id);
+    setPoolLeft(pool.regular);
 
-  const dateStr = new Date().toLocaleDateString("en-GB", {
+    const endDate = new Date(activeCycle.end_date);
+    const todayDate = new Date(today);
+    const msPerDay = 1000 * 60 * 60 * 24;
+    const remaining = Math.max(1, Math.floor((endDate - todayDate) / msPerDay) + 1);
+    setDaysLeft(remaining);
+  }
+
+  // ── Derived values ────────────────────────────────────────────────────────
+  const leftToday = Math.max(0, dailyBudget - totalDeductions);
+  const avgPerDay = daysLeft > 0 ? Math.round(poolLeft / daysLeft) : 0;
+
+  const today = new Date();
+  const dateStr = today.toLocaleDateString("en-US", {
     weekday: "long", day: "numeric", month: "long",
   });
 
-  const canSubmit = modalNote.trim().length > 0 && modalAmount.length > 0;
-
-  // ── Toast ──────────────────────────────────────────────────────────────────
-
-  function showToast(text) {
-    setToastText(text);
-    if (toastTimer.current) clearTimeout(toastTimer.current);
-    toastOpacity.setValue(1);
-    toastTimer.current = setTimeout(() => {
-      Animated.timing(toastOpacity, {
-        toValue: 0, duration: 500, useNativeDriver: true,
-      }).start();
-    }, 1000);
+  let dayOfCycle = 1;
+  let totalDays = 1;
+  if (cycle) {
+    const msPerDay = 1000 * 60 * 60 * 24;
+    const start = new Date(cycle.start_date);
+    const end = new Date(cycle.end_date);
+    totalDays = Math.floor((end - start) / msPerDay) + 1;
+    dayOfCycle = Math.min(Math.floor((today - start) / msPerDay) + 1, totalDays);
   }
 
-  // ── Quick deduct ───────────────────────────────────────────────────────────
-
-  function handleDeduct(amount) {
-    daily.addDeduction(amount);
-    showToast(`−৳${amount}`);
+  // ── Big expense modal ─────────────────────────────────────────────────────
+  function handleAddExpense() {
+    const amount = parseFloat(expenseAmount);
+    if (!expenseNote.trim() || isNaN(amount) || amount <= 0) return;
+    addBigExpense(expenseNote.trim(), amount);
+    setExpenseNote("");
+    setExpenseAmount("");
+    setModalVisible(false);
   }
 
-  function handleAdd(amount) {
-    daily.addCredit(amount);
-    showToast(`+৳${amount}`);
+  function handleCloseModal() {
+    setExpenseNote("");
+    setExpenseAmount("");
+    setModalVisible(false);
   }
 
-  // ── Big expenses ───────────────────────────────────────────────────────────
+  const logItActive = expenseNote.trim().length > 0 && parseFloat(expenseAmount) > 0;
 
-  function openAddModal() {
-    setModalNote("");
-    setModalAmount("");
-    setAddModalVisible(true);
-  }
-
-  function openEditModal(expense) {
-    setSelectedExpense(expense);
-    setModalNote(expense.note);
-    setModalAmount(expense.amount.toString());
-    setEditModalVisible(true);
-  }
-
-  function openDeleteConfirm(expense) {
-    setSelectedExpense(expense);
-    setEditModalVisible(false);
-    setDeleteConfirmVisible(true);
-  }
-
-  function addExpense() {
-    if (!canSubmit) return;
-    daily.addBigExpense(modalNote.trim(), parseFloat(modalAmount));
-    setAddModalVisible(false);
-  }
-
-  function saveEdit() {
-    if (!canSubmit) return;
-    daily.editBigExpense(selectedExpense.id, modalNote.trim(), parseFloat(modalAmount));
-    setEditModalVisible(false);
-  }
-
-  function confirmDelete() {
-    daily.removeBigExpense(selectedExpense.id);
-    setDeleteConfirmVisible(false);
-    setSelectedExpense(null);
-  }
-
-  if (loading) return <SafeAreaView style={{ flex: 1, backgroundColor: "#F8F9FB" }} />;
-
+  // ─────────────────────────────────────────────────────────────────────────
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#F8F9FB" }}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 100 }}
-      >
+    <View style={{ flex: 1, backgroundColor: "#F5F5F5" }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
 
-        {/* ── Big Budget Card ─────────────────────────────────────────────── */}
-        <LinearGradient
-          colors={["#4F46E5", "#3730A3"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{ height: SCREEN_H * 0.56, borderRadius: 24, padding: 24, justifyContent: "space-between" }}
-        >
+        {/* ── Hero card ── */}
+        <View style={{
+          backgroundColor: "#4F46E5",
+          borderBottomLeftRadius: 32,
+          borderBottomRightRadius: 32,
+          paddingHorizontal: 24,
+          paddingTop: 56,
+          paddingBottom: 28,
+        }}>
+          {/* Date */}
           <View>
-            <Text style={{ fontFamily: "DMSans_400Regular", color: "rgba(255,255,255,0.65)", fontSize: 14 }}>
+            <Text style={{ color: "rgba(255,255,255,0.85)", fontSize: 14, fontFamily: "DMSans_500Medium" }}>
               {dateStr}
             </Text>
-            {cycle && (
-              <Text style={{ fontFamily: "DMSans_400Regular", color: "rgba(255,255,255,0.45)", fontSize: 13, marginTop: 2 }}>
-                Day {dayNum} of {totalDays}
-              </Text>
-            )}
+            <Text style={{ color: "rgba(255,255,255,0.55)", fontSize: 12, fontFamily: "DMSans_400Regular", marginTop: 2 }}>
+              Day {dayOfCycle} of {totalDays}
+            </Text>
           </View>
 
-          <View style={{ alignItems: "center" }}>
-            <Text style={{ fontFamily: "DMSans_400Regular", color: "rgba(255,255,255,0.55)", fontSize: 14, marginBottom: 2 }}>
+          {/* Amount */}
+          <View style={{ alignItems: "center", paddingVertical: 36 }}>
+            <Text style={{ color: "rgba(255,255,255,0.65)", fontSize: 14, fontFamily: "DMSans_400Regular", marginBottom: 4 }}>
               left to spend today
             </Text>
-            <Text style={{ fontFamily: "DMSans_800ExtraBold", color: "#FFFFFF", fontSize: 80, lineHeight: 88, letterSpacing: -2 }}>
-              {cycle ? Math.round(remaining) : "—"}
+            <Text style={{ color: "#FFFFFF", fontSize: 80, fontFamily: "DMSans_800ExtraBold", lineHeight: 88 }}>
+              {Math.round(leftToday)}
             </Text>
-            <Text style={{ fontFamily: "DMSans_400Regular", color: "rgba(255,255,255,0.45)", fontSize: 13, marginTop: 2 }}>
+            <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, fontFamily: "DMSans_400Regular", marginTop: 4 }}>
               ৳ BDT
             </Text>
-            <Animated.View style={{ opacity: toastOpacity, marginTop: 10, height: 26, justifyContent: "center" }}>
-              <Text style={{ fontFamily: "DMSans_700Bold", color: "rgba(255,255,255,0.85)", fontSize: 20 }}>
-                {toastText}
-              </Text>
-            </Animated.View>
           </View>
 
+          {/* Quick buttons */}
           <View style={{ gap: 8 }}>
             <View style={{ flexDirection: "row", gap: 8 }}>
               {[10, 20, 50].map((amount) => (
-                <TouchableOpacity
-                  key={`d-${amount}`}
-                  onPress={() => handleDeduct(amount)}
-                  activeOpacity={0.75}
-                  style={{ flex: 1, backgroundColor: "#DC2626", borderRadius: 10, paddingVertical: 12, alignItems: "center" }}
+                <Pressable
+                  key={amount}
+                  onPress={() => addDeduction(amount)}
+                  style={{ flex: 1, backgroundColor: "#DC2626", borderRadius: 12, paddingVertical: 14, alignItems: "center" }}
                 >
-                  <Text style={{ fontFamily: "DMSans_700Bold", color: "#FFFFFF", fontSize: 15 }}>−{amount}</Text>
-                </TouchableOpacity>
+                  <Text style={{ color: "#FFFFFF", fontSize: 16, fontFamily: "DMSans_600SemiBold" }}>-{amount}</Text>
+                </Pressable>
               ))}
             </View>
             <View style={{ flexDirection: "row", gap: 8 }}>
               {[10, 20, 50].map((amount) => (
-                <TouchableOpacity
-                  key={`a-${amount}`}
-                  onPress={() => handleAdd(amount)}
-                  activeOpacity={0.75}
-                  style={{ flex: 1, backgroundColor: "#16A34A", borderRadius: 10, paddingVertical: 10, alignItems: "center" }}
+                <Pressable
+                  key={amount}
+                  onPress={() => addCredit(amount)}
+                  style={{ flex: 1, backgroundColor: "#16A34A", borderRadius: 12, paddingVertical: 14, alignItems: "center" }}
                 >
-                  <Text style={{ fontFamily: "DMSans_600SemiBold", color: "#FFFFFF", fontSize: 14 }}>+{amount}</Text>
-                </TouchableOpacity>
+                  <Text style={{ color: "#FFFFFF", fontSize: 16, fontFamily: "DMSans_600SemiBold" }}>+{amount}</Text>
+                </Pressable>
               ))}
             </View>
           </View>
-        </LinearGradient>
-
-        {/* ── Cycle Overview ──────────────────────────────────────────────── */}
-        <View style={{ backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#EAECF0", borderRadius: 16, paddingVertical: 16, paddingHorizontal: 20 }}>
-          <Text style={{ fontFamily: "DMSans_500Medium", color: "#9CA3AF", fontSize: 11, letterSpacing: 1, marginBottom: 12 }}>
-            CYCLE OVERVIEW
-          </Text>
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <View style={{ alignItems: "center", flex: 1 }}>
-              <Text style={{ fontFamily: "DMSans_700Bold", color: "#111827", fontSize: 17 }}>
-                {cycle ? `৳${Math.round(pool.regular).toLocaleString()}` : "—"}
-              </Text>
-              <Text style={{ fontFamily: "DMSans_400Regular", color: "#9CA3AF", fontSize: 12, marginTop: 2 }}>pool left</Text>
-            </View>
-            <View style={{ width: 1, height: 32, backgroundColor: "#EAECF0" }} />
-            <View style={{ alignItems: "center", flex: 1 }}>
-              <Text style={{ fontFamily: "DMSans_700Bold", color: "#111827", fontSize: 17 }}>
-                {cycle ? daysLeft : "—"}
-              </Text>
-              <Text style={{ fontFamily: "DMSans_400Regular", color: "#9CA3AF", fontSize: 12, marginTop: 2 }}>days left</Text>
-            </View>
-            <View style={{ width: 1, height: 32, backgroundColor: "#EAECF0" }} />
-            <View style={{ alignItems: "center", flex: 1 }}>
-              <Text style={{ fontFamily: "DMSans_700Bold", color: "#111827", fontSize: 17 }}>
-                {cycle ? `৳${Math.round(avgPerDay)}` : "—"}
-              </Text>
-              <Text style={{ fontFamily: "DMSans_400Regular", color: "#9CA3AF", fontSize: 12, marginTop: 2 }}>avg / day</Text>
-            </View>
-          </View>
         </View>
 
-        {/* ── Big Expenses Card ───────────────────────────────────────────── */}
-        <View style={{ backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#EAECF0", borderRadius: 16, padding: 16 }}>
-          {/* Header */}
-          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-            <Text style={{ fontFamily: "DMSans_500Medium", color: "#9CA3AF", fontSize: 11, letterSpacing: 1 }}>
+        <View style={{ padding: 16, gap: 12 }}>
+
+          {/* ── Cycle overview ── */}
+          <View style={{ backgroundColor: "#FFFFFF", borderRadius: 16, padding: 16 }}>
+            <Text style={{ fontSize: 11, fontFamily: "DMSans_600SemiBold", color: "#9CA3AF", letterSpacing: 0.8, marginBottom: 14 }}>
+              CYCLE OVERVIEW
+            </Text>
+            <View style={{ flexDirection: "row" }}>
+              <View style={{ flex: 1, alignItems: "center" }}>
+                <Text style={{ fontSize: 18, fontFamily: "DMSans_700Bold", color: "#111827" }}>
+                  ৳{Math.round(poolLeft).toLocaleString()}
+                </Text>
+                <Text style={{ fontSize: 12, fontFamily: "DMSans_400Regular", color: "#9CA3AF", marginTop: 3 }}>
+                  pool left
+                </Text>
+              </View>
+              <View style={{ width: 1, backgroundColor: "#F3F4F6" }} />
+              <View style={{ flex: 1, alignItems: "center" }}>
+                <Text style={{ fontSize: 18, fontFamily: "DMSans_700Bold", color: "#111827" }}>
+                  {daysLeft}
+                </Text>
+                <Text style={{ fontSize: 12, fontFamily: "DMSans_400Regular", color: "#9CA3AF", marginTop: 3 }}>
+                  days left
+                </Text>
+              </View>
+              <View style={{ width: 1, backgroundColor: "#F3F4F6" }} />
+              <View style={{ flex: 1, alignItems: "center" }}>
+                <Text style={{ fontSize: 18, fontFamily: "DMSans_700Bold", color: "#111827" }}>
+                  ৳{avgPerDay}
+                </Text>
+                <Text style={{ fontSize: 12, fontFamily: "DMSans_400Regular", color: "#9CA3AF", marginTop: 3 }}>
+                  avg / day
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          {/* ── Big expenses ── */}
+          <View style={{ backgroundColor: "#FFFFFF", borderRadius: 16, padding: 16 }}>
+            <Text style={{ fontSize: 11, fontFamily: "DMSans_600SemiBold", color: "#9CA3AF", letterSpacing: 0.8, marginBottom: 14 }}>
               BIG EXPENSES
             </Text>
-            <View style={{ backgroundColor: "#FEF3C7", borderRadius: 99, paddingHorizontal: 8, paddingVertical: 3 }}>
-              <Text style={{ fontFamily: "DMSans_500Medium", color: "#D97706", fontSize: 11 }}>
-                pending review
-              </Text>
-            </View>
+            {bigExpenses.map((expense) => (
+              <View
+                key={expense.id}
+                style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: "#F3F4F6" }}
+              >
+                <Text style={{ fontFamily: "DMSans_400Regular", color: "#374151", flex: 1 }}>{expense.note}</Text>
+                <Text style={{ fontFamily: "DMSans_600SemiBold", color: "#111827", marginLeft: 12 }}>৳{expense.amount}</Text>
+                <Pressable
+                  onPress={() => setDeleteTarget(expense)}
+                  style={{ marginLeft: 12, width: 22, height: 22, borderRadius: 11, backgroundColor: "#F3F4F6", alignItems: "center", justifyContent: "center" }}
+                >
+                  <Text style={{ fontSize: 12, color: "#6B7280", lineHeight: 14 }}>✕</Text>
+                </Pressable>
+              </View>
+            ))}
+            <Pressable
+              onPress={() => setModalVisible(true)}
+              style={{ borderWidth: 1.5, borderColor: "#4F46E5", borderStyle: "dashed", borderRadius: 12, paddingVertical: 14, alignItems: "center", marginTop: bigExpenses.length > 0 ? 10 : 0 }}
+            >
+              <Text style={{ color: "#4F46E5", fontFamily: "DMSans_500Medium", fontSize: 14 }}>+ Log a big expense</Text>
+            </Pressable>
           </View>
 
-          {/* Expense rows */}
-          {daily.bigExpenses.map((expense) => (
-            <TouchableOpacity
-              key={expense.id}
-              onPress={() => openEditModal(expense)}
-              activeOpacity={0.7}
-              style={{
-                flexDirection: "row", alignItems: "center",
-                paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: "#EAECF0",
-                marginBottom: 4,
-              }}
-            >
-              <Text
-                numberOfLines={1}
-                ellipsizeMode="tail"
-                style={{ fontFamily: "DMSans_400Regular", color: "#111827", fontSize: 14, flex: 1, marginRight: 8 }}
-              >
-                {expense.note}
-              </Text>
-              <Text style={{ fontFamily: "DMSans_600SemiBold", color: "#111827", fontSize: 14, marginRight: 12 }}>
-                ৳{expense.amount.toLocaleString()}
-              </Text>
-              <TouchableOpacity
-                onPress={() => openDeleteConfirm(expense)}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="close-circle-outline" size={20} color="#9CA3AF" />
-              </TouchableOpacity>
-            </TouchableOpacity>
-          ))}
-
-          {/* Dashed add button */}
-          <TouchableOpacity
-            onPress={openAddModal}
-            activeOpacity={0.7}
-            style={{
-              borderWidth: 1.5, borderColor: "#4F46E5", borderStyle: "dashed",
-              borderRadius: 10, paddingVertical: 12, flexDirection: "row",
-              alignItems: "center", justifyContent: "center", gap: 8,
-              marginTop: daily.bigExpenses.length > 0 ? 8 : 0,
-            }}
-          >
-            <Ionicons name="add" size={18} color="#4F46E5" />
-            <Text style={{ fontFamily: "DMSans_600SemiBold", color: "#4F46E5", fontSize: 14 }}>
-              Log a big expense
-            </Text>
-          </TouchableOpacity>
         </View>
-
       </ScrollView>
 
-      {/* ── Add Modal ───────────────────────────────────────────────────────── */}
-      <Modal visible={addModalVisible} transparent animationType="none" onRequestClose={() => setAddModalVisible(false)}>
-        <Pressable
-          style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", padding: 20 }}
-          onPress={() => setAddModalVisible(false)}
+      {/* ── Big expense modal ── */}
+      <Modal visible={modalVisible} transparent animationType="fade" onRequestClose={handleCloseModal}>
+        <KeyboardAvoidingView
+          style={{ flex: 1, justifyContent: "center", paddingHorizontal: 24, backgroundColor: "rgba(0,0,0,0.4)" }}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
         >
-          <Pressable onPress={() => {}}>
-            <View style={{ backgroundColor: "#FFFFFF", borderRadius: 20, padding: 24 }}>
-              <Text style={{ fontFamily: "DMSans_700Bold", color: "#111827", fontSize: 18, marginBottom: 20 }}>
-                Log big expense
-              </Text>
+          <Pressable style={{ position: "absolute", top: 0, bottom: 0, left: 0, right: 0 }} onPress={handleCloseModal} />
+          <View style={{ backgroundColor: "#FFFFFF", borderRadius: 24, padding: 24 }}>
+            <Text style={{ fontSize: 18, fontFamily: "DMSans_700Bold", color: "#111827", marginBottom: 24 }}>
+              Log a big expense
+            </Text>
 
-              <Text style={{ fontFamily: "DMSans_500Medium", color: "#6B7280", fontSize: 12, letterSpacing: 1, marginBottom: 8 }}>NOTE</Text>
-              <View style={{ backgroundColor: "#F8F9FB", borderWidth: 1, borderColor: "#EAECF0", borderRadius: 12, padding: 14, marginBottom: 16 }}>
-                <TextInput
-                  value={modalNote}
-                  onChangeText={setModalNote}
-                  placeholder="What was it?"
-                  placeholderTextColor="#9CA3AF"
-                  style={{ fontFamily: "DMSans_400Regular", color: "#111827", fontSize: 15 }}
-                />
-              </View>
+            <Text style={{ fontSize: 13, fontFamily: "DMSans_500Medium", color: "#6B7280", marginBottom: 6 }}>What was it?</Text>
+            <TextInput
+              value={expenseNote}
+              onChangeText={setExpenseNote}
+              placeholder="e.g. Dinner with friends"
+              placeholderTextColor="#D1D5DB"
+              style={{ borderWidth: 1, borderColor: "#E5E7EB", borderRadius: 10, padding: 12, fontFamily: "DMSans_400Regular", fontSize: 15, marginBottom: 16, color: "#111827" }}
+            />
 
-              <Text style={{ fontFamily: "DMSans_500Medium", color: "#6B7280", fontSize: 12, letterSpacing: 1, marginBottom: 8 }}>AMOUNT</Text>
-              <View style={{ backgroundColor: "#F8F9FB", borderWidth: 1, borderColor: "#EAECF0", borderRadius: 12, padding: 14, flexDirection: "row", alignItems: "center", marginBottom: 24 }}>
-                <Text style={{ fontFamily: "DMSans_400Regular", color: "#6B7280", fontSize: 15, marginRight: 6 }}>৳</Text>
-                <TextInput
-                  value={modalAmount}
-                  onChangeText={(t) => setModalAmount(t.replace(/[^0-9.]/g, "").replace(/(\..*)\./g, "$1"))}
-                  keyboardType="numeric"
-                  placeholder="0"
-                  placeholderTextColor="#9CA3AF"
-                  style={{ fontFamily: "DMSans_400Regular", color: "#111827", fontSize: 15, flex: 1 }}
-                />
-              </View>
+            <Text style={{ fontSize: 13, fontFamily: "DMSans_500Medium", color: "#6B7280", marginBottom: 6 }}>Amount (৳)</Text>
+            <TextInput
+              value={expenseAmount}
+              onChangeText={setExpenseAmount}
+              placeholder="0"
+              placeholderTextColor="#D1D5DB"
+              keyboardType="numeric"
+              style={{ borderWidth: 1, borderColor: "#E5E7EB", borderRadius: 10, padding: 12, fontFamily: "DMSans_400Regular", fontSize: 15, marginBottom: 28, color: "#111827" }}
+            />
 
-              <TouchableOpacity
-                onPress={addExpense}
-                disabled={!canSubmit}
-                activeOpacity={canSubmit ? 0.85 : 1}
-                style={{
-                  backgroundColor: canSubmit ? "#4F46E5" : "#EAECF0",
-                  borderRadius: 12, paddingVertical: 15, alignItems: "center",
-                  elevation: canSubmit ? 4 : 0,
-                  shadowColor: "#4F46E5", shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: canSubmit ? 0.25 : 0, shadowRadius: 8,
-                }}
+            <View style={{ flexDirection: "row", gap: 12 }}>
+              <Pressable
+                onPress={handleCloseModal}
+                style={{ flex: 1, backgroundColor: "#F3F4F6", borderRadius: 12, paddingVertical: 14, alignItems: "center" }}
               >
-                <Text style={{ fontFamily: "DMSans_600SemiBold", color: canSubmit ? "#FFFFFF" : "#9CA3AF", fontSize: 15 }}>
-                  Log expense
-                </Text>
-              </TouchableOpacity>
+                <Text style={{ fontFamily: "DMSans_600SemiBold", color: "#6B7280" }}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                onPress={logItActive ? handleAddExpense : null}
+                style={{ flex: 1, backgroundColor: logItActive ? "#4F46E5" : "#C7D2FE", borderRadius: 12, paddingVertical: 14, alignItems: "center" }}
+              >
+                <Text style={{ fontFamily: "DMSans_600SemiBold", color: "#FFFFFF" }}>Log it</Text>
+              </Pressable>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* ── Delete confirmation modal ── */}
+      <Modal visible={!!deleteTarget} transparent animationType="fade" onRequestClose={() => setDeleteTarget(null)}>
+        <Pressable
+          style={{ flex: 1, justifyContent: "center", paddingHorizontal: 24, backgroundColor: "rgba(0,0,0,0.4)" }}
+          onPress={() => setDeleteTarget(null)}
+        >
+          <Pressable style={{ backgroundColor: "#FFFFFF", borderRadius: 24, padding: 24 }}>
+            <Text style={{ fontSize: 16, fontFamily: "DMSans_700Bold", color: "#111827", marginBottom: 8 }}>
+              Delete expense?
+            </Text>
+            <Text style={{ fontSize: 14, fontFamily: "DMSans_400Regular", color: "#6B7280", marginBottom: 24 }}>
+              "{deleteTarget?.note}" (৳{deleteTarget?.amount}) will be removed.
+            </Text>
+            <View style={{ flexDirection: "row", gap: 12 }}>
+              <Pressable
+                onPress={() => setDeleteTarget(null)}
+                style={{ flex: 1, backgroundColor: "#F3F4F6", borderRadius: 12, paddingVertical: 14, alignItems: "center" }}
+              >
+                <Text style={{ fontFamily: "DMSans_600SemiBold", color: "#6B7280" }}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => { removeBigExpense(deleteTarget.id); setDeleteTarget(null); }}
+                style={{ flex: 1, backgroundColor: "#DC2626", borderRadius: 12, paddingVertical: 14, alignItems: "center" }}
+              >
+                <Text style={{ fontFamily: "DMSans_600SemiBold", color: "#FFFFFF" }}>Delete</Text>
+              </Pressable>
             </View>
           </Pressable>
         </Pressable>
       </Modal>
-
-      {/* ── Edit Modal ──────────────────────────────────────────────────────── */}
-      <Modal visible={editModalVisible} transparent animationType="none" onRequestClose={() => setEditModalVisible(false)}>
-        <Pressable
-          style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", padding: 20 }}
-          onPress={() => setEditModalVisible(false)}
-        >
-          <Pressable onPress={() => {}}>
-            <View style={{ backgroundColor: "#FFFFFF", borderRadius: 20, padding: 24 }}>
-              <Text style={{ fontFamily: "DMSans_700Bold", color: "#111827", fontSize: 18, marginBottom: 20 }}>
-                Edit expense
-              </Text>
-
-              <Text style={{ fontFamily: "DMSans_500Medium", color: "#6B7280", fontSize: 12, letterSpacing: 1, marginBottom: 8 }}>NOTE</Text>
-              <View style={{ backgroundColor: "#F8F9FB", borderWidth: 1, borderColor: "#EAECF0", borderRadius: 12, padding: 14, marginBottom: 16 }}>
-                <TextInput
-                  value={modalNote}
-                  onChangeText={setModalNote}
-                  placeholder="What was it?"
-                  placeholderTextColor="#9CA3AF"
-                  style={{ fontFamily: "DMSans_400Regular", color: "#111827", fontSize: 15 }}
-                />
-              </View>
-
-              <Text style={{ fontFamily: "DMSans_500Medium", color: "#6B7280", fontSize: 12, letterSpacing: 1, marginBottom: 8 }}>AMOUNT</Text>
-              <View style={{ backgroundColor: "#F8F9FB", borderWidth: 1, borderColor: "#EAECF0", borderRadius: 12, padding: 14, flexDirection: "row", alignItems: "center", marginBottom: 24 }}>
-                <Text style={{ fontFamily: "DMSans_400Regular", color: "#6B7280", fontSize: 15, marginRight: 6 }}>৳</Text>
-                <TextInput
-                  value={modalAmount}
-                  onChangeText={(t) => setModalAmount(t.replace(/[^0-9.]/g, "").replace(/(\..*)\./g, "$1"))}
-                  keyboardType="numeric"
-                  placeholder="0"
-                  placeholderTextColor="#9CA3AF"
-                  style={{ fontFamily: "DMSans_400Regular", color: "#111827", fontSize: 15, flex: 1 }}
-                />
-              </View>
-
-              <TouchableOpacity
-                onPress={saveEdit}
-                disabled={!canSubmit}
-                activeOpacity={canSubmit ? 0.85 : 1}
-                style={{
-                  backgroundColor: canSubmit ? "#4F46E5" : "#EAECF0",
-                  borderRadius: 12, paddingVertical: 15, alignItems: "center", marginBottom: 10,
-                  elevation: canSubmit ? 4 : 0,
-                  shadowColor: "#4F46E5", shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: canSubmit ? 0.25 : 0, shadowRadius: 8,
-                }}
-              >
-                <Text style={{ fontFamily: "DMSans_600SemiBold", color: canSubmit ? "#FFFFFF" : "#9CA3AF", fontSize: 15 }}>
-                  Save changes
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={() => openDeleteConfirm(selectedExpense)}
-                activeOpacity={0.8}
-                style={{ backgroundColor: "#FEE2E2", borderRadius: 12, paddingVertical: 15, alignItems: "center" }}
-              >
-                <Text style={{ fontFamily: "DMSans_600SemiBold", color: "#DC2626", fontSize: 15 }}>
-                  Delete
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
-
-      {/* ── Delete Confirm Modal ─────────────────────────────────────────────── */}
-      <Modal visible={deleteConfirmVisible} transparent animationType="none" onRequestClose={() => setDeleteConfirmVisible(false)}>
-        <Pressable
-          style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", padding: 20 }}
-          onPress={() => setDeleteConfirmVisible(false)}
-        >
-          <Pressable onPress={() => {}}>
-            <View style={{ backgroundColor: "#FFFFFF", borderRadius: 20, padding: 24 }}>
-              <Text style={{ fontFamily: "DMSans_700Bold", color: "#111827", fontSize: 18, marginBottom: 8 }}>
-                Remove this expense?
-              </Text>
-              <Text style={{ fontFamily: "DMSans_400Regular", color: "#6B7280", fontSize: 14, lineHeight: 22, marginBottom: 24 }}>
-                "{selectedExpense?.note}" will be removed from today's pending list.
-              </Text>
-
-              <TouchableOpacity
-                onPress={confirmDelete}
-                activeOpacity={0.85}
-                style={{ backgroundColor: "#DC2626", borderRadius: 12, paddingVertical: 15, alignItems: "center", marginBottom: 10 }}
-              >
-                <Text style={{ fontFamily: "DMSans_600SemiBold", color: "#FFFFFF", fontSize: 15 }}>
-                  Yes, remove it
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={() => setDeleteConfirmVisible(false)}
-                activeOpacity={0.8}
-                style={{ backgroundColor: "#FFFFFF", borderRadius: 12, paddingVertical: 15, alignItems: "center", borderWidth: 1, borderColor: "#EAECF0" }}
-              >
-                <Text style={{ fontFamily: "DMSans_600SemiBold", color: "#111827", fontSize: 15 }}>
-                  Cancel
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
-
-    </SafeAreaView>
+    </View>
   );
 }
