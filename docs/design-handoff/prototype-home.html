@@ -1,0 +1,1735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Duit — Home Screen Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --indigo: #4F46E5;
+    --indigo-light: #EEF2FF;
+    --indigo-dark: #3730A3;
+    --sky: #0EA5E9;
+    --sky-light: #E0F2FE;
+    --red: #EF4444;
+    --red-light: #FEF2F2;
+    --amber: #F59E0B;
+    --amber-light: #FFFBEB;
+    --green: #10B981;
+    --green-light: #ECFDF5;
+    --text: #111827;
+    --text-sub: #6B7280;
+    --text-placeholder: #9CA3AF;
+    --border: #E5E7EB;
+    --surface: #F9FAFB;
+    --white: #ffffff;
+    --bg: #EEEEF2;
+    --font: 'Plus Jakarta Sans', sans-serif;
+  }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 32px;
+    padding: 24px;
+  }
+
+  /* ── PHONE FRAME ── */
+  .phone-wrap {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding-top: 8px;
+  }
+
+  .phone {
+    width: 390px;
+    height: 844px;
+    background: #EBEBF0;
+    border-radius: 50px;
+    border: 8px solid #1C1C1E;
+    box-shadow: 0 0 0 1px #3a3a3c, 0 40px 80px rgba(0,0,0,0.25), inset 0 0 0 1px rgba(255,255,255,0.1);
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* notch */
+  .phone::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 120px; height: 34px;
+    background: #1C1C1E;
+    border-radius: 0 0 20px 20px;
+    z-index: 100;
+  }
+
+  .phone-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: none;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+  .phone-content::-webkit-scrollbar { display: none; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── STATE SCREENS ── */
+  .screen {
+    display: none;
+    flex-direction: column;
+    flex: 1;
+    animation: fadeIn 0.2s ease;
+  }
+  .screen.active { display: flex; }
+
+  /* ── STATE 1 — NORMAL HOME ── */
+
+  /* Cards scroll area — the full scrollable canvas */
+  .cards-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 54px 16px 110px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    scrollbar-width: none;
+  }
+  .cards-area::-webkit-scrollbar { display: none; }
+
+  /* Hero card — indigo rounded rectangle */
+  .hero {
+    background: var(--indigo);
+    border-radius: 24px;
+    padding: 22px 22px 24px;
+    flex-shrink: 0;
+    box-shadow: 0 4px 20px rgba(79,70,229,0.3);
+  }
+  .hero-meta {
+    font-size: 13px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.65);
+    margin-bottom: 18px;
+    letter-spacing: 0.01em;
+  }
+  .hero-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.7);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 6px;
+  }
+  .hero-amount {
+    font-size: 52px;
+    font-weight: 800;
+    color: var(--white);
+    letter-spacing: -2px;
+    line-height: 1;
+  }
+  .hero-amount.negative { color: #FCA5A5; }
+  .hero-extra {
+    margin-top: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #7DD3FC;
+    letter-spacing: -0.2px;
+  }
+
+  /* White card */
+  .card {
+    background: var(--white);
+    border-radius: 20px;
+    padding: 18px 18px 14px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+  }
+  .card-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-sub);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin-bottom: 14px;
+  }
+
+  /* Cycle overview pills */
+  .pills-row {
+    display: flex;
+    gap: 8px;
+  }
+  .pill {
+    flex: 1;
+    background: var(--surface);
+    border-radius: 14px;
+    padding: 12px 10px;
+    text-align: center;
+    border: 1.5px solid var(--border);
+  }
+  .pill-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-sub);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 5px;
+  }
+  .pill-value {
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: -0.5px;
+  }
+  .pill-value.muted { color: var(--text-sub); }
+
+  /* Spend / extra cash entries — plain list style */
+  .entry-list {
+    display: flex;
+    flex-direction: column;
+    max-height: 200px;
+    overflow-y: auto;
+    scrollbar-width: none;
+    margin-bottom: 12px;
+  }
+  .entry-list::-webkit-scrollbar { display: none; }
+  .entry-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .entry-row:last-child { border-bottom: none; }
+  .entry-note {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .entry-note.placeholder { color: var(--text-placeholder); font-style: italic; }
+  .entry-amount {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .entry-amount.sky { color: var(--sky); }
+  .btn-delete {
+    width: 24px; height: 24px;
+    border: none;
+    background: none;
+    color: var(--text-placeholder);
+    cursor: pointer;
+    font-size: 18px;
+    font-weight: 400;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    line-height: 1;
+    padding: 0;
+  }
+
+  .btn-add-entry {
+    width: 100%;
+    padding: 10px;
+    background: transparent;
+    border: 1.5px dashed var(--border);
+    border-radius: 12px;
+    font-family: var(--font);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-sub);
+    cursor: pointer;
+  }
+
+  /* ── BOTTOM NAV — floating pill ── */
+  .bottom-nav {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--white);
+    border-radius: 50px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.16), 0 2px 8px rgba(0,0,0,0.08);
+    display: flex;
+    align-items: center;
+    padding: 8px 6px;
+    gap: 2px;
+    z-index: 50;
+    white-space: nowrap;
+  }
+  .nav-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    cursor: pointer;
+    padding: 7px 18px;
+    border-radius: 40px;
+  }
+  .nav-tab svg {
+    width: 20px; height: 20px;
+    stroke: var(--text-sub);
+    fill: none;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .nav-tab span {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-sub);
+    letter-spacing: 0.02em;
+  }
+  .nav-tab.active { background: var(--indigo-light); }
+  .nav-tab.active svg { stroke: var(--indigo); }
+  .nav-tab.active span { color: var(--indigo); }
+
+  /* ── MISSED REVIEW DOT ── */
+  .nav-icon-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .missed-dot {
+    display: none;
+    position: absolute;
+    top: -2px; right: -4px;
+    width: 8px; height: 8px;
+    background: var(--red);
+    border-radius: 50%;
+    border: 1.5px solid var(--white);
+  }
+  .show-missed .missed-dot { display: block; }
+
+  /* ── STATE 2 — REVIEW IN PROGRESS ── */
+  .blocking-screen {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 32px;
+    text-align: center;
+    gap: 14px;
+  }
+  .blocking-icon {
+    width: 64px; height: 64px;
+    border-radius: 20px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 4px;
+  }
+  .blocking-icon svg { width: 32px; height: 32px; }
+  .blocking-icon.amber-icon { background: var(--amber-light); }
+  .blocking-icon.amber-icon svg { stroke: var(--amber); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .blocking-icon.green-icon { background: var(--green-light); }
+  .blocking-icon.green-icon svg { stroke: var(--green); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .blocking-icon.indigo-icon { background: var(--indigo-light); }
+  .blocking-icon.indigo-icon svg { stroke: var(--indigo); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .blocking-title {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: -0.5px;
+    line-height: 1.2;
+  }
+  .blocking-sub {
+    font-size: 14px;
+    color: var(--text-sub);
+    line-height: 1.6;
+    max-width: 260px;
+  }
+
+  /* ── STATE 4 — CYCLE ENDED ── */
+  .cycle-end-screen {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 50px 20px 32px;
+    overflow-y: auto;
+    gap: 12px;
+  }
+  .cycle-end-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 8px;
+    padding-bottom: 4px;
+  }
+  .confetti-placeholder {
+    width: 72px; height: 72px;
+    background: var(--indigo-light);
+    border-radius: 22px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 36px;
+    margin-bottom: 4px;
+  }
+  .cycle-end-title {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: -0.8px;
+  }
+  .cycle-end-sub {
+    font-size: 14px;
+    color: var(--text-sub);
+    line-height: 1.5;
+  }
+  .stat-group-card {
+    background: var(--white);
+    border: 1.5px solid var(--border);
+    border-radius: 18px;
+    padding: 16px;
+  }
+  .stat-group-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-sub);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin-bottom: 14px;
+  }
+  .stat-row-3 {
+    display: flex;
+    gap: 8px;
+  }
+  .stat-item {
+    flex: 1;
+    text-align: center;
+  }
+  .stat-item-value {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: -0.5px;
+    line-height: 1;
+  }
+  .stat-item-value.green { color: var(--green); }
+  .stat-item-value.red   { color: var(--red); }
+  .stat-item-value.amber { color: var(--amber); }
+  .stat-item-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-sub);
+    margin-top: 4px;
+    line-height: 1.3;
+  }
+  .stat-divider {
+    width: 1px;
+    background: var(--border);
+    align-self: stretch;
+    flex-shrink: 0;
+  }
+  .stat-row-2 {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1.5px solid var(--border);
+  }
+  .stat-full {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1.5px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .stat-full-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-sub);
+  }
+  .stat-full-value {
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: -0.4px;
+  }
+  .extra-cash-card {
+    background: var(--sky-light);
+    border: 1.5px solid #BAE6FD;
+    border-radius: 18px;
+    padding: 16px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .extra-cash-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--sky);
+  }
+  .extra-cash-value {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--sky);
+    letter-spacing: -0.5px;
+  }
+  .cycle-end-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 4px;
+    flex-shrink: 0;
+  }
+  .btn {
+    width: 100%;
+    padding: 16px;
+    border: none;
+    border-radius: 16px;
+    font-family: var(--font);
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: -0.2px;
+  }
+  .btn-primary {
+    background: var(--indigo);
+    color: var(--white);
+    box-shadow: 0 4px 16px rgba(79,70,229,0.35);
+  }
+  .btn-ghost {
+    background: var(--surface);
+    color: var(--text-sub);
+    border: 1.5px solid var(--border);
+  }
+
+  /* ── STATE 5 — WAITING ── */
+  .waiting-screen {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 50px 28px 40px;
+    text-align: center;
+    gap: 16px;
+  }
+  .waiting-icon {
+    width: 72px; height: 72px;
+    background: var(--sky-light);
+    border-radius: 22px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 36px;
+    margin-bottom: 4px;
+  }
+  .waiting-title {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: -0.5px;
+  }
+  .waiting-msg {
+    font-size: 14px;
+    color: var(--text-sub);
+    line-height: 1.7;
+    max-width: 260px;
+    font-style: italic;
+  }
+  .waiting-actions {
+    width: 100%;
+    margin-top: 8px;
+  }
+
+  /* ── ENTRY MODALS (add spend / add extra cash) ── */
+  .sheet-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 200;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .sheet-backdrop.open { display: flex; animation: fadeIn 0.15s ease; }
+  .sheet {
+    width: 100%;
+    background: var(--white);
+    border-radius: 24px;
+    padding: 22px 20px 20px;
+    animation: fadeIn 0.15s ease;
+  }
+  .sheet-handle { display: none; }
+  .sheet-title {
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: -0.3px;
+    margin-bottom: 18px;
+  }
+  .sheet-field {
+    margin-bottom: 12px;
+  }
+  .sheet-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-sub);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin-bottom: 6px;
+  }
+  .sheet-input {
+    width: 100%;
+    padding: 13px 16px;
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    font-family: var(--font);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    background: var(--white);
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .sheet-input:focus {
+    border-color: var(--indigo);
+    box-shadow: 0 0 0 3px rgba(79,70,229,0.1);
+  }
+  .sheet-input::placeholder { color: var(--text-placeholder); font-weight: 400; }
+  .sheet-input.amount-big {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+  }
+  .sheet-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .sheet-actions .btn { padding: 14px; font-size: 15px; }
+
+  /* ── MODALS ── */
+  .modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 300;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-backdrop.open { display: flex; animation: fadeIn 0.15s ease; }
+  .modal {
+    background: var(--white);
+    border-radius: 24px;
+    padding: 22px 20px 20px;
+    width: 100%;
+    max-height: 86%;
+    overflow-y: auto;
+    scrollbar-width: none;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .modal::-webkit-scrollbar { display: none; }
+  .modal-header { display: flex; align-items: flex-start; gap: 12px; }
+  .modal-icon {
+    width: 40px; height: 40px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .modal-icon svg { width: 20px; height: 20px; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .modal-icon.amber { background: var(--amber-light); }
+  .modal-icon.amber svg { stroke: var(--amber); }
+  .modal-icon.red   { background: var(--red-light); }
+  .modal-icon.red   svg { stroke: var(--red); }
+  .modal-title { font-size: 16px; font-weight: 800; color: var(--text); letter-spacing: -0.3px; line-height: 1.3; padding-top: 8px; }
+  .modal-body  { font-size: 14px; color: var(--text-sub); line-height: 1.6; }
+
+  .modal-stat-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .modal-stat-row:last-child { border-bottom: none; }
+  .modal-stat-label { font-size: 13px; font-weight: 500; color: var(--text-sub); }
+  .modal-stat-value { font-size: 15px; font-weight: 800; color: var(--text); }
+  .modal-stat-value.red   { color: var(--red); }
+  .modal-stat-value.green { color: var(--green); }
+
+  /* Source rows */
+  .source-row { display: flex; flex-direction: column; }
+  .source-row-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .source-toggle { width: 18px; height: 18px; cursor: pointer; accent-color: var(--indigo); flex-shrink: 0; }
+  .source-name  { flex: 1; font-size: 14px; font-weight: 500; color: var(--text); }
+  .source-bal   { font-size: 14px; font-weight: 700; color: var(--text); }
+  .source-bal.greyed { color: var(--text-placeholder); }
+
+  .slider-row {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 10px 10px;
+    margin-bottom: 2px;
+  }
+  .slider-row.visible { display: flex; }
+  .slider-input { flex: 1; accent-color: var(--indigo); cursor: pointer; height: 4px; }
+  .slider-number {
+    width: 72px;
+    padding: 6px 10px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    text-align: right;
+    outline: none;
+    background: var(--white);
+  }
+  .slider-number:focus { border-color: var(--indigo); }
+
+  /* Live stats */
+  .modal-live-stats {
+    background: var(--surface);
+    border-radius: 14px;
+    padding: 14px 16px;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .modal-live-stat { text-align: center; flex: 1; }
+  .modal-live-label { font-size: 11px; font-weight: 600; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+  .modal-live-value { font-size: 16px; font-weight: 800; color: var(--text); letter-spacing: -0.4px; }
+  .modal-live-value.green { color: var(--green); }
+  .modal-live-value.red   { color: var(--red); }
+  .modal-live-divider { width: 1px; background: var(--border); }
+
+  .modal-actions { display: flex; gap: 8px; }
+  .modal-actions .btn { padding: 14px; font-size: 14px; }
+
+  /* Pull everything button */
+  .pull-btn {
+    width: 100%;
+    padding: 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    font-family: var(--font);
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    background: var(--surface);
+    color: var(--text);
+    letter-spacing: -0.2px;
+  }
+  .pull-btn.selected { background: var(--green-light); border-color: var(--green); color: var(--green); }
+
+  /* ── CONTROL PANEL ── */
+  .control-panel {
+    width: 220px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding-top: 8px;
+  }
+  .panel-section {
+    background: var(--white);
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .panel-section-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-sub);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 10px;
+  }
+  .panel-btn {
+    width: 100%;
+    padding: 9px 12px;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.12s;
+    margin-bottom: 6px;
+  }
+  .panel-btn:last-child { margin-bottom: 0; }
+  .panel-btn:hover { border-color: var(--indigo); color: var(--indigo); background: var(--indigo-light); }
+  .panel-btn.active {
+    background: var(--indigo);
+    color: var(--white);
+    border-color: var(--indigo);
+  }
+</style>
+</head>
+<body>
+
+<!-- ── PHONE ── -->
+<div class="phone-wrap">
+  <div class="phone">
+    <div class="phone-content" id="phoneContent">
+
+      <!-- STATE 1 — NORMAL -->
+      <div class="screen active" id="screen-normal" style="position:relative;">
+
+        <div class="cards-area">
+          <!-- Hero card -->
+          <div class="hero">
+            <div class="hero-meta" id="heroMeta">Sunday, 22 March &nbsp;·&nbsp; Day 14 of 30</div>
+            <div class="hero-label">Left today</div>
+            <div class="hero-amount" id="heroAmount">৳1,240</div>
+            <div class="hero-extra" id="heroExtra" style="display:none;"></div>
+          </div>
+
+          <!-- Cycle overview -->
+          <div class="card">
+            <div class="card-title">This cycle</div>
+            <div class="pills-row">
+              <div class="pill">
+                <div class="pill-label">Left in cycle</div>
+                <div class="pill-value" id="pillCycleLeft">৳32,400</div>
+              </div>
+              <div class="pill">
+                <div class="pill-label">Days left</div>
+                <div class="pill-value" id="pillDaysLeft">16</div>
+              </div>
+              <div class="pill">
+                <div class="pill-label">Daily avg</div>
+                <div class="pill-value muted" id="pillDailyAvg">৳1,580</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Spending card -->
+          <div class="card">
+            <div class="card-title">Spending</div>
+            <div class="entry-list" id="spendList"></div>
+            <button class="btn-add-entry" onclick="openSheet('spend')">+ Add spend</button>
+          </div>
+
+          <!-- Extra cash card -->
+          <div class="card">
+            <div class="card-title">Extra Cash</div>
+            <div class="entry-list" id="extraList"></div>
+            <button class="btn-add-entry sky-add" onclick="openSheet('extra')">+ Add extra cash</button>
+          </div>
+        </div>
+
+        <!-- Bottom nav -->
+        <div class="bottom-nav">
+          <div class="nav-tab active">
+            <svg viewBox="0 0 24 24"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg>
+            <span>Home</span>
+          </div>
+          <div class="nav-tab" id="logTab">
+            <div class="nav-icon-wrap">
+              <svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="12" y2="16"/></svg>
+              <div class="missed-dot"></div>
+            </div>
+            <span>Log</span>
+          </div>
+          <div class="nav-tab">
+            <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            <span>Stats</span>
+          </div>
+          <div class="nav-tab">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+            <span>More</span>
+          </div>
+        </div>
+
+        <!-- Add Spend bottom sheet -->
+        <div class="sheet-backdrop" id="sheetSpend" onclick="closeSheet('spend', event)">
+          <div class="sheet">
+            <div class="sheet-handle"></div>
+            <div class="sheet-title">Add spend</div>
+            <div class="sheet-field">
+              <div class="sheet-label">Amount</div>
+              <input class="sheet-input amount-big" id="spendAmount" type="number" placeholder="0" inputmode="decimal">
+            </div>
+            <div class="sheet-field">
+              <div class="sheet-label">Note (optional)</div>
+              <input class="sheet-input" id="spendNote" type="text" placeholder="e.g. lunch, transport…">
+            </div>
+            <div class="sheet-actions">
+              <button class="btn btn-ghost" style="flex:1" onclick="closeSheet('spend')">Cancel</button>
+              <button class="btn btn-primary" style="flex:2" onclick="saveSpend()">Save</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Add Extra Cash bottom sheet -->
+        <div class="sheet-backdrop" id="sheetExtra" onclick="closeSheet('extra', event)">
+          <div class="sheet">
+            <div class="sheet-handle"></div>
+            <div class="sheet-title">Add extra cash</div>
+            <div class="sheet-field">
+              <div class="sheet-label">Amount</div>
+              <input class="sheet-input amount-big" id="extraAmount" type="number" placeholder="0" inputmode="decimal">
+            </div>
+            <div class="sheet-field">
+              <div class="sheet-label">Label (optional)</div>
+              <input class="sheet-input" id="extraLabel" type="text" placeholder="e.g. bonus, refund…">
+            </div>
+            <div class="sheet-actions">
+              <button class="btn btn-ghost" style="flex:1" onclick="closeSheet('extra')">Cancel</button>
+              <button class="btn btn-primary" style="flex:2" onclick="saveExtra()">Save</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- MODAL: Hard cap error -->
+        <div class="modal-backdrop" id="modalHardCap" onclick="closeModalOnBackdrop('modalHardCap',event)">
+          <div class="modal">
+            <div class="modal-header">
+              <div class="modal-icon red">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><circle cx="12" cy="16" r="1" fill="var(--red)" stroke="none"/></svg>
+              </div>
+              <div class="modal-title">That's more than you have</div>
+            </div>
+            <div class="modal-body" id="hardCapBody">This spend exceeds everything you have available — your remaining pool, savings, and reservations combined.</div>
+            <div class="modal-actions">
+              <button class="btn btn-primary" style="flex:1" onclick="closeModal('modalHardCap')">Go back</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- MODAL: Consequences warning (no sources) -->
+        <div class="modal-backdrop" id="modalConsequences" onclick="closeModalOnBackdrop('modalConsequences',event)">
+          <div class="modal">
+            <div class="modal-header">
+              <div class="modal-icon amber">
+                <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><circle cx="12" cy="17" r="1" fill="var(--amber)" stroke="none"/></svg>
+              </div>
+              <div class="modal-title">Your daily budget will drop</div>
+            </div>
+            <div class="modal-body" id="consequencesBody"></div>
+            <div id="consequencesStats"></div>
+            <div class="modal-actions">
+              <button class="btn btn-ghost" style="flex:1" onclick="closeModal('modalConsequences')">Go back</button>
+              <button class="btn btn-primary" style="flex:2" onclick="closeModal('modalConsequences'); commitSpend()">Proceed anyway</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- MODAL 1: Partial pulls possible -->
+        <div class="modal-backdrop" id="modal1" onclick="closeModalOnBackdrop('modal1',event)">
+          <div class="modal">
+            <div class="modal-header">
+              <div class="modal-icon amber">
+                <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><circle cx="12" cy="17" r="1" fill="var(--amber)" stroke="none"/></svg>
+              </div>
+              <div class="modal-title">Pull from your safety net?</div>
+            </div>
+            <div class="modal-body">This spend pushes your daily budget below your alert. Pull from savings or reservations to bring it back up.</div>
+            <div id="modal1Sources"></div>
+            <div class="modal-live-stats">
+              <div class="modal-live-stat">
+                <div class="modal-live-label">New daily</div>
+                <div class="modal-live-value red" id="modal1NewDaily">৳0</div>
+              </div>
+              <div class="modal-live-divider"></div>
+              <div class="modal-live-stat">
+                <div class="modal-live-label">Alert</div>
+                <div class="modal-live-value">৳<span id="modal1AlertLabel">300</span></div>
+              </div>
+              <div class="modal-live-divider"></div>
+              <div class="modal-live-stat">
+                <div class="modal-live-label">Pulling</div>
+                <div class="modal-live-value" id="modal1Pulling">৳0</div>
+              </div>
+            </div>
+            <div class="modal-actions">
+              <button class="btn btn-ghost" style="flex:1" onclick="closeModal('modal1'); commitSpend()">Proceed anyway</button>
+              <button class="btn btn-primary" style="flex:2" id="modal1Confirm" onclick="confirmModal1()" disabled>Confirm</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- MODAL 2: Pull everything -->
+        <div class="modal-backdrop" id="modal2" onclick="closeModalOnBackdrop('modal2',event)">
+          <div class="modal">
+            <div class="modal-header">
+              <div class="modal-icon amber">
+                <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><circle cx="12" cy="17" r="1" fill="var(--amber)" stroke="none"/></svg>
+              </div>
+              <div class="modal-title">Only one way to reach your target</div>
+            </div>
+            <div class="modal-body">Pulling everything available brings your daily budget to exactly your alert threshold.</div>
+            <div id="modal2Sources"></div>
+            <button class="pull-btn" id="modal2PullBtn" onclick="selectPullAll()">Pull everything — ৳<span id="modal2PullAmount">0</span></button>
+            <div class="modal-live-stats">
+              <div class="modal-live-stat">
+                <div class="modal-live-label">New daily budget</div>
+                <div class="modal-live-value green" id="modal2NewDaily">৳0</div>
+              </div>
+              <div class="modal-live-divider"></div>
+              <div class="modal-live-stat">
+                <div class="modal-live-label">Alert threshold</div>
+                <div class="modal-live-value">৳<span id="modal2AlertLabel">300</span></div>
+              </div>
+            </div>
+            <div class="modal-actions">
+              <button class="btn btn-ghost" style="flex:1" onclick="closeModal('modal2'); commitSpend()">Proceed anyway</button>
+              <button class="btn btn-primary" style="flex:2" id="modal2Confirm" onclick="confirmModal2()" disabled>Confirm</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- STATE 2 — REVIEW IN PROGRESS -->
+      <div class="screen" id="screen-review" style="position:relative; background:#FEF3C7;">
+        <div class="blocking-screen">
+          <div class="blocking-icon amber-icon">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><circle cx="12" cy="16" r="0.5" fill="currentColor" stroke="none" style="fill:var(--amber)"/></svg>
+          </div>
+          <div class="blocking-title">Finish your review to continue.</div>
+          <div class="blocking-sub">Go to the Log tab to complete today's review. The home screen will unlock once you're done.</div>
+        </div>
+        <div class="bottom-nav">
+          <div class="nav-tab active">
+            <svg viewBox="0 0 24 24"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg>
+            <span>Home</span>
+          </div>
+          <div class="nav-tab" id="logTab">
+            <div class="nav-icon-wrap">
+              <svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="12" y2="16"/></svg>
+              <div class="missed-dot"></div>
+            </div>
+            <span>Log</span>
+          </div>
+          <div class="nav-tab">
+            <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            <span>Stats</span>
+          </div>
+          <div class="nav-tab">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+            <span>More</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- STATE 3 — POST-REVIEW -->
+      <div class="screen" id="screen-done" style="position:relative;">
+        <div class="blocking-screen">
+          <div class="blocking-icon green-icon">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="9 12 11 14 15 10"/></svg>
+          </div>
+          <div class="blocking-title">You're done for today.</div>
+          <div class="blocking-sub">See you tomorrow. Everything resets at midnight — new day, fresh start.</div>
+        </div>
+        <div class="bottom-nav">
+          <div class="nav-tab active">
+            <svg viewBox="0 0 24 24"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg>
+            <span>Home</span>
+          </div>
+          <div class="nav-tab" id="logTab">
+            <div class="nav-icon-wrap">
+              <svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="12" y2="16"/></svg>
+              <div class="missed-dot"></div>
+            </div>
+            <span>Log</span>
+          </div>
+          <div class="nav-tab">
+            <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            <span>Stats</span>
+          </div>
+          <div class="nav-tab">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+            <span>More</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- STATE 4 — CYCLE ENDED -->
+      <div class="screen" id="screen-ended">
+        <div class="cycle-end-screen">
+
+          <!-- Header -->
+          <div class="cycle-end-header">
+            <div class="confetti-placeholder">🎉</div>
+            <div class="cycle-end-title">That's a wrap.</div>
+            <div class="cycle-end-sub">Mar 1 – Mar 22 · Here's how it went.</div>
+          </div>
+
+          <!-- Your days -->
+          <div class="stat-group-card">
+            <div class="stat-group-label">Your days</div>
+            <div class="stat-row-3">
+              <div class="stat-item">
+                <div class="stat-item-value green">18</div>
+                <div class="stat-item-label">Good days</div>
+              </div>
+              <div class="stat-divider"></div>
+              <div class="stat-item">
+                <div class="stat-item-value red">3</div>
+                <div class="stat-item-label">Rough days</div>
+              </div>
+              <div class="stat-divider"></div>
+              <div class="stat-item">
+                <div class="stat-item-value amber">1</div>
+                <div class="stat-item-label">Days missed</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Your spending -->
+          <div class="stat-group-card">
+            <div class="stat-group-label">Your spending</div>
+            <div class="stat-row-3">
+              <div class="stat-item">
+                <div class="stat-item-value">৳850</div>
+                <div class="stat-item-label">Avg per day</div>
+              </div>
+              <div class="stat-divider"></div>
+              <div class="stat-item">
+                <div class="stat-item-value red">৳320</div>
+                <div class="stat-item-label">Avg overspent</div>
+              </div>
+              <div class="stat-divider"></div>
+              <div class="stat-item">
+                <div class="stat-item-value green">৳210</div>
+                <div class="stat-item-label">Avg saved</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Extra cash -->
+          <div class="extra-cash-card">
+            <div class="extra-cash-label">Extra cash received</div>
+            <div class="extra-cash-value">+ ৳1,200</div>
+          </div>
+
+          <!-- Actions -->
+          <div class="cycle-end-actions">
+            <button class="btn btn-primary">Start a new cycle</button>
+            <button class="btn btn-ghost" onclick="setScreen('waiting')">Wait — pay was delayed</button>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- STATE 5 — WAITING -->
+      <div class="screen" id="screen-waiting" style="position:relative;">
+        <div class="waiting-screen">
+          <div class="waiting-icon">⏳</div>
+          <div class="waiting-title">Waiting for payday.</div>
+          <div class="waiting-msg">"Unlike your friends that leave when you're broke, we're still here. Waiting patiently."</div>
+          <div class="waiting-actions" style="margin-top:24px;">
+            <button class="btn btn-primary">Start new cycle</button>
+          </div>
+        </div>
+        <div class="bottom-nav">
+          <div class="nav-tab active">
+            <svg viewBox="0 0 24 24"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg>
+            <span>Home</span>
+          </div>
+          <div class="nav-tab" id="logTab">
+            <div class="nav-icon-wrap">
+              <svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="12" y2="16"/></svg>
+              <div class="missed-dot"></div>
+            </div>
+            <span>Log</span>
+          </div>
+          <div class="nav-tab">
+            <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            <span>Stats</span>
+          </div>
+          <div class="nav-tab">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+            <span>More</span>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /phone-content -->
+  </div><!-- /phone -->
+</div><!-- /phone-wrap -->
+
+<!-- ── CONTROL PANEL ── -->
+<div class="control-panel">
+
+  <div class="panel-section">
+    <div class="panel-section-title">Navigate</div>
+    <button class="panel-btn active" id="nav-normal" onclick="setScreen('normal')">1 — Normal</button>
+    <button class="panel-btn" id="nav-review" onclick="setScreen('review')">2 — Review in progress</button>
+    <button class="panel-btn" id="nav-done" onclick="setScreen('done')">3 — Done for today</button>
+    <button class="panel-btn" id="nav-ended" onclick="setScreen('ended')">4 — Cycle ended</button>
+    <button class="panel-btn" id="nav-waiting" onclick="setScreen('waiting')">5 — Waiting (pay delayed)</button>
+  </div>
+
+  <div class="panel-section" id="presetsSection">
+    <div class="panel-section-title">Normal state presets</div>
+    <button class="panel-btn" onclick="applyPreset('fresh')">Fresh day</button>
+    <button class="panel-btn" onclick="applyPreset('spends')">With spends</button>
+    <button class="panel-btn" onclick="applyPreset('extra')">With extra cash</button>
+    <button class="panel-btn" onclick="applyPreset('both')">Spends + extra cash</button>
+    <button class="panel-btn" onclick="applyPreset('rough')">Rough day (overspent)</button>
+    <button class="panel-btn" onclick="applyPreset('lastday')">Last day of cycle</button>
+  </div>
+
+  <div class="panel-section">
+    <div class="panel-section-title">Missed review</div>
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;color:var(--text);">
+      <input type="checkbox" id="missedToggle" onchange="toggleMissed(this.checked)" style="width:16px;height:16px;cursor:pointer;">
+      Show missed badge
+    </label>
+  </div>
+
+  <div class="panel-section" id="sheetSection">
+    <div class="panel-section-title">Add entry modals</div>
+    <button class="panel-btn" onclick="openSheet('spend')">Show: Add spend</button>
+    <button class="panel-btn" onclick="openSheet('extra')">Show: Add extra cash</button>
+  </div>
+
+  <div class="panel-section" id="validationSection">
+    <div class="panel-section-title">Spend validation</div>
+    <div style="font-size:11px;color:var(--text-sub);margin-bottom:8px;line-height:1.5;">Set a scenario, then add a spend ≥ ৳1,800 to trigger it.</div>
+    <button class="panel-btn" onclick="setValScenario('hardcap')">Scenario: Hard cap</button>
+    <button class="panel-btn" onclick="setValScenario('consequences')">Scenario: Consequences</button>
+    <button class="panel-btn" onclick="setValScenario('modal1')">Scenario: Modal 1 (partial)</button>
+    <button class="panel-btn" onclick="setValScenario('modal2')">Scenario: Modal 2 (all)</button>
+    <div style="border-top:1px solid var(--border);margin:8px 0;"></div>
+    <div style="font-size:11px;color:var(--text-sub);margin-bottom:6px;">Force open:</div>
+    <button class="panel-btn" onclick="openModal('modalHardCap')">Show hard cap modal</button>
+    <button class="panel-btn" onclick="forceShowConsequences()">Show consequences</button>
+    <button class="panel-btn" onclick="forceShowModal1()">Show Modal 1</button>
+    <button class="panel-btn" onclick="forceShowModal2()">Show Modal 2</button>
+  </div>
+
+</div>
+
+<script>
+  // ── STATE ──
+  let baseBudget = 1240;
+  let spends = [];
+  let extras = [];
+
+  // ── VALIDATION STATE ──
+  let validationEnabled = false; // only active after a scenario is selected
+  let poolLeft = 4000;
+  let daysLeft = 8;
+  let budgetAlert = 300;
+  let valSavings = 0;
+  let valReservations = [];
+  let pendingAmount = 0;
+  let pendingNote = '';
+  let modal1PullAmounts = {};
+  let modal1NewPool = 0;
+
+  // ── SCREEN NAVIGATION ──
+  function setScreen(name) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('screen-' + name).classList.add('active');
+
+    document.querySelectorAll('[id^="nav-"]').forEach(b => b.classList.remove('active'));
+    const navBtn = document.getElementById('nav-' + name);
+    if (navBtn) navBtn.classList.add('active');
+
+    // Show/hide presets & sheet controls only for normal state
+    const isNormal = name === 'normal';
+    document.getElementById('presetsSection').style.display = isNormal ? '' : 'none';
+    document.getElementById('sheetSection').style.display = isNormal ? '' : 'none';
+    document.getElementById('validationSection').style.display = isNormal ? '' : 'none';
+  }
+
+  // ── PRESETS ──
+  function applyPreset(preset) {
+    validationEnabled = false;
+    setScreen('normal');
+
+    switch(preset) {
+      case 'fresh':
+        baseBudget = 1240;
+        spends = [];
+        extras = [];
+        setMeta('Sunday, 22 March', 'Day 14 of 30');
+        setPills('৳32,400', '16', '৳1,580');
+        break;
+
+      case 'spends':
+        baseBudget = 1240;
+        spends = [
+          { note: 'Lunch', amount: 280 },
+          { note: 'Transport', amount: 120 },
+          { note: '', amount: 95 }
+        ];
+        extras = [];
+        setMeta('Sunday, 22 March', 'Day 14 of 30');
+        setPills('৳32,400', '16', '৳1,580');
+        break;
+
+      case 'extra':
+        baseBudget = 1240;
+        spends = [];
+        extras = [
+          { label: 'Bonus', amount: 500 },
+          { label: '', amount: 200 }
+        ];
+        setMeta('Sunday, 22 March', 'Day 14 of 30');
+        setPills('৳32,400', '16', '৳1,580');
+        break;
+
+      case 'both':
+        baseBudget = 1240;
+        spends = [
+          { note: 'Groceries', amount: 350 },
+          { note: 'Coffee', amount: 60 }
+        ];
+        extras = [
+          { label: 'Refund', amount: 300 }
+        ];
+        setMeta('Sunday, 22 March', 'Day 14 of 30');
+        setPills('৳32,400', '16', '৳1,580');
+        break;
+
+      case 'rough':
+        baseBudget = 1240;
+        spends = [
+          { note: 'Doctor visit', amount: 800 },
+          { note: 'Pharmacy', amount: 430 },
+          { note: 'Lunch', amount: 280 }
+        ];
+        extras = [];
+        setMeta('Sunday, 22 March', 'Day 14 of 30');
+        setPills('৳30,850', '16', '৳1,580');
+        break;
+
+      case 'lastday':
+        baseBudget = 980;
+        spends = [];
+        extras = [];
+        setMeta('Friday, 5 April', 'Day 30 of 30');
+        setPills('৳980', '1', '৳1,420');
+        break;
+    }
+
+    renderEntries();
+    updateHero();
+  }
+
+  function setMeta(date, cycle) {
+    document.getElementById('heroMeta').textContent = date + '\u00a0·\u00a0' + cycle;
+  }
+
+  function setPills(cycleLeft, daysLeft, avg) {
+    document.getElementById('pillCycleLeft').textContent = cycleLeft;
+    document.getElementById('pillDaysLeft').textContent = daysLeft;
+    document.getElementById('pillDailyAvg').textContent = avg;
+  }
+
+  // ── HERO UPDATE ──
+  function updateHero() {
+    const totalSpent = spends.reduce((s, e) => s + e.amount, 0);
+    const totalExtra = extras.reduce((s, e) => s + e.amount, 0);
+    const leftToday = baseBudget - totalSpent;
+
+    const amountEl = document.getElementById('heroAmount');
+    amountEl.textContent = (leftToday < 0 ? '−৳' : '৳') + Math.abs(leftToday).toLocaleString();
+    amountEl.className = 'hero-amount' + (leftToday < 0 ? ' negative' : '');
+
+    const extraEl = document.getElementById('heroExtra');
+    if (totalExtra > 0) {
+      extraEl.style.display = '';
+      extraEl.textContent = '+ ৳' + totalExtra.toLocaleString() + ' extra';
+    } else {
+      extraEl.style.display = 'none';
+    }
+  }
+
+  // ── RENDER LISTS ──
+  function renderEntries() {
+    const spendList = document.getElementById('spendList');
+    spendList.innerHTML = '';
+    spends.forEach((e, i) => {
+      const row = document.createElement('div');
+      row.className = 'entry-row';
+      row.innerHTML = `
+        <span class="entry-note ${e.note ? '' : 'placeholder'}">${e.note || 'general spending'}</span>
+        <span class="entry-amount">৳${e.amount.toLocaleString()}</span>
+        <button class="btn-delete" onclick="deleteSpend(${i})">×</button>
+      `;
+      spendList.appendChild(row);
+    });
+
+    const extraList = document.getElementById('extraList');
+    extraList.innerHTML = '';
+    extras.forEach((e, i) => {
+      const row = document.createElement('div');
+      row.className = 'entry-row';
+      row.innerHTML = `
+        <span class="entry-note ${e.label ? '' : 'placeholder'}">${e.label || 'extra cash'}</span>
+        <span class="entry-amount sky">৳${e.amount.toLocaleString()}</span>
+        <button class="btn-delete" onclick="deleteExtra(${i})">×</button>
+      `;
+      extraList.appendChild(row);
+    });
+  }
+
+  function deleteSpend(i) {
+    spends.splice(i, 1);
+    renderEntries();
+    updateHero();
+  }
+
+  function deleteExtra(i) {
+    extras.splice(i, 1);
+    renderEntries();
+    updateHero();
+  }
+
+  // ── BOTTOM SHEETS ──
+  function openSheet(type) {
+    setScreen('normal');
+    if (type === 'spend') {
+      document.getElementById('sheetSpend').classList.add('open');
+      document.getElementById('spendAmount').focus();
+    } else {
+      document.getElementById('sheetExtra').classList.add('open');
+      document.getElementById('extraAmount').focus();
+    }
+  }
+
+  function closeSheet(type, event) {
+    if (event && event.target !== event.currentTarget) return;
+    if (type === 'spend') {
+      document.getElementById('sheetSpend').classList.remove('open');
+      document.getElementById('spendAmount').value = '';
+      document.getElementById('spendNote').value = '';
+    } else {
+      document.getElementById('sheetExtra').classList.remove('open');
+      document.getElementById('extraAmount').value = '';
+      document.getElementById('extraLabel').value = '';
+    }
+  }
+
+  function saveSpend() {
+    const amount = parseFloat(document.getElementById('spendAmount').value);
+    if (!amount || amount <= 0) return;
+    pendingNote = document.getElementById('spendNote').value.trim();
+    pendingAmount = amount;
+    closeSheet('spend');
+    if (validationEnabled) {
+      validateSpend(amount);
+    } else {
+      commitSpend();
+    }
+  }
+
+  // ── VALIDATION ──
+  function validateSpend(amount) {
+    // Step 1: Hard cap
+    const totalAvailable = poolLeft + valSavings + valReservations.reduce((s,r) => s+r.amount, 0);
+    if (amount > totalAvailable) {
+      document.getElementById('hardCapBody').textContent =
+        `This spend (৳${amount.toLocaleString()}) exceeds everything available — ৳${totalAvailable.toLocaleString()} total across pool, savings, and reservations.`;
+      openModal('modalHardCap');
+      return;
+    }
+
+    // Step 2: Threshold check (skip on last day)
+    if (budgetAlert === 0 || daysLeft === 0) { commitSpend(); return; }
+
+    const newPool = poolLeft - amount;
+    const newDaily = newPool / daysLeft;
+
+    if (newDaily >= budgetAlert) { commitSpend(); return; }
+
+    // Below threshold — check sources
+    const totalPullable = valSavings + valReservations.reduce((s,r) => s+r.amount, 0);
+
+    if (totalPullable === 0) {
+      showConsequences(newPool, newDaily);
+      return;
+    }
+
+    const maxNewDaily = (newPool + totalPullable) / daysLeft;
+
+    if (maxNewDaily > budgetAlert) {
+      showModal1(newPool, newDaily);
+    } else if (maxNewDaily >= budgetAlert) {
+      showModal2(newPool, totalPullable, maxNewDaily);
+    } else {
+      // Even full pull doesn't reach threshold → consequences
+      showConsequences(newPool, newDaily);
+    }
+  }
+
+  function commitSpend() {
+    spends.push({ note: pendingNote, amount: pendingAmount });
+    renderEntries();
+    updateHero();
+  }
+
+  // ── CONSEQUENCES MODAL ──
+  function showConsequences(newPool, newDaily) {
+    const body = newPool <= 0
+      ? `After this spend, you'll have nothing left for the remaining ${daysLeft} day${daysLeft !== 1 ? 's' : ''}.`
+      : `After this spend, you'll have ৳${newPool.toLocaleString()} left for ${daysLeft} day${daysLeft !== 1 ? 's' : ''} — that's ৳${Math.round(newDaily).toLocaleString()}/day.`;
+    document.getElementById('consequencesBody').textContent = body;
+    document.getElementById('consequencesStats').innerHTML = `
+      <div class="modal-stat-row">
+        <span class="modal-stat-label">Pool after spend</span>
+        <span class="modal-stat-value ${newPool < 0 ? 'red' : ''}">৳${Math.max(0,newPool).toLocaleString()}</span>
+      </div>
+      <div class="modal-stat-row">
+        <span class="modal-stat-label">Days remaining</span>
+        <span class="modal-stat-value">${daysLeft}</span>
+      </div>
+      <div class="modal-stat-row">
+        <span class="modal-stat-label">New daily budget</span>
+        <span class="modal-stat-value red">৳${Math.max(0,Math.round(newDaily)).toLocaleString()}</span>
+      </div>
+    `;
+    openModal('modalConsequences');
+  }
+
+  // ── MODAL 1 ──
+  function showModal1(newPool, newDaily) {
+    modal1NewPool = newPool;
+    modal1PullAmounts = {};
+
+    const sourcesEl = document.getElementById('modal1Sources');
+    sourcesEl.innerHTML = '';
+
+    if (valSavings > 0) {
+      modal1PullAmounts['savings'] = 0;
+      sourcesEl.appendChild(buildSourceRow('savings', 'Savings', valSavings));
+    }
+    valReservations.forEach(r => {
+      modal1PullAmounts[r.name] = 0;
+      sourcesEl.appendChild(buildSourceRow(r.name, r.name, r.amount));
+    });
+
+    document.getElementById('modal1AlertLabel').textContent = budgetAlert.toLocaleString();
+    updateModal1Live();
+    openModal('modal1');
+  }
+
+  function buildSourceRow(key, name, balance) {
+    const div = document.createElement('div');
+    div.className = 'source-row';
+    div.innerHTML = `
+      <div class="source-row-header">
+        <input type="checkbox" class="source-toggle" id="chk-${key}"
+          onchange="toggleSource('${key}', this.checked, ${balance})">
+        <span class="source-name">${name}</span>
+        <span class="source-bal">৳${balance.toLocaleString()}</span>
+      </div>
+      <div class="slider-row" id="slider-${key}">
+        <input type="range" class="slider-input" id="range-${key}"
+          min="0" max="${balance}" value="0"
+          oninput="syncSlider('${key}', this.value, ${balance})">
+        <input type="number" class="slider-number" id="num-${key}"
+          min="0" max="${balance}" value="0"
+          oninput="syncNum('${key}', this.value, ${balance})">
+      </div>
+    `;
+    return div;
+  }
+
+  function toggleSource(key, checked, maxBalance) {
+    const sliderRow = document.getElementById('slider-' + key);
+    if (checked) {
+      sliderRow.classList.add('visible');
+      const needed = Math.max(0, budgetAlert * daysLeft - modal1NewPool - getTotalPull());
+      const defaultPull = Math.min(needed, maxBalance);
+      document.getElementById('range-' + key).value = defaultPull;
+      document.getElementById('num-' + key).value = defaultPull;
+      modal1PullAmounts[key] = defaultPull;
+    } else {
+      sliderRow.classList.remove('visible');
+      document.getElementById('range-' + key).value = 0;
+      document.getElementById('num-' + key).value = 0;
+      modal1PullAmounts[key] = 0;
+    }
+    updateModal1Live();
+  }
+
+  function syncSlider(key, value, maxBalance) {
+    const v = Math.min(parseFloat(value)||0, maxBalance);
+    document.getElementById('num-' + key).value = v;
+    modal1PullAmounts[key] = v;
+    updateModal1Live();
+  }
+
+  function syncNum(key, value, maxBalance) {
+    const v = Math.min(Math.max(parseFloat(value)||0, 0), maxBalance);
+    document.getElementById('range-' + key).value = v;
+    modal1PullAmounts[key] = v;
+    updateModal1Live();
+  }
+
+  function getTotalPull() {
+    return Object.values(modal1PullAmounts).reduce((s,v) => s+v, 0);
+  }
+
+  function updateModal1Live() {
+    const totalPull = getTotalPull();
+    const newDaily = (modal1NewPool + totalPull) / daysLeft;
+    const newDailyEl = document.getElementById('modal1NewDaily');
+    newDailyEl.textContent = '৳' + Math.round(newDaily).toLocaleString();
+    newDailyEl.className = 'modal-live-value ' + (newDaily >= budgetAlert ? 'green' : 'red');
+    document.getElementById('modal1Pulling').textContent = '৳' + Math.round(totalPull).toLocaleString();
+
+    const totalPullable = valSavings + valReservations.reduce((s,r) => s+r.amount, 0);
+    document.getElementById('modal1Confirm').disabled =
+      !(newDaily >= budgetAlert || totalPull >= totalPullable);
+  }
+
+  function confirmModal1() {
+    closeModal('modal1');
+    commitSpend();
+  }
+
+  // ── MODAL 2 ──
+  function showModal2(newPool, totalPullable, maxNewDaily) {
+    document.getElementById('modal2PullAmount').textContent = totalPullable.toLocaleString();
+    document.getElementById('modal2AlertLabel').textContent = budgetAlert.toLocaleString();
+    document.getElementById('modal2NewDaily').textContent = '৳' + Math.round(maxNewDaily).toLocaleString();
+
+    let html = '';
+    if (valSavings > 0) {
+      html += `<div class="modal-stat-row">
+        <span class="modal-stat-label">Savings</span>
+        <span class="modal-stat-value">৳${valSavings.toLocaleString()}</span>
+      </div>`;
+    }
+    valReservations.forEach(r => {
+      const g = r.amount === 0;
+      html += `<div class="modal-stat-row">
+        <span class="modal-stat-label" style="${g?'color:var(--text-placeholder)':''}">${r.name}</span>
+        <span class="modal-stat-value" style="${g?'color:var(--text-placeholder)':''}">৳${r.amount.toLocaleString()}</span>
+      </div>`;
+    });
+    document.getElementById('modal2Sources').innerHTML = html;
+
+    document.getElementById('modal2PullBtn').className = 'pull-btn';
+    document.getElementById('modal2Confirm').disabled = true;
+    openModal('modal2');
+  }
+
+  function selectPullAll() {
+    document.getElementById('modal2PullBtn').classList.add('selected');
+    document.getElementById('modal2Confirm').disabled = false;
+  }
+
+  function confirmModal2() {
+    closeModal('modal2');
+    commitSpend();
+  }
+
+  // ── MODAL HELPERS ──
+  function openModal(id) { document.getElementById(id).classList.add('open'); }
+  function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+  function closeModalOnBackdrop(id, event) {
+    if (event.target === event.currentTarget) closeModal(id);
+  }
+
+  // ── VALIDATION SCENARIOS ──
+  function setValScenario(scenario) {
+    validationEnabled = true;
+    setScreen('normal');
+    switch(scenario) {
+      case 'hardcap':
+        // ৳700+ triggers hard cap (total available = ৳600)
+        poolLeft=500; daysLeft=8; budgetAlert=300; valSavings=100; valReservations=[];
+        break;
+      case 'consequences':
+        // ৳1,800 → newPool=2200, newDaily=275 < 300, no sources
+        poolLeft=4000; daysLeft=8; budgetAlert=300; valSavings=0; valReservations=[];
+        break;
+      case 'modal1':
+        // ৳1,800 → newPool=2200, maxNewDaily=(2200+1400)/8=450 > 300
+        poolLeft=4000; daysLeft=8; budgetAlert=300; valSavings=800;
+        valReservations=[{name:'Emergency fund',amount:600}];
+        break;
+      case 'modal2':
+        // ৳1,800 → newPool=2200, maxNewDaily=(2200+200)/8=300 exactly
+        poolLeft=4000; daysLeft=8; budgetAlert=300; valSavings=200; valReservations=[];
+        break;
+    }
+    baseBudget = Math.round(poolLeft / daysLeft);
+    spends=[]; extras=[];
+    setMeta('Sunday, 22 March', 'Day ' + (30-daysLeft) + ' of 30');
+    setPills('৳'+poolLeft.toLocaleString(), String(daysLeft), '৳'+baseBudget.toLocaleString());
+    renderEntries();
+    updateHero();
+  }
+
+  function forceShowConsequences() {
+    setValScenario('consequences');
+    pendingAmount=1800; pendingNote='Test spend';
+    showConsequences(poolLeft-pendingAmount, (poolLeft-pendingAmount)/daysLeft);
+  }
+  function forceShowModal1() {
+    setValScenario('modal1');
+    pendingAmount=1800; pendingNote='Test spend';
+    const np = poolLeft-pendingAmount;
+    showModal1(np, np/daysLeft);
+  }
+  function forceShowModal2() {
+    setValScenario('modal2');
+    pendingAmount=1800; pendingNote='Test spend';
+    const np = poolLeft-pendingAmount;
+    const tp = valSavings + valReservations.reduce((s,r)=>s+r.amount,0);
+    showModal2(np, tp, (np+tp)/daysLeft);
+  }
+
+  function saveExtra() {
+    const amount = parseFloat(document.getElementById('extraAmount').value);
+    if (!amount || amount <= 0) return;
+    const label = document.getElementById('extraLabel').value.trim();
+    extras.push({ label, amount });
+    renderEntries();
+    updateHero();
+    closeSheet('extra');
+  }
+
+  // ── MISSED REVIEW DOT ──
+  function toggleMissed(on) {
+    document.querySelectorAll('#logTab').forEach(tab => {
+      tab.classList.toggle('show-missed', on);
+    });
+  }
+
+  // ── INIT ──
+  applyPreset('fresh');
+</script>
+</body>
+</html>

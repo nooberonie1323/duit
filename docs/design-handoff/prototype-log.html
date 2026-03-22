@@ -1,0 +1,1502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Duit — Log Tab Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --indigo: #4F46E5;
+    --indigo-light: #EEF2FF;
+    --indigo-dark: #3730A3;
+    --sky: #0EA5E9;
+    --sky-light: #E0F2FE;
+    --red: #EF4444;
+    --red-light: #FEF2F2;
+    --amber: #F59E0B;
+    --amber-light: #FFFBEB;
+    --green: #10B981;
+    --green-light: #ECFDF5;
+    --text: #111827;
+    --text-sub: #6B7280;
+    --text-placeholder: #9CA3AF;
+    --border: #E5E7EB;
+    --surface: #F9FAFB;
+    --white: #ffffff;
+    --bg: #EEEEF2;
+    --font: 'Plus Jakarta Sans', sans-serif;
+    --review-yellow: #FEF3C7;
+  }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 32px;
+    padding: 24px;
+  }
+
+  /* ── PHONE FRAME ── */
+  .phone-wrap {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding-top: 8px;
+  }
+
+  .phone {
+    width: 390px;
+    height: 844px;
+    background: #EBEBF0;
+    border-radius: 50px;
+    border: 8px solid #1C1C1E;
+    box-shadow: 0 0 0 1px #3a3a3c, 0 40px 80px rgba(0,0,0,0.25), inset 0 0 0 1px rgba(255,255,255,0.1);
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .phone::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 120px; height: 34px;
+    background: #1C1C1E;
+    border-radius: 0 0 20px 20px;
+    z-index: 100;
+  }
+
+  .phone-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: none;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+  .phone-content::-webkit-scrollbar { display: none; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes slideUp {
+    from { transform: translateY(40px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  .screen {
+    display: none;
+    flex-direction: column;
+    flex: 1;
+    animation: fadeIn 0.2s ease;
+  }
+  .screen.active { display: flex; }
+
+  /* ── SHARED: CARDS AREA ── */
+  .cards-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 54px 16px 110px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    scrollbar-width: none;
+  }
+  .cards-area::-webkit-scrollbar { display: none; }
+
+  .card {
+    background: var(--white);
+    border-radius: 20px;
+    padding: 18px 18px 14px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+  }
+  .card-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-sub);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin-bottom: 14px;
+  }
+
+  /* ── STATE 1 — TOTAL SPENT CARD ── */
+  .total-card {
+    background: var(--white);
+    border-radius: 20px;
+    padding: 20px 18px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+  }
+  .total-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-sub);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin-bottom: 6px;
+  }
+  .total-amount {
+    font-size: 40px;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: -1.5px;
+    line-height: 1;
+  }
+
+  /* ── ENTRY ROWS — VIEW (State 1) ── */
+  .entry-list { display: flex; flex-direction: column; }
+  .entry-row-view {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .entry-row-view:last-child { border-bottom: none; }
+  .entry-note-view {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .entry-note-view.placeholder { color: var(--text-placeholder); font-style: italic; }
+  .entry-time {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-sub);
+    white-space: nowrap;
+  }
+  .entry-amount-view {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .entry-amount-view.sky { color: var(--sky); }
+
+  .empty-list-msg {
+    font-size: 14px;
+    color: var(--text-placeholder);
+    font-style: italic;
+    padding: 4px 0 8px;
+  }
+
+
+  /* ── MISSED REVIEW BANNER ── */
+  .missed-banner {
+    background: #FEF3C7;
+    border: 1.5px solid #FCD34D;
+    border-radius: 16px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+  }
+  .missed-banner-icon {
+    width: 36px; height: 36px;
+    background: #FDE68A;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .missed-banner-icon svg { width: 18px; height: 18px; stroke: #92400E; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .missed-banner-text { flex: 1; }
+  .missed-banner-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #92400E;
+  }
+  .missed-banner-sub {
+    font-size: 12px;
+    color: #B45309;
+    margin-top: 2px;
+  }
+  .missed-banner-arrow {
+    font-size: 16px;
+    color: #92400E;
+  }
+
+  /* ── BTN ── */
+  .btn {
+    width: 100%;
+    padding: 16px;
+    border: none;
+    border-radius: 16px;
+    font-family: var(--font);
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: -0.2px;
+  }
+  .btn-primary {
+    background: var(--indigo);
+    color: var(--white);
+    box-shadow: 0 4px 16px rgba(79,70,229,0.35);
+  }
+  .btn-ghost {
+    background: var(--surface);
+    color: var(--text-sub);
+    border: 1.5px solid var(--border);
+  }
+  .btn-danger {
+    background: var(--red-light);
+    color: var(--red);
+    border: 1.5px solid #FECACA;
+  }
+
+  .btn-add-entry {
+    width: 100%;
+    padding: 10px;
+    background: transparent;
+    border: 1.5px dashed var(--border);
+    border-radius: 12px;
+    font-family: var(--font);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-sub);
+    cursor: pointer;
+    margin-top: 10px;
+  }
+
+  /* ── STATE 2 — REVIEW MODE ── */
+  .review-total-wrap {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+
+  /* Day flag pill */
+  .flag-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 50px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+  }
+  .flag-pill.green { background: var(--green-light); color: var(--green); }
+  .flag-pill.blue  { background: var(--sky-light); color: var(--sky); }
+  .flag-pill.rough { background: var(--red-light); color: var(--red); }
+  .flag-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+  }
+  .flag-pill.green .flag-dot { background: var(--green); }
+  .flag-pill.blue  .flag-dot { background: var(--sky); }
+  .flag-pill.rough .flag-dot { background: var(--red); }
+
+  /* Review entry rows — editable */
+  .review-entry-list { display: flex; flex-direction: column; }
+  .review-entry-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .review-entry-row:last-child { border-bottom: none; }
+  .review-input-note {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-family: var(--font);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    outline: none;
+    min-width: 0;
+  }
+  .review-input-note::placeholder { color: var(--text-placeholder); font-style: italic; }
+  .review-entry-time {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-sub);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .review-input-amount {
+    width: 72px;
+    border: none;
+    background: transparent;
+    font-family: var(--font);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    outline: none;
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .review-input-amount.sky { color: var(--sky); }
+  .btn-delete-review {
+    width: 22px; height: 22px;
+    border: none;
+    background: none;
+    color: var(--text-placeholder);
+    cursor: pointer;
+    font-size: 18px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    padding: 0;
+    line-height: 1;
+  }
+
+  /* Notes textarea */
+  .notes-textarea {
+    width: 100%;
+    border: none;
+    background: transparent;
+    font-family: var(--font);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    outline: none;
+    resize: none;
+    min-height: 64px;
+    line-height: 1.6;
+  }
+  .notes-textarea::placeholder { color: var(--text-placeholder); }
+
+  /* ── STATE 3 — DAY WRAPPED UP ── */
+  .wrapped-header {
+    margin-bottom: 20px;
+  }
+  .wrapped-title {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: -0.8px;
+  }
+  .wrapped-date {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-sub);
+    margin-top: 4px;
+  }
+
+  .summary-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 11px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .summary-row:last-child { border-bottom: none; }
+  .summary-row-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-sub);
+  }
+  .summary-row-value {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .summary-row-value.sky { color: var(--sky); }
+  .summary-row-value.green { color: var(--green); }
+  .summary-row-value.red { color: var(--red); }
+
+  /* New daily budget row — indigo to stand out */
+  .summary-row.new-budget .summary-row-label { color: var(--indigo); font-weight: 600; }
+  .summary-row.new-budget .summary-row-value { color: var(--indigo); font-size: 16px; }
+
+  /* Scripture — inside the card */
+  .scripture-block {
+    padding: 14px 0 10px;
+    border-top: 1px solid var(--border);
+  }
+  .scripture-quote {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1.6;
+    font-style: italic;
+  }
+  .scripture-ref {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-sub);
+    margin-top: 6px;
+  }
+
+  /* Note — inside the card */
+  .note-block {
+    padding: 12px 0 4px;
+    border-top: 1px solid var(--border);
+  }
+  .note-block-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-sub);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin-bottom: 8px;
+  }
+  .note-display {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1.6;
+  }
+  .add-note-btn {
+    background: none;
+    border: none;
+    font-family: var(--font);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-sub);
+    cursor: pointer;
+    padding: 0;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .midnight-countdown {
+    text-align: center;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-sub);
+    padding: 4px 0 2px;
+  }
+
+  /* ── STATE 4 — CYCLE ENDED ── */
+  .ended-screen {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 32px 110px;
+    text-align: center;
+    gap: 14px;
+  }
+  .ended-icon {
+    width: 64px; height: 64px;
+    background: var(--surface);
+    border-radius: 20px;
+    display: flex; align-items: center; justify-content: center;
+    border: 1.5px solid var(--border);
+    margin-bottom: 4px;
+  }
+  .ended-icon svg { width: 30px; height: 30px; stroke: var(--text-sub); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .ended-title {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: -0.4px;
+  }
+  .ended-sub {
+    font-size: 14px;
+    color: var(--text-sub);
+    line-height: 1.6;
+    max-width: 240px;
+  }
+
+  /* ── BOTTOM NAV — floating pill ── */
+  .bottom-nav {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--white);
+    border-radius: 50px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.16), 0 2px 8px rgba(0,0,0,0.08);
+    display: flex;
+    align-items: center;
+    padding: 8px 6px;
+    gap: 2px;
+    z-index: 50;
+    white-space: nowrap;
+  }
+  .nav-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    cursor: pointer;
+    padding: 7px 18px;
+    border-radius: 40px;
+  }
+  .nav-tab svg {
+    width: 20px; height: 20px;
+    stroke: var(--text-sub);
+    fill: none;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .nav-tab span {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-sub);
+    letter-spacing: 0.02em;
+  }
+  .nav-tab.active { background: var(--indigo-light); }
+  .nav-tab.active svg { stroke: var(--indigo); }
+  .nav-tab.active span { color: var(--indigo); }
+
+  .nav-icon-wrap {
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .missed-dot {
+    display: none;
+    position: absolute;
+    top: -2px; right: -4px;
+    width: 8px; height: 8px;
+    background: var(--red);
+    border-radius: 50%;
+    border: 1.5px solid var(--white);
+  }
+  .show-missed .missed-dot { display: block; }
+
+  /* ── BOTTOM SHEET ── */
+  .sheet-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 200;
+    display: none;
+    align-items: flex-end;
+  }
+  .sheet-backdrop.open { display: flex; animation: fadeIn 0.15s ease; }
+  .sheet {
+    width: 100%;
+    background: var(--white);
+    border-radius: 24px 24px 0 0;
+    padding: 12px 20px 32px;
+    animation: slideUp 0.2s ease;
+  }
+  .sheet-handle {
+    width: 36px; height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin: 0 auto 18px;
+  }
+  .sheet-title {
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: -0.3px;
+    margin-bottom: 18px;
+  }
+  .sheet-field { margin-bottom: 12px; }
+  .sheet-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-sub);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin-bottom: 6px;
+  }
+  .sheet-input {
+    width: 100%;
+    padding: 13px 16px;
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    font-family: var(--font);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    background: var(--white);
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .sheet-input:focus { border-color: var(--indigo); box-shadow: 0 0 0 3px rgba(79,70,229,0.1); }
+  .sheet-input::placeholder { color: var(--text-placeholder); font-weight: 400; }
+  .sheet-input.amount-big { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+  .sheet-actions { display: flex; gap: 10px; margin-top: 16px; }
+  .sheet-actions .btn { padding: 14px; font-size: 15px; }
+
+  /* ── CENTERED MODAL (missed review) ── */
+  .modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 300;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+  }
+  .modal-backdrop.open { display: flex; animation: fadeIn 0.15s ease; }
+  .modal {
+    background: var(--white);
+    border-radius: 24px;
+    padding: 24px 20px 20px;
+    width: 100%;
+    max-height: 88%;
+    overflow-y: auto;
+    scrollbar-width: none;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    animation: fadeIn 0.2s ease;
+  }
+  .modal::-webkit-scrollbar { display: none; }
+  .modal-title {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: -0.4px;
+  }
+  .modal-date {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--indigo);
+    margin-top: 2px;
+  }
+  .modal-sub {
+    font-size: 13px;
+    color: var(--text-sub);
+    line-height: 1.5;
+    margin-top: -8px;
+  }
+  .modal-section-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-sub);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
+  }
+  .skip-warning {
+    display: none;
+    background: var(--red-light);
+    border: 1.5px solid #FECACA;
+    border-radius: 14px;
+    padding: 14px;
+    font-size: 13px;
+    color: #991B1B;
+    line-height: 1.5;
+  }
+  .skip-warning.visible { display: block; }
+  .skip-warning-actions { display: flex; gap: 8px; margin-top: 12px; }
+  .skip-warning-actions .btn { padding: 12px; font-size: 14px; }
+  .modal-actions { display: flex; gap: 10px; }
+  .modal-actions .btn { padding: 14px; font-size: 15px; }
+
+  /* ── CONTROL PANEL ── */
+  .control-panel {
+    width: 220px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding-top: 8px;
+  }
+  .panel-section {
+    background: var(--white);
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .panel-section-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-sub);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 10px;
+  }
+  .panel-btn {
+    width: 100%;
+    padding: 9px 12px;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    cursor: pointer;
+    text-align: left;
+    margin-bottom: 6px;
+  }
+  .panel-btn:last-child { margin-bottom: 0; }
+  .panel-btn:hover { border-color: var(--indigo); color: var(--indigo); background: var(--indigo-light); }
+  .panel-btn.active { background: var(--indigo); color: var(--white); border-color: var(--indigo); }
+</style>
+</head>
+<body>
+
+<!-- ── PHONE ── -->
+<div class="phone-wrap">
+  <div class="phone">
+    <div class="phone-content" id="phoneContent">
+
+      <!-- ══ STATE 1 — DURING THE DAY ══ -->
+      <div class="screen active" id="screen-day" style="position:relative;">
+        <div class="cards-area">
+
+          <!-- Missed review banner (hidden by default) -->
+          <div class="missed-banner" id="missedBanner" style="display:none;" onclick="openModal()">
+            <div class="missed-banner-icon">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12" y2="16.5" stroke-width="2.5"/></svg>
+            </div>
+            <div class="missed-banner-text">
+              <div class="missed-banner-title" id="missedBannerTitle">Missed yesterday's review</div>
+              <div class="missed-banner-sub">Tap to review</div>
+            </div>
+            <div class="missed-banner-arrow">›</div>
+          </div>
+
+          <!-- Total spent card -->
+          <div class="total-card">
+            <div class="total-label">Total spent today</div>
+            <div class="total-amount" id="day1Total">৳0</div>
+          </div>
+
+          <!-- Spending card -->
+          <div class="card">
+            <div class="card-title">Spending</div>
+            <div class="entry-list" id="day1SpendList">
+              <div class="empty-list-msg">No spends yet today.</div>
+            </div>
+          </div>
+
+          <!-- Extra cash card -->
+          <div class="card">
+            <div class="card-title">Extra Cash</div>
+            <div class="entry-list" id="day1ExtraList">
+              <div class="empty-list-msg">No extra cash today.</div>
+            </div>
+          </div>
+
+          <!-- Countdown -->
+          <div id="countdownCard" style="text-align:center; padding: 4px 0;">
+            <span style="font-size:13px; font-weight:500; color:var(--text-sub);">Review unlocks in <strong style="font-weight:700;">3h 22m</strong></span>
+          </div>
+          <div id="startReviewCard" style="display:none;">
+            <button class="btn btn-primary" onclick="setScreen('review')">Start review</button>
+          </div>
+
+        </div>
+
+        <!-- Bottom nav -->
+        <div class="bottom-nav">
+          <div class="nav-tab">
+            <svg viewBox="0 0 24 24"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg>
+            <span>Home</span>
+          </div>
+          <div class="nav-tab active" id="logTab1">
+            <div class="nav-icon-wrap">
+              <svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="12" y2="16"/></svg>
+              <div class="missed-dot"></div>
+            </div>
+            <span>Log</span>
+          </div>
+          <div class="nav-tab">
+            <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            <span>Stats</span>
+          </div>
+          <div class="nav-tab">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+            <span>More</span>
+          </div>
+        </div>
+
+        <!-- Missed review modal -->
+        <div class="modal-backdrop" id="missedModal" onclick="closeMissedModal(event)">
+          <div class="modal">
+            <div>
+              <div class="modal-title">Review missed day</div>
+              <div class="modal-date">Tuesday, 19 March</div>
+            </div>
+            <div class="modal-sub">We're starting from the earliest day so your budget stays accurate.</div>
+
+            <div>
+              <div class="modal-section-title">Spending</div>
+              <div class="review-entry-list" id="modalSpendList">
+                <div class="review-entry-row">
+                  <input class="review-input-note" type="text" value="Groceries" placeholder="general spending">
+                  <span class="review-entry-time">11:30am</span>
+                  <input class="review-input-amount" type="number" value="420" oninput="updateModalTotal()">
+                  <button class="btn-delete-review" onclick="deleteModalSpend(this)">×</button>
+                </div>
+              </div>
+              <button class="btn-add-entry" onclick="addModalSpend()">+ Add spend</button>
+            </div>
+
+            <div>
+              <div class="modal-section-title">Extra Cash</div>
+              <div class="review-entry-list" id="modalExtraList">
+                <div class="empty-list-msg">No extra cash.</div>
+              </div>
+              <button class="btn-add-entry" onclick="addModalExtra()">+ Add extra cash</button>
+            </div>
+
+            <div>
+              <div class="modal-section-title">Note</div>
+              <textarea class="notes-textarea" placeholder="Anything to remember about this day?"></textarea>
+            </div>
+
+            <!-- Skip warning (hidden until skip is tapped) -->
+            <div class="skip-warning" id="skipWarning">
+              Skipping this day will discard any staged entries for it. This day won't count toward your stats.
+              <div class="skip-warning-actions">
+                <button class="btn btn-ghost" style="flex:1" onclick="cancelSkip()">Go back</button>
+                <button class="btn btn-danger" style="flex:1" onclick="closeMissedModal()">Confirm skip</button>
+              </div>
+            </div>
+
+            <div class="modal-actions" id="modalMainActions">
+              <button class="btn btn-ghost" style="flex:1" onclick="showSkipWarning()">Skip day</button>
+              <button class="btn btn-primary" style="flex:2" onclick="closeMissedModal()">Confirm</button>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /screen-day -->
+
+
+      <!-- ══ STATE 2 — REVIEW MODE ══ -->
+      <div class="screen" id="screen-review" style="position:relative; background:var(--review-yellow);">
+        <div class="cards-area" style="background:var(--review-yellow);">
+
+          <!-- Total spent + flag -->
+          <div class="card">
+            <div class="review-total-wrap">
+              <div>
+                <div class="total-label">Total spent today</div>
+                <div class="total-amount" id="reviewTotal">৳0</div>
+              </div>
+              <div class="flag-pill green" id="flagPill">
+                <div class="flag-dot"></div>
+                <span id="flagLabel">Green</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Spend entries -->
+          <div class="card">
+            <div class="card-title">Spending</div>
+            <div class="review-entry-list" id="reviewSpendList"></div>
+            <button class="btn-add-entry" onclick="openSheet('spend')">+ Add spend</button>
+          </div>
+
+          <!-- Extra cash entries -->
+          <div class="card">
+            <div class="card-title">Extra Cash</div>
+            <div class="review-entry-list" id="reviewExtraList"></div>
+            <button class="btn-add-entry" onclick="openSheet('extra')">+ Add extra cash</button>
+          </div>
+
+          <!-- Notes card -->
+          <div class="card">
+            <div class="card-title">Day note</div>
+            <textarea class="notes-textarea" id="reviewNote" placeholder="Anything to remember about today?"></textarea>
+          </div>
+
+          <!-- Confirm button -->
+          <button class="btn btn-primary" onclick="confirmReview()">Confirm</button>
+
+        </div>
+
+        <!-- Bottom nav -->
+        <div class="bottom-nav">
+          <div class="nav-tab">
+            <svg viewBox="0 0 24 24"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg>
+            <span>Home</span>
+          </div>
+          <div class="nav-tab active" id="logTab2">
+            <div class="nav-icon-wrap">
+              <svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="12" y2="16"/></svg>
+              <div class="missed-dot"></div>
+            </div>
+            <span>Log</span>
+          </div>
+          <div class="nav-tab">
+            <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            <span>Stats</span>
+          </div>
+          <div class="nav-tab">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+            <span>More</span>
+          </div>
+        </div>
+
+        <!-- Add Spend sheet -->
+        <div class="sheet-backdrop" id="sheetSpend" onclick="closeSheet('spend', event)">
+          <div class="sheet">
+            <div class="sheet-handle"></div>
+            <div class="sheet-title">Add spend</div>
+            <div class="sheet-field">
+              <div class="sheet-label">Amount</div>
+              <input class="sheet-input amount-big" id="spendAmount" type="number" placeholder="0" inputmode="decimal">
+            </div>
+            <div class="sheet-field">
+              <div class="sheet-label">Note (optional)</div>
+              <input class="sheet-input" id="spendNote" type="text" placeholder="e.g. lunch, transport…">
+            </div>
+            <div class="sheet-actions">
+              <button class="btn btn-ghost" style="flex:1" onclick="closeSheet('spend')">Cancel</button>
+              <button class="btn btn-primary" style="flex:2" onclick="saveSpend()">Save</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Add Extra Cash sheet -->
+        <div class="sheet-backdrop" id="sheetExtra" onclick="closeSheet('extra', event)">
+          <div class="sheet">
+            <div class="sheet-handle"></div>
+            <div class="sheet-title">Add extra cash</div>
+            <div class="sheet-field">
+              <div class="sheet-label">Amount</div>
+              <input class="sheet-input amount-big" id="extraAmount" type="number" placeholder="0" inputmode="decimal">
+            </div>
+            <div class="sheet-field">
+              <div class="sheet-label">Label (optional)</div>
+              <input class="sheet-input" id="extraLabel" type="text" placeholder="e.g. bonus, refund…">
+            </div>
+            <div class="sheet-actions">
+              <button class="btn btn-ghost" style="flex:1" onclick="closeSheet('extra')">Cancel</button>
+              <button class="btn btn-primary" style="flex:2" onclick="saveExtra()">Save</button>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /screen-review -->
+
+
+      <!-- ══ STATE 3 — DAY WRAPPED UP ══ -->
+      <div class="screen" id="screen-wrapped" style="position:relative;">
+        <div class="cards-area">
+
+          <!-- Header -->
+          <div class="wrapped-header">
+            <div class="wrapped-title">Day wrapped up</div>
+            <div class="wrapped-date">Sunday, 22 March</div>
+          </div>
+
+          <!-- Single summary card -->
+          <div class="card">
+            <!-- Summary rows -->
+            <div class="summary-row">
+              <span class="summary-row-label">Daily budget</span>
+              <span class="summary-row-value">৳1,240</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-row-label">Total spent</span>
+              <span class="summary-row-value" id="wrappedSpent">৳840</span>
+            </div>
+            <div class="summary-row" id="wrappedExtraRow" style="display:none;">
+              <span class="summary-row-label">Extra cash</span>
+              <span class="summary-row-value sky" id="wrappedExtra">৳0</span>
+            </div>
+            <div class="summary-row" id="wrappedSavedRow" style="display:none;">
+              <span class="summary-row-label">Saved</span>
+              <span class="summary-row-value green" id="wrappedSaved">৳0</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-row-label">Day flag</span>
+              <div class="flag-pill green" id="wrappedFlag">
+                <div class="flag-dot"></div>
+                <span id="wrappedFlagLabel">Green</span>
+              </div>
+            </div>
+            <!-- New daily budget — indigo, inside same card -->
+            <div class="summary-row new-budget" id="newBudgetCard">
+              <span class="summary-row-label">New daily budget</span>
+              <span class="summary-row-value" id="newBudgetValue">৳1,320</span>
+            </div>
+
+            <!-- Scripture (rough only) -->
+            <div class="scripture-block" id="scriptureCard" style="display:none;">
+              <div class="scripture-quote">"For I know the plans I have for you — plans to prosper you."</div>
+              <div class="scripture-ref">— Jeremiah 29:11</div>
+            </div>
+
+            <!-- Note -->
+            <div class="note-block">
+              <div class="note-block-label">Day note</div>
+              <div class="note-display" id="noteDisplay" style="display:none;"></div>
+              <button class="add-note-btn" id="addNoteBtn">Add a note</button>
+            </div>
+          </div>
+
+          <!-- Midnight countdown -->
+          <div class="midnight-countdown">New day starts in 5h 12m</div>
+
+        </div>
+
+        <!-- Bottom nav -->
+        <div class="bottom-nav">
+          <div class="nav-tab">
+            <svg viewBox="0 0 24 24"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg>
+            <span>Home</span>
+          </div>
+          <div class="nav-tab active" id="logTab3">
+            <div class="nav-icon-wrap">
+              <svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="12" y2="16"/></svg>
+              <div class="missed-dot"></div>
+            </div>
+            <span>Log</span>
+          </div>
+          <div class="nav-tab">
+            <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            <span>Stats</span>
+          </div>
+          <div class="nav-tab">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+            <span>More</span>
+          </div>
+        </div>
+
+      </div><!-- /screen-wrapped -->
+
+
+      <!-- ══ STATE 4 — CYCLE ENDED ══ -->
+      <div class="screen" id="screen-ended" style="position:relative;">
+        <div class="ended-screen">
+          <div class="ended-icon">
+            <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          </div>
+          <div class="ended-title">This cycle has ended.</div>
+          <div class="ended-sub">Head to Stats to see how the cycle went.</div>
+          <button class="btn btn-ghost" style="margin-top:8px; max-width:200px;">Go to Stats</button>
+        </div>
+
+        <!-- Bottom nav -->
+        <div class="bottom-nav">
+          <div class="nav-tab">
+            <svg viewBox="0 0 24 24"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg>
+            <span>Home</span>
+          </div>
+          <div class="nav-tab active" id="logTab4">
+            <div class="nav-icon-wrap">
+              <svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="12" y2="16"/></svg>
+              <div class="missed-dot"></div>
+            </div>
+            <span>Log</span>
+          </div>
+          <div class="nav-tab">
+            <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            <span>Stats</span>
+          </div>
+          <div class="nav-tab">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+            <span>More</span>
+          </div>
+        </div>
+
+      </div><!-- /screen-ended -->
+
+    </div><!-- /phone-content -->
+  </div><!-- /phone -->
+</div><!-- /phone-wrap -->
+
+
+<!-- ── CONTROL PANEL ── -->
+<div class="control-panel">
+
+  <div class="panel-section">
+    <div class="panel-section-title">Navigate</div>
+    <button class="panel-btn active" id="nav-day"     onclick="setScreen('day')">1 — During the day</button>
+    <button class="panel-btn"        id="nav-review"  onclick="setScreen('review')">2 — Review mode</button>
+    <button class="panel-btn"        id="nav-wrapped" onclick="setScreen('wrapped')">3 — Day wrapped up</button>
+    <button class="panel-btn"        id="nav-ended"   onclick="setScreen('ended')">4 — Cycle ended</button>
+  </div>
+
+  <!-- State 1 presets -->
+  <div class="panel-section" id="state1Panel">
+    <div class="panel-section-title">State 1 presets</div>
+    <button class="panel-btn" onclick="applyDay1('empty')">No spends</button>
+    <button class="panel-btn" onclick="applyDay1('spends')">With spends</button>
+    <button class="panel-btn" onclick="applyDay1('extra')">With extra cash</button>
+    <button class="panel-btn" onclick="applyDay1('both')">Spends + extra cash</button>
+    <button class="panel-btn" onclick="applyDay1('ready')">Review time reached</button>
+  </div>
+
+  <!-- State 2 presets -->
+  <div class="panel-section" id="state2Panel" style="display:none;">
+    <div class="panel-section-title">State 2 presets</div>
+    <button class="panel-btn" onclick="applyReviewPreset('green')">Flag: Green</button>
+    <button class="panel-btn" onclick="applyReviewPreset('blue')">Flag: Blue (on budget)</button>
+    <button class="panel-btn" onclick="applyReviewPreset('rough')">Flag: Rough</button>
+  </div>
+
+  <!-- State 3 presets -->
+  <div class="panel-section" id="state3Panel" style="display:none;">
+    <div class="panel-section-title">State 3 presets</div>
+    <button class="panel-btn" onclick="applyWrappedPreset('green')">Green day</button>
+    <button class="panel-btn" onclick="applyWrappedPreset('rough')">Rough day</button>
+    <button class="panel-btn" onclick="applyWrappedPreset('lastday')">Last day of cycle</button>
+    <button class="panel-btn" onclick="applyWrappedPreset('withnote')">With note</button>
+    <button class="panel-btn" onclick="applyWrappedPreset('nonote')">No note</button>
+  </div>
+
+  <!-- Missed review (global) -->
+  <div class="panel-section">
+    <div class="panel-section-title">Missed review</div>
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;color:var(--text); margin-bottom:10px;">
+      <input type="checkbox" id="missedToggle" onchange="toggleMissed(this.checked)" style="width:16px;height:16px;cursor:pointer;">
+      Show missed badge
+    </label>
+    <button class="panel-btn" onclick="openModal()">Show missed review modal</button>
+  </div>
+
+</div><!-- /control-panel -->
+
+<script>
+  const DAILY_BUDGET = 1240;
+
+  // ── REVIEW DATA ──
+  let reviewSpends = [];
+  let reviewExtras = [];
+
+  // ── SCREEN NAVIGATION ──
+  function setScreen(name) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('screen-' + name).classList.add('active');
+
+    document.querySelectorAll('[id^="nav-"]').forEach(b => b.classList.remove('active'));
+    const nb = document.getElementById('nav-' + name);
+    if (nb) nb.classList.add('active');
+
+    document.getElementById('state1Panel').style.display  = name === 'day'     ? '' : 'none';
+    document.getElementById('state2Panel').style.display  = name === 'review'  ? '' : 'none';
+    document.getElementById('state3Panel').style.display  = name === 'wrapped' ? '' : 'none';
+  }
+
+  // ── STATE 1 PRESETS ──
+  function applyDay1(preset) {
+    setScreen('day');
+    let spends = [], extras = [];
+
+    if (preset === 'spends') {
+      spends = [
+        { note: 'Lunch', time: '1:15pm', amount: 280 },
+        { note: 'Transport', time: '8:30am', amount: 120 },
+        { note: '', time: '4:02pm', amount: 95 }
+      ];
+    } else if (preset === 'extra') {
+      extras = [{ label: 'Bonus', time: '10:00am', amount: 500 }];
+    } else if (preset === 'both') {
+      spends = [
+        { note: 'Groceries', time: '11:20am', amount: 350 },
+        { note: 'Coffee', time: '9:05am', amount: 60 }
+      ];
+      extras = [{ label: 'Refund', time: '2:30pm', amount: 300 }];
+    }
+
+    // Countdown vs start review
+    const atReviewTime = preset === 'ready';
+    document.getElementById('countdownCard').style.display   = atReviewTime ? 'none' : '';
+    document.getElementById('startReviewCard').style.display = atReviewTime ? ''     : 'none';
+
+    renderDay1(spends, extras);
+  }
+
+  function renderDay1(spends, extras) {
+    const total = spends.reduce((s, e) => s + e.amount, 0);
+    document.getElementById('day1Total').textContent = '৳' + total.toLocaleString();
+
+    const spendList = document.getElementById('day1SpendList');
+    if (spends.length === 0) {
+      spendList.innerHTML = '<div class="empty-list-msg">No spends yet today.</div>';
+    } else {
+      spendList.innerHTML = spends.map(e => `
+        <div class="entry-row-view">
+          <span class="entry-note-view ${e.note ? '' : 'placeholder'}">${e.note || 'general spending'}</span>
+          <span class="entry-time">${e.time}</span>
+          <span class="entry-amount-view">৳${e.amount.toLocaleString()}</span>
+        </div>`).join('');
+    }
+
+    const extraList = document.getElementById('day1ExtraList');
+    if (extras.length === 0) {
+      extraList.innerHTML = '<div class="empty-list-msg">No extra cash today.</div>';
+    } else {
+      extraList.innerHTML = extras.map(e => `
+        <div class="entry-row-view">
+          <span class="entry-note-view ${e.label ? '' : 'placeholder'}">${e.label || 'extra cash'}</span>
+          <span class="entry-time">${e.time}</span>
+          <span class="entry-amount-view sky">৳${e.amount.toLocaleString()}</span>
+        </div>`).join('');
+    }
+  }
+
+  // ── STATE 2 — REVIEW ──
+  function applyReviewPreset(flag) {
+    setScreen('review');
+    reviewExtras = [];
+
+    if (flag === 'green') {
+      reviewSpends = [
+        { note: 'Lunch', time: '1:15pm', amount: 280 },
+        { note: 'Transport', time: '8:30am', amount: 120 }
+      ];
+    } else if (flag === 'blue') {
+      reviewSpends = [
+        { note: 'Groceries', time: '11:00am', amount: 800 },
+        { note: 'Coffee', time: '9:00am', amount: 440 }
+      ];
+    } else if (flag === 'rough') {
+      reviewSpends = [
+        { note: 'Doctor visit', time: '10:00am', amount: 800 },
+        { note: 'Pharmacy', time: '11:30am', amount: 430 },
+        { note: 'Lunch', time: '1:15pm', amount: 280 }
+      ];
+    }
+
+    renderReview();
+  }
+
+  function renderReview() {
+    const total = reviewSpends.reduce((s, e) => s + e.amount, 0);
+    document.getElementById('reviewTotal').textContent = '৳' + total.toLocaleString();
+
+    const list = document.getElementById('reviewSpendList');
+    list.innerHTML = reviewSpends.map((e, i) => `
+      <div class="review-entry-row">
+        <input class="review-input-note" type="text" value="${e.note}" placeholder="general spending" oninput="reviewSpends[${i}].note=this.value">
+        <span class="review-entry-time">${e.time}</span>
+        <input class="review-input-amount" type="number" value="${e.amount}" oninput="reviewSpends[${i}].amount=parseFloat(this.value)||0; updateReview()">
+        <button class="btn-delete-review" onclick="deleteReviewSpend(${i})">×</button>
+      </div>`).join('');
+
+    const extraList = document.getElementById('reviewExtraList');
+    if (reviewExtras.length === 0) {
+      extraList.innerHTML = '<div class="empty-list-msg" style="padding:4px 0 4px;">No extra cash.</div>';
+    } else {
+      extraList.innerHTML = reviewExtras.map((e, i) => `
+        <div class="review-entry-row">
+          <input class="review-input-note" type="text" value="${e.label}" placeholder="extra cash" oninput="reviewExtras[${i}].label=this.value">
+          <span class="review-entry-time">${e.time}</span>
+          <input class="review-input-amount sky" type="number" value="${e.amount}" oninput="reviewExtras[${i}].amount=parseFloat(this.value)||0; updateReview()">
+          <button class="btn-delete-review" onclick="deleteReviewExtra(${i})">×</button>
+        </div>`).join('');
+    }
+
+    updateReview();
+  }
+
+  function updateReview() {
+    const total = reviewSpends.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
+    document.getElementById('reviewTotal').textContent = '৳' + total.toLocaleString();
+
+    const pill = document.getElementById('flagPill');
+    const label = document.getElementById('flagLabel');
+    pill.className = 'flag-pill';
+    if (total < DAILY_BUDGET) {
+      pill.classList.add('green'); label.textContent = 'Green';
+    } else if (total === DAILY_BUDGET) {
+      pill.classList.add('blue'); label.textContent = 'Blue';
+    } else {
+      pill.classList.add('rough'); label.textContent = 'Rough';
+    }
+  }
+
+  function deleteReviewSpend(i) {
+    reviewSpends.splice(i, 1);
+    renderReview();
+  }
+  function deleteReviewExtra(i) {
+    reviewExtras.splice(i, 1);
+    renderReview();
+  }
+
+  // ── BOTTOM SHEETS (review) ──
+  function openSheet(type) {
+    document.getElementById(type === 'spend' ? 'sheetSpend' : 'sheetExtra').classList.add('open');
+    document.getElementById(type === 'spend' ? 'spendAmount' : 'extraAmount').focus();
+  }
+  function closeSheet(type, event) {
+    if (event && event.target !== event.currentTarget) return;
+    const id = type === 'spend' ? 'sheetSpend' : 'sheetExtra';
+    document.getElementById(id).classList.remove('open');
+    if (type === 'spend') {
+      document.getElementById('spendAmount').value = '';
+      document.getElementById('spendNote').value = '';
+    } else {
+      document.getElementById('extraAmount').value = '';
+      document.getElementById('extraLabel').value = '';
+    }
+  }
+  function saveSpend() {
+    const amount = parseFloat(document.getElementById('spendAmount').value);
+    if (!amount || amount <= 0) return;
+    const note = document.getElementById('spendNote').value.trim();
+    const now = new Date();
+    const time = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase();
+    reviewSpends.push({ note, time, amount });
+    renderReview();
+    closeSheet('spend');
+  }
+  function saveExtra() {
+    const amount = parseFloat(document.getElementById('extraAmount').value);
+    if (!amount || amount <= 0) return;
+    const label = document.getElementById('extraLabel').value.trim();
+    const now = new Date();
+    const time = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase();
+    reviewExtras.push({ label, time, amount });
+    renderReview();
+    closeSheet('extra');
+  }
+
+  // ── CONFIRM REVIEW → STATE 3 ──
+  function confirmReview() {
+    const totalSpent = reviewSpends.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
+    const totalExtra = reviewExtras.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
+    const saved = Math.max(0, DAILY_BUDGET - totalSpent);
+    const note = document.getElementById('reviewNote').value.trim();
+
+    // Populate state 3
+    document.getElementById('wrappedSpent').textContent = '৳' + totalSpent.toLocaleString();
+
+    const extraRow = document.getElementById('wrappedExtraRow');
+    if (totalExtra > 0) {
+      extraRow.style.display = '';
+      document.getElementById('wrappedExtra').textContent = '৳' + totalExtra.toLocaleString();
+    } else { extraRow.style.display = 'none'; }
+
+    const savedRow = document.getElementById('wrappedSavedRow');
+    if (saved > 0) {
+      savedRow.style.display = '';
+      document.getElementById('wrappedSaved').textContent = '৳' + saved.toLocaleString();
+    } else { savedRow.style.display = 'none'; }
+
+    const flag = totalSpent < DAILY_BUDGET ? 'green' : totalSpent === DAILY_BUDGET ? 'blue' : 'rough';
+    const wrappedFlag = document.getElementById('wrappedFlag');
+    const wrappedFlagLabel = document.getElementById('wrappedFlagLabel');
+    wrappedFlag.className = 'flag-pill ' + flag;
+    const labels = { green: 'Green', blue: 'Blue', rough: 'Rough' };
+    wrappedFlagLabel.textContent = labels[flag];
+
+    document.getElementById('scriptureCard').style.display = flag === 'rough' ? '' : 'none';
+    document.getElementById('wrappedSpent').className = 'summary-row-value' + (flag === 'rough' ? ' red' : '');
+
+    // New daily budget (rough: pool grows less, green: more; simplified estimate)
+    const newBudget = DAILY_BUDGET + Math.round((DAILY_BUDGET - totalSpent + totalExtra) / 16);
+    document.getElementById('newBudgetValue').textContent = '৳' + Math.max(0, newBudget).toLocaleString();
+
+    // Note
+    if (note) {
+      document.getElementById('noteDisplay').textContent = note;
+      document.getElementById('noteDisplay').style.display = '';
+      document.getElementById('addNoteBtn').style.display = 'none';
+    } else {
+      document.getElementById('noteDisplay').style.display = 'none';
+      document.getElementById('addNoteBtn').style.display = '';
+    }
+
+    setScreen('wrapped');
+  }
+
+  // ── STATE 3 PRESETS ──
+  function applyWrappedPreset(preset) {
+    setScreen('wrapped');
+
+    const flag = (preset === 'rough') ? 'rough' : 'green';
+    const wrappedFlag = document.getElementById('wrappedFlag');
+    const wrappedFlagLabel = document.getElementById('wrappedFlagLabel');
+    wrappedFlag.className = 'flag-pill ' + flag;
+    wrappedFlagLabel.textContent = flag === 'rough' ? 'Rough' : 'Green';
+    document.getElementById('scriptureCard').style.display = flag === 'rough' ? '' : 'none';
+
+    if (preset === 'green') {
+      document.getElementById('wrappedSpent').textContent = '৳840';
+      document.getElementById('wrappedSpent').className = 'summary-row-value';
+      document.getElementById('wrappedSavedRow').style.display = '';
+      document.getElementById('wrappedSaved').textContent = '৳400';
+      document.getElementById('wrappedExtraRow').style.display = 'none';
+      document.getElementById('newBudgetCard').style.display = '';
+      document.getElementById('newBudgetValue').textContent = '৳1,265';
+    } else if (preset === 'rough') {
+      document.getElementById('wrappedSpent').textContent = '৳1,510';
+      document.getElementById('wrappedSpent').className = 'summary-row-value red';
+      document.getElementById('wrappedSavedRow').style.display = 'none';
+      document.getElementById('wrappedExtraRow').style.display = 'none';
+      document.getElementById('newBudgetCard').style.display = '';
+      document.getElementById('newBudgetValue').textContent = '৳1,217';
+    } else if (preset === 'lastday') {
+      document.getElementById('newBudgetCard').style.display = 'none';
+    } else if (preset === 'withnote') {
+      document.getElementById('noteDisplay').textContent = 'Had an expensive doctor visit but it was necessary. Should budget better for health next cycle.';
+      document.getElementById('noteDisplay').style.display = '';
+      document.getElementById('addNoteBtn').style.display = 'none';
+    } else if (preset === 'nonote') {
+      document.getElementById('noteDisplay').style.display = 'none';
+      document.getElementById('addNoteBtn').style.display = '';
+    }
+  }
+
+  // ── MISSED REVIEW MODAL ──
+  function openModal() {
+    document.getElementById('skipWarning').classList.remove('visible');
+    document.getElementById('modalMainActions').style.display = '';
+    document.getElementById('missedModal').classList.add('open');
+  }
+  function closeMissedModal(event) {
+    if (event && event.target !== document.getElementById('missedModal')) return;
+    document.getElementById('missedModal').classList.remove('open');
+  }
+  function showSkipWarning() {
+    document.getElementById('skipWarning').classList.add('visible');
+    document.getElementById('modalMainActions').style.display = 'none';
+  }
+  function cancelSkip() {
+    document.getElementById('skipWarning').classList.remove('visible');
+    document.getElementById('modalMainActions').style.display = '';
+  }
+  function addModalSpend() {
+    const list = document.getElementById('modalSpendList');
+    const row = document.createElement('div');
+    row.className = 'review-entry-row';
+    row.innerHTML = `
+      <input class="review-input-note" type="text" placeholder="general spending">
+      <span class="review-entry-time">—</span>
+      <input class="review-input-amount" type="number" placeholder="0">
+      <button class="btn-delete-review" onclick="this.closest('.review-entry-row').remove()">×</button>`;
+    list.appendChild(row);
+  }
+  function addModalExtra() {
+    const list = document.getElementById('modalExtraList');
+    // Remove empty msg if present
+    const empty = list.querySelector('.empty-list-msg');
+    if (empty) empty.remove();
+    const row = document.createElement('div');
+    row.className = 'review-entry-row';
+    row.innerHTML = `
+      <input class="review-input-note" type="text" placeholder="extra cash">
+      <span class="review-entry-time">—</span>
+      <input class="review-input-amount sky" type="number" placeholder="0">
+      <button class="btn-delete-review" onclick="this.closest('.review-entry-row').remove()">×</button>`;
+    list.appendChild(row);
+  }
+  function deleteModalSpend(btn) {
+    btn.closest('.review-entry-row').remove();
+  }
+  function updateModalTotal() { /* visual only in modal */ }
+
+  // ── MISSED DOT ──
+  function toggleMissed(on) {
+    ['logTab1','logTab2','logTab3','logTab4'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.toggle('show-missed', on);
+    });
+    document.getElementById('missedBanner').style.display = on ? '' : 'none';
+    if (on) document.getElementById('missedBannerTitle').textContent = 'Missed yesterday\'s review';
+  }
+
+  // ── INIT ──
+  applyDay1('empty');
+</script>
+</body>
+</html>

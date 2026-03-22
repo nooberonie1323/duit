@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Duit — Stats Tab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --indigo: #4F46E5; --indigo-light: #EEF2FF; --indigo-dark: #3730A3;
+    --sky: #0EA5E9; --sky-light: #E0F2FE;
+    --red: #EF4444; --red-light: #FEF2F2;
+    --amber: #F59E0B; --amber-light: #FFFBEB;
+    --green: #10B981; --green-light: #ECFDF5;
+    --blue: #3B82F6; --blue-light: #EFF6FF;
+    --text: #111827; --text-sub: #6B7280; --text-placeholder: #9CA3AF;
+    --border: #E5E7EB; --surface: #F9FAFB; --white: #ffffff; --bg: #EEEEF2;
+    --font: 'Plus Jakarta Sans', sans-serif;
+  }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 32px;
+    padding: 24px;
+  }
+
+  /* ── PHONE FRAME ── */
+  .phone-wrap { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 12px; padding-top: 8px; }
+  .phone {
+    width: 390px; height: 844px;
+    background: var(--bg);
+    border-radius: 50px;
+    border: 8px solid #1C1C1E;
+    box-shadow: 0 0 0 1px #3a3a3c, 0 40px 80px rgba(0,0,0,0.25), inset 0 0 0 1px rgba(255,255,255,0.1);
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+  .phone::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%; transform: translateX(-50%);
+    width: 126px; height: 34px;
+    background: #1C1C1E;
+    border-radius: 0 0 20px 20px;
+    z-index: 10;
+  }
+
+  /* ── LAYOUT: fixed header + scrollable body + fixed nav ── */
+  .phone-fixed-top {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .phone-scroll {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: none;
+  }
+  .phone-scroll::-webkit-scrollbar { display: none; }
+  .phone-fixed-nav {
+    flex-shrink: 0;
+  }
+
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  /* ── STATUS BAR ── */
+  .status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 48px 24px 8px;
+  }
+  .status-time { font-size: 15px; font-weight: 700; color: var(--text); }
+  .status-icons { display: flex; gap: 6px; align-items: center; }
+  .status-icons svg { width: 16px; height: 16px; fill: var(--text); }
+
+  /* ── SCREEN HEADER ── */
+  .screen-header {
+    padding: 4px 20px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .screen-title { font-size: 22px; font-weight: 800; color: var(--text); letter-spacing: -0.5px; }
+  .view-toggle {
+    display: flex;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 3px;
+    gap: 2px;
+  }
+  .view-toggle-btn {
+    font-family: var(--font);
+    font-size: 12px; font-weight: 700;
+    color: var(--text-sub);
+    background: none; border: none;
+    border-radius: 7px;
+    padding: 5px 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .view-toggle-btn.active {
+    background: var(--white);
+    color: var(--indigo);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+
+  /* ── SCROLLABLE CONTENT ── */
+  .view-content {
+    padding: 0 16px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  /* ── CYCLE NAV (outside card) ── */
+  .cycle-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--white);
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    padding: 10px 14px;
+  }
+  .nav-arrow {
+    font-family: var(--font);
+    font-size: 18px; font-weight: 700;
+    color: var(--text-sub);
+    background: none; border: none;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 8px;
+    transition: background 0.1s;
+    user-select: none;
+  }
+  .nav-arrow:hover { background: var(--surface); }
+  .nav-arrow.disabled { color: var(--text-placeholder); cursor: default; }
+  .nav-arrow.disabled:hover { background: none; }
+  .cycle-nav-label { font-size: 14px; font-weight: 700; color: var(--text); letter-spacing: -0.2px; }
+
+  /* ── CALENDAR CARD ── */
+  .calendar-card {
+    background: var(--white);
+    border: 1.5px solid var(--border);
+    border-radius: 18px;
+    padding: 14px 12px 12px;
+  }
+
+  /* Month nav inside card */
+  .cal-month-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .cal-month-btn {
+    font-family: var(--font);
+    font-size: 16px; font-weight: 700;
+    color: var(--text-sub);
+    background: none; border: none;
+    cursor: pointer;
+    padding: 2px 8px;
+    border-radius: 6px;
+    transition: background 0.1s;
+    user-select: none;
+  }
+  .cal-month-btn:hover { background: var(--surface); }
+  .cal-month-label { font-size: 15px; font-weight: 800; color: var(--text); letter-spacing: -0.3px; }
+
+  /* Calendar grid */
+  .cal-header {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    margin-bottom: 4px;
+  }
+  .cal-header-day {
+    text-align: center;
+    font-size: 10px; font-weight: 700;
+    color: var(--text-placeholder);
+    letter-spacing: 0.04em;
+    padding-bottom: 4px;
+  }
+  .cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 1px;
+  }
+  .cal-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2px 0;
+  }
+  .cal-cell.tappable { cursor: pointer; }
+  .cal-day-num {
+    font-size: 10px; font-weight: 600;
+    color: var(--text-sub);
+    margin-bottom: 2px;
+    line-height: 1;
+  }
+  .cal-cell.outside-cycle .cal-day-num { color: var(--text-placeholder); opacity: 0.4; }
+  .cal-cell.outside-month .cal-day-num { opacity: 0; }
+  .cal-dot {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8px; font-weight: 800;
+    line-height: 1;
+  }
+  .cal-dot.green  { background: var(--green-light); color: var(--green); }
+  .cal-dot.blue   { background: var(--blue-light);  color: var(--blue); }
+  .cal-dot.red    { background: var(--red-light);   color: var(--red); }
+  .cal-dot.amber  { background: var(--amber-light); color: var(--amber); }
+  .cal-dot.grey   { background: var(--surface);     color: var(--text-placeholder); }
+
+  /* Legend */
+  .cal-legend {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-sub);
+  }
+  .legend-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+  }
+  .legend-dot.green  { background: var(--green); }
+  .legend-dot.blue   { background: var(--blue); }
+  .legend-dot.red    { background: var(--red); }
+  .legend-dot.amber  { background: var(--amber); }
+  .legend-dot.grey   { background: var(--text-placeholder); }
+
+  /* ── GENERIC CARD ── */
+  .card {
+    background: var(--white);
+    border: 1.5px solid var(--border);
+    border-radius: 18px;
+    padding: 16px;
+  }
+  .card-title {
+    font-size: 11px; font-weight: 700;
+    color: var(--text-sub);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin-bottom: 12px;
+  }
+
+  /* ── RESERVATIONS ── */
+  .res-list { display: flex; flex-direction: column; gap: 8px; }
+  .res-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 12px;
+    background: var(--amber-light); border-radius: 10px;
+  }
+  .res-name { font-size: 13px; font-weight: 600; color: var(--text); }
+  .res-amount { font-size: 13px; font-weight: 700; color: var(--amber); }
+  .res-empty { font-size: 13px; color: var(--text-sub); font-style: italic; }
+  .btn-add-res {
+    font-family: var(--font);
+    font-size: 13px; font-weight: 600;
+    color: var(--indigo);
+    background: none;
+    border: 1.5px dashed var(--indigo);
+    border-radius: 10px;
+    padding: 9px 14px;
+    width: 100%;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: background 0.1s;
+  }
+  .btn-add-res:hover { background: var(--indigo-light); }
+
+  /* ── YEAR VIEW — STAT CARDS ── */
+  .stat-grid-2x2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .stat-card {
+    background: var(--white);
+    border: 1.5px solid var(--border);
+    border-radius: 16px;
+    padding: 14px;
+  }
+  .stat-card-label { font-size: 11px; font-weight: 600; color: var(--text-sub); margin-bottom: 6px; line-height: 1.3; }
+  .stat-card-value { font-size: 20px; font-weight: 800; color: var(--text); letter-spacing: -0.5px; }
+  .stat-card-value.green  { color: var(--green); }
+  .stat-card-value.indigo { color: var(--indigo); }
+
+  /* ── BAR CHART ── */
+  .bar-chart-card {
+    background: var(--white);
+    border: 1.5px solid var(--border);
+    border-radius: 18px;
+    padding: 16px 16px 12px;
+  }
+  .bar-chart-sub {
+    font-size: 11px; color: var(--text-placeholder);
+    margin-bottom: 10px;
+    margin-top: -6px;
+  }
+  .bar-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 5px;
+    height: 100px;
+    margin-bottom: 6px;
+  }
+  .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+  .bar { width: 100%; background: var(--indigo); border-radius: 4px 4px 0 0; min-height: 3px; }
+  .bar.empty { background: var(--border); }
+  .bar-month { font-size: 9px; font-weight: 600; color: var(--text-placeholder); margin-top: 5px; text-align: center; }
+
+  /* ── ARCHIVED SAVINGS ── */
+  .archived-total-row {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 12px;
+  }
+  .archived-total { font-size: 22px; font-weight: 800; color: var(--green); letter-spacing: -0.5px; }
+  .archived-sub { font-size: 12px; color: var(--text-sub); }
+  .archived-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+  .archived-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 10px;
+    background: var(--green-light); border-radius: 9px;
+  }
+  .archived-cycle-label { font-size: 12px; font-weight: 500; color: var(--text-sub); }
+  .archived-cycle-amt { font-size: 13px; font-weight: 700; color: var(--green); }
+  .archived-empty { font-size: 13px; color: var(--text-sub); font-style: italic; margin-bottom: 14px; }
+  .btn-withdraw {
+    font-family: var(--font);
+    font-size: 14px; font-weight: 700;
+    color: var(--white);
+    background: var(--green); border: none;
+    border-radius: 12px; padding: 12px;
+    width: 100%; cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .btn-withdraw:hover { opacity: 0.88; }
+
+  /* ── BOTTOM NAV (fixed, not inside scroll) ── */
+  .bottom-nav-wrap {
+    background: var(--bg);
+    padding: 0 0 16px;
+    display: flex;
+    justify-content: center;
+  }
+  .bottom-nav {
+    display: flex;
+    gap: 4px;
+    background: var(--white);
+    border: 1.5px solid var(--border);
+    border-radius: 50px;
+    padding: 8px 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+  }
+  .nav-tab {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    padding: 6px 14px; border-radius: 40px; cursor: pointer;
+  }
+  .nav-tab svg { width: 20px; height: 20px; stroke: var(--text-sub); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .nav-tab span { font-size: 10px; font-weight: 600; color: var(--text-sub); }
+  .nav-tab.active { background: var(--indigo-light); }
+  .nav-tab.active svg { stroke: var(--indigo); }
+  .nav-tab.active span { color: var(--indigo); }
+
+  /* ── MODALS ── */
+  .modal-backdrop {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 300;
+    display: none;
+    align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .modal-backdrop.open { display: flex; animation: fadeIn 0.15s ease; }
+  .modal {
+    width: 100%;
+    background: var(--white);
+    border-radius: 24px;
+    padding: 24px 20px 20px;
+  }
+  .modal-icon {
+    width: 48px; height: 48px; border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; margin-bottom: 14px;
+  }
+  .modal-icon.green { background: var(--green-light); }
+  .modal-icon.blue  { background: var(--blue-light); }
+  .modal-icon.red   { background: var(--red-light); }
+  .modal-icon.amber { background: var(--amber-light); }
+  .modal-title { font-size: 18px; font-weight: 800; color: var(--text); letter-spacing: -0.4px; margin-bottom: 4px; }
+  .modal-sub { font-size: 13px; color: var(--text-sub); line-height: 1.5; margin-bottom: 16px; }
+  .modal-stat-row { display: flex; gap: 8px; margin-bottom: 16px; }
+  .modal-stat { flex: 1; background: var(--surface); border-radius: 10px; padding: 10px 8px; text-align: center; }
+  .modal-stat-label { font-size: 10px; font-weight: 600; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 3px; }
+  .modal-stat-value { font-size: 16px; font-weight: 800; color: var(--text); }
+  .modal-stat-value.green { color: var(--green); }
+  .modal-stat-value.red   { color: var(--red); }
+  .modal-btn-row { display: flex; flex-direction: column; gap: 8px; }
+  .btn { width: 100%; padding: 14px; border: none; border-radius: 14px; font-family: var(--font); font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.15s; }
+  .btn-primary { background: var(--indigo); color: var(--white); }
+  .btn-primary:hover { opacity: 0.88; }
+  .btn-green-solid { background: var(--green); color: var(--white); }
+  .btn-green-solid:hover { opacity: 0.88; }
+  .btn-ghost { background: var(--surface); color: var(--text-sub); border: 1.5px solid var(--border); }
+  .btn-ghost:hover { background: var(--border); }
+
+  /* ── WITHDRAW MODAL ── */
+  .withdraw-step { display: none; }
+  .withdraw-step.active { display: block; }
+  .withdraw-balance-note { font-size: 12px; color: var(--text-sub); margin-bottom: 16px; }
+  .withdraw-balance-note strong { color: var(--green); }
+  .slider-wrap { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .slider-input {
+    flex: 1; -webkit-appearance: none; appearance: none;
+    height: 6px; border-radius: 3px;
+    background: var(--indigo-light); outline: none; cursor: pointer;
+  }
+  .slider-input::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%; background: var(--indigo); cursor: pointer; box-shadow: 0 2px 6px rgba(79,70,229,0.4); }
+  .slider-input::-moz-range-thumb { width: 22px; height: 22px; border-radius: 50%; background: var(--indigo); cursor: pointer; border: none; box-shadow: 0 2px 6px rgba(79,70,229,0.4); }
+  .amount-input-wrap {
+    display: flex; align-items: center;
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: 12px; padding: 10px 14px; gap: 6px; margin-bottom: 16px;
+  }
+  .amount-input-wrap.warn { border-color: var(--red); }
+  .taka-sym { font-size: 16px; font-weight: 700; color: var(--text-sub); }
+  .amount-input-wrap input { flex: 1; font-family: var(--font); font-size: 20px; font-weight: 800; color: var(--text); background: none; border: none; outline: none; min-width: 0; }
+  .dest-option {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px; border: 1.5px solid var(--border); border-radius: 14px;
+    cursor: pointer; margin-bottom: 8px; transition: all 0.12s;
+  }
+  .dest-option:hover { border-color: var(--indigo); background: var(--indigo-light); }
+  .dest-option-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .dest-option-text { font-size: 14px; font-weight: 600; color: var(--text); }
+  .dest-option-sub { font-size: 11px; color: var(--text-sub); margin-top: 1px; }
+  .withdraw-warn-box { background: var(--amber-light); border: 1.5px solid var(--amber); border-radius: 12px; padding: 12px; font-size: 13px; color: var(--text); line-height: 1.5; margin-bottom: 14px; }
+
+  /* ── CONTROL PANEL ── */
+  .control-panel { width: 220px; flex-shrink: 0; display: flex; flex-direction: column; gap: 16px; padding-top: 8px; max-height: 860px; overflow-y: auto; }
+  .cp-section-title { font-size: 11px; font-weight: 700; color: var(--text-placeholder); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+  .cp-btn { display: block; width: 100%; font-family: var(--font); font-size: 12px; font-weight: 600; color: var(--text); background: var(--white); border: 1.5px solid var(--border); border-radius: 10px; padding: 8px 12px; text-align: left; cursor: pointer; margin-bottom: 4px; transition: all 0.12s; }
+  .cp-btn:hover { background: var(--indigo-light); border-color: var(--indigo); color: var(--indigo); }
+</style>
+</head>
+<body>
+
+<div class="phone-wrap">
+  <div class="phone">
+
+    <!-- FIXED TOP: status bar + screen header -->
+    <div class="phone-fixed-top">
+      <div class="status-bar">
+        <span class="status-time">9:41</span>
+        <div class="status-icons">
+          <svg viewBox="0 0 24 24"><path d="M1 6l4.5 4.5L12 4l6.5 6.5L23 6"/></svg>
+          <svg viewBox="0 0 24 24"><rect x="2" y="7" width="16" height="10" rx="2"/><path d="M22 11v2"/></svg>
+        </div>
+      </div>
+      <div class="screen-header">
+        <div class="screen-title">Stats</div>
+        <div class="view-toggle">
+          <button class="view-toggle-btn active" id="btnCycle" onclick="switchView('cycle')">Cycle</button>
+          <button class="view-toggle-btn" id="btnYear"  onclick="switchView('year')">Year</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCROLLABLE CONTENT -->
+    <div class="phone-scroll">
+
+      <!-- ── CYCLE VIEW ── -->
+      <div id="viewCycle" class="view-content">
+
+        <!-- Outer cycle nav -->
+        <div class="cycle-nav">
+          <button class="nav-arrow" id="cyclePrev" onclick="navCycle(-1)">‹</button>
+          <span class="cycle-nav-label" id="cycleLabel">Mar 9 – Apr 10</span>
+          <button class="nav-arrow" id="cycleNext" onclick="navCycle(1)">›</button>
+        </div>
+
+        <!-- Calendar card with inner month nav -->
+        <div class="calendar-card">
+          <div class="cal-month-nav">
+            <button class="cal-month-btn" onclick="navMonth(-1)">‹</button>
+            <span class="cal-month-label" id="calMonthLabel">March 2026</span>
+            <button class="cal-month-btn" onclick="navMonth(1)">›</button>
+          </div>
+          <div class="cal-header">
+            <div class="cal-header-day">Su</div>
+            <div class="cal-header-day">Mo</div>
+            <div class="cal-header-day">Tu</div>
+            <div class="cal-header-day">We</div>
+            <div class="cal-header-day">Th</div>
+            <div class="cal-header-day">Fr</div>
+            <div class="cal-header-day">Sa</div>
+          </div>
+          <div class="cal-grid" id="calGrid"></div>
+          <div class="cal-legend">
+            <div class="legend-item"><div class="legend-dot green"></div> Saved</div>
+            <div class="legend-item"><div class="legend-dot blue"></div> Normal</div>
+            <div class="legend-item"><div class="legend-dot red"></div> Rough</div>
+            <div class="legend-item"><div class="legend-dot amber"></div> Missed</div>
+            <div class="legend-item"><div class="legend-dot grey"></div> Untracked</div>
+          </div>
+        </div>
+
+        <!-- Reservations card -->
+        <div class="card">
+          <div class="card-title">Reservations</div>
+          <div class="res-list" id="resList"></div>
+          <button class="btn-add-res" id="addResBtn" style="display:none">+ Add reservation</button>
+        </div>
+
+      </div><!-- /viewCycle -->
+
+      <!-- ── YEAR VIEW ── -->
+      <div id="viewYear" class="view-content" style="display:none">
+
+        <!-- Year nav -->
+        <div class="cycle-nav">
+          <button class="nav-arrow disabled">‹</button>
+          <span class="cycle-nav-label" id="yearLabel">2026</span>
+          <button class="nav-arrow disabled">›</button>
+        </div>
+
+        <!-- 4 stat cards -->
+        <div class="stat-grid-2x2">
+          <div class="stat-card">
+            <div class="stat-card-label">Total spent</div>
+            <div class="stat-card-value" id="yTotalSpent">৳0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-label">Daily average</div>
+            <div class="stat-card-value" id="yDailyAvg">৳0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-label">Total underspent</div>
+            <div class="stat-card-value green" id="yUnderspent">৳0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-label">Total archived</div>
+            <div class="stat-card-value green" id="yArchived">৳0</div>
+          </div>
+        </div>
+
+        <!-- Bar chart -->
+        <div class="bar-chart-card">
+          <div class="card-title">Monthly spending</div>
+          <div class="bar-chart-sub">Total spent per month</div>
+          <div class="bar-chart" id="barChart"></div>
+        </div>
+
+        <!-- Archived savings -->
+        <div class="card">
+          <div class="card-title">Archived savings</div>
+          <div class="archived-total-row">
+            <div class="archived-total" id="archTotal">৳0</div>
+            <div class="archived-sub">total balance</div>
+          </div>
+          <div class="archived-list" id="archList"></div>
+          <div class="archived-empty" id="archEmpty" style="display:none">Nothing archived yet</div>
+          <button class="btn-withdraw" id="withdrawBtn" onclick="openWithdraw()" style="display:none">Withdraw</button>
+        </div>
+
+      </div><!-- /viewYear -->
+
+    </div><!-- /phone-scroll -->
+
+    <!-- FIXED BOTTOM NAV -->
+    <div class="phone-fixed-nav">
+      <div class="bottom-nav-wrap">
+        <div class="bottom-nav">
+          <div class="nav-tab">
+            <svg viewBox="0 0 24 24"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg>
+            <span>Home</span>
+          </div>
+          <div class="nav-tab">
+            <svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="12" y2="16"/></svg>
+            <span>Log</span>
+          </div>
+          <div class="nav-tab active">
+            <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            <span>Stats</span>
+          </div>
+          <div class="nav-tab">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+            <span>More</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODALS (positioned absolute within .phone) -->
+
+    <!-- Day summary modal -->
+    <div class="modal-backdrop" id="modalDay" onclick="closeModal('modalDay', event)">
+      <div class="modal">
+        <div class="modal-icon" id="dayIcon"></div>
+        <div class="modal-title" id="dayTitle"></div>
+        <div class="modal-sub" id="daySub"></div>
+        <div class="modal-stat-row">
+          <div class="modal-stat">
+            <div class="modal-stat-label">Budget</div>
+            <div class="modal-stat-value" id="dayBudget"></div>
+          </div>
+          <div class="modal-stat">
+            <div class="modal-stat-label">Spent</div>
+            <div class="modal-stat-value" id="daySpent"></div>
+          </div>
+          <div class="modal-stat">
+            <div class="modal-stat-label" id="dayDiffLabel"></div>
+            <div class="modal-stat-value" id="dayDiff"></div>
+          </div>
+        </div>
+        <div class="modal-btn-row">
+          <button class="btn btn-ghost" onclick="closeModal('modalDay')">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Missed day modal -->
+    <div class="modal-backdrop" id="modalMissed" onclick="closeModal('modalMissed', event)">
+      <div class="modal">
+        <div class="modal-icon amber">⚠️</div>
+        <div class="modal-title" id="missedTitle">Missed</div>
+        <div class="modal-sub">This day wasn't reviewed. Head to the Log tab to review it — your stats will update once you do.</div>
+        <div class="modal-btn-row">
+          <button class="btn btn-ghost" onclick="closeModal('modalMissed')">Got it</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Withdraw modal -->
+    <div class="modal-backdrop" id="modalWithdraw" onclick="closeModal('modalWithdraw', event)">
+      <div class="modal">
+
+        <div class="withdraw-step active" id="wStep1">
+          <div class="modal-title">Withdraw savings</div>
+          <div class="modal-sub" style="margin-bottom:12px">How much do you want to move into your current cycle?</div>
+          <div class="withdraw-balance-note">Available: <strong id="wBalanceNote">৳0</strong></div>
+          <div class="slider-wrap">
+            <input class="slider-input" type="range" id="wSlider" min="0" value="0" oninput="syncWithdrawSlider()">
+          </div>
+          <div class="amount-input-wrap" id="wAmtWrap">
+            <span class="taka-sym">৳</span>
+            <input type="number" id="wAmtInput" placeholder="0" min="0" oninput="syncWithdrawInput()">
+          </div>
+          <div class="modal-btn-row">
+            <button class="btn btn-primary" onclick="withdrawNext()">Next →</button>
+            <button class="btn btn-ghost" onclick="closeModal('modalWithdraw')">Cancel</button>
+          </div>
+        </div>
+
+        <div class="withdraw-step" id="wStep2">
+          <div class="modal-title">Where should it go?</div>
+          <div class="modal-sub" style="margin-bottom:16px" id="wAmtSummary"></div>
+          <div class="dest-option" onclick="withdrawConfirm('pool')">
+            <div class="dest-option-icon" style="background:var(--indigo-light)">💰</div>
+            <div>
+              <div class="dest-option-text">Add to pool</div>
+              <div class="dest-option-sub">Raises your daily budget for the rest of the cycle</div>
+            </div>
+          </div>
+          <div class="dest-option" onclick="withdrawConfirm('reservation')">
+            <div class="dest-option-icon" style="background:var(--amber-light)">🔒</div>
+            <div>
+              <div class="dest-option-text">Add to reservation</div>
+              <div class="dest-option-sub">Protected from spending — set aside for something specific</div>
+            </div>
+          </div>
+          <div class="dest-option" onclick="withdrawConfirm('expense')">
+            <div class="dest-option-icon" style="background:var(--red-light)">🧾</div>
+            <div>
+              <div class="dest-option-text">Log as expense</div>
+              <div class="dest-option-sub">Goes in as a spend entry — net effect on pool is zero</div>
+            </div>
+          </div>
+          <div class="modal-btn-row" style="margin-top:4px">
+            <button class="btn btn-ghost" onclick="goWithdrawStep(1)">← Back</button>
+          </div>
+        </div>
+
+        <div class="withdraw-step" id="wStep3">
+          <div class="modal-icon green">✓</div>
+          <div class="modal-title" id="wConfirmTitle"></div>
+          <div class="modal-sub" id="wConfirmSub"></div>
+          <div class="withdraw-warn-box" id="wEmptyWarn" style="display:none">
+            ⚠️ This will empty your archived savings. Are you sure?
+          </div>
+          <div class="modal-btn-row">
+            <button class="btn btn-green-solid" onclick="withdrawDone()">Confirm</button>
+            <button class="btn btn-ghost" onclick="goWithdrawStep(2)">← Back</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div><!-- /phone -->
+</div><!-- /phone-wrap -->
+
+<!-- ── CONTROL PANEL ── -->
+<div class="control-panel">
+
+  <div>
+    <div class="cp-section-title">View</div>
+    <button class="cp-btn" onclick="switchView('cycle')">Cycle View</button>
+    <button class="cp-btn" onclick="switchView('year')">Year View</button>
+  </div>
+
+  <div id="cpCycleSection">
+    <div class="cp-section-title">Cycle presets</div>
+    <button class="cp-btn" onclick="loadCycle(0)">Current — Mar 9 – Apr 10</button>
+    <button class="cp-btn" onclick="loadCycle(1)">Past — Feb 1 – Feb 28 (all good)</button>
+    <button class="cp-btn" onclick="loadCycle(2)">Past — Jan 1 – Jan 31 (rough)</button>
+  </div>
+
+  <div id="cpCycleModals">
+    <div class="cp-section-title">Force-open (Cycle)</div>
+    <button class="cp-btn" onclick="forceOpenDay('green')">Day modal — good day</button>
+    <button class="cp-btn" onclick="forceOpenDay('blue')">Day modal — on budget</button>
+    <button class="cp-btn" onclick="forceOpenDay('red')">Day modal — rough day</button>
+    <button class="cp-btn" onclick="forceOpenMissed()">Missed day modal</button>
+  </div>
+
+  <div id="cpYearSection" style="display:none">
+    <div class="cp-section-title">Year presets</div>
+    <button class="cp-btn" onclick="loadYear('savings')">With archived savings</button>
+    <button class="cp-btn" onclick="loadYear('empty')">No savings yet</button>
+  </div>
+
+  <div id="cpYearModals" style="display:none">
+    <div class="cp-section-title">Force-open (Year)</div>
+    <button class="cp-btn" onclick="openWithdraw()">Withdraw flow</button>
+  </div>
+
+</div>
+
+<script>
+  // ── HELPERS ──
+  const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  function getStartDow(year, month) { return new Date(year, month, 1).getDay(); }
+  function getDaysInMonth(year, month) { return new Date(year, month + 1, 0).getDate(); }
+
+  // Compare dates: returns negative, 0, or positive
+  function cmpDate(y1,m1,d1, y2,m2,d2) {
+    return (y1*10000+m1*100+d1) - (y2*10000+m2*100+d2);
+  }
+
+  function inCycle(cycle, year, month, day) {
+    return cmpDate(year,month,day, cycle.start.year,cycle.start.month,cycle.start.day) >= 0 &&
+           cmpDate(year,month,day, cycle.end.year,  cycle.end.month,  cycle.end.day  ) <= 0;
+  }
+
+  function dayKey(month, day) { return month + '_' + day; }
+
+  function fmtAmt(n) {
+    if (n >= 1000) return (n/1000).toFixed(1).replace(/\.0$/,'') + 'k';
+    return String(n);
+  }
+
+  // ── CYCLE DATA ──
+  // Month is 0-indexed (0=Jan, 1=Feb, 2=Mar, 3=Apr)
+  const CYCLES = [
+    {
+      label: 'Mar 9 – Apr 10',
+      isCurrent: true,
+      start: { year: 2026, month: 2, day: 9 },
+      end:   { year: 2026, month: 3, day: 10 },
+      reservations: [
+        { name: 'Emergency fund', amount: 5000 },
+        { name: 'Dates', amount: 2000 },
+      ],
+      dayData: {
+        // March (month=2)
+        '2_9':  { type:'green', budget:1200, spent:990,  saved:210 },
+        '2_10': { type:'blue',  budget:1200, spent:1200 },
+        '2_11': { type:'red',   budget:1200, spent:1520, over:320 },
+        '2_12': { type:'green', budget:1200, spent:1020, saved:180 },
+        '2_13': { type:'amber' },
+        '2_14': { type:'blue',  budget:1200, spent:1200 },
+        '2_15': { type:'green', budget:1200, spent:750,  saved:450 },
+        '2_16': { type:'red',   budget:1200, spent:1380, over:180 },
+        '2_17': { type:'green', budget:1200, spent:1110, saved:90 },
+        '2_18': { type:'blue',  budget:1200, spent:1200 },
+        '2_19': { type:'red',   budget:1200, spent:1720, over:520 },
+        '2_20': { type:'green', budget:1200, spent:890,  saved:310 },
+        '2_21': { type:'amber' },
+        '2_22': { type:'blue',  budget:1200, spent:1200 },
+        '2_23': { type:'green', budget:1200, spent:1050, saved:150 },
+        '2_24': { type:'red',   budget:1200, spent:1290, over:90 },
+        '2_25': { type:'grey' },
+        '2_26': { type:'grey' },
+        '2_27': { type:'grey' },
+        '2_28': { type:'grey' },
+        '2_29': { type:'grey' },
+        '2_30': { type:'grey' },
+        '2_31': { type:'grey' },
+        // April (month=3)
+        '3_1':  { type:'green', budget:1150, spent:920,  saved:230 },
+        '3_2':  { type:'blue',  budget:1150, spent:1150 },
+        '3_3':  { type:'red',   budget:1150, spent:1400, over:250 },
+        '3_4':  { type:'green', budget:1150, spent:980,  saved:170 },
+        '3_5':  { type:'blue',  budget:1150, spent:1150 },
+        '3_6':  { type:'grey' },
+        '3_7':  { type:'grey' },
+        '3_8':  { type:'grey' },
+        '3_9':  { type:'grey' },
+        '3_10': { type:'grey' },
+      }
+    },
+    {
+      label: 'Feb 1 – Feb 28',
+      isCurrent: false,
+      start: { year: 2026, month: 1, day: 1 },
+      end:   { year: 2026, month: 1, day: 28 },
+      reservations: [{ name: 'Books', amount: 1500 }],
+      dayData: {
+        '1_1':  { type:'green', budget:1300, spent:900,  saved:400 },
+        '1_2':  { type:'blue',  budget:1300, spent:1300 },
+        '1_3':  { type:'green', budget:1300, spent:1100, saved:200 },
+        '1_4':  { type:'green', budget:1300, spent:800,  saved:500 },
+        '1_5':  { type:'blue',  budget:1300, spent:1300 },
+        '1_6':  { type:'green', budget:1300, spent:950,  saved:350 },
+        '1_7':  { type:'green', budget:1300, spent:1050, saved:250 },
+        '1_8':  { type:'green', budget:1300, spent:1150, saved:150 },
+        '1_9':  { type:'blue',  budget:1300, spent:1300 },
+        '1_10': { type:'green', budget:1300, spent:700,  saved:600 },
+        '1_11': { type:'green', budget:1300, spent:1100, saved:200 },
+        '1_12': { type:'blue',  budget:1300, spent:1300 },
+        '1_13': { type:'green', budget:1300, spent:1000, saved:300 },
+        '1_14': { type:'green', budget:1300, spent:900,  saved:400 },
+        '1_15': { type:'green', budget:1300, spent:850,  saved:450 },
+        '1_16': { type:'blue',  budget:1300, spent:1300 },
+        '1_17': { type:'green', budget:1300, spent:1100, saved:200 },
+        '1_18': { type:'green', budget:1300, spent:950,  saved:350 },
+        '1_19': { type:'green', budget:1300, spent:1050, saved:250 },
+        '1_20': { type:'blue',  budget:1300, spent:1300 },
+        '1_21': { type:'green', budget:1300, spent:880,  saved:420 },
+        '1_22': { type:'green', budget:1300, spent:1000, saved:300 },
+        '1_23': { type:'green', budget:1300, spent:1150, saved:150 },
+        '1_24': { type:'blue',  budget:1300, spent:1300 },
+        '1_25': { type:'green', budget:1300, spent:900,  saved:400 },
+        '1_26': { type:'green', budget:1300, spent:1000, saved:300 },
+        '1_27': { type:'green', budget:1300, spent:800,  saved:500 },
+        '1_28': { type:'blue',  budget:1300, spent:1300 },
+      }
+    },
+    {
+      label: 'Jan 1 – Jan 31',
+      isCurrent: false,
+      start: { year: 2026, month: 0, day: 1 },
+      end:   { year: 2026, month: 0, day: 31 },
+      reservations: [],
+      dayData: {
+        '0_1':  { type:'red',   budget:1100, spent:1600, over:500 },
+        '0_2':  { type:'red',   budget:1100, spent:1400, over:300 },
+        '0_3':  { type:'red',   budget:1100, spent:1800, over:700 },
+        '0_4':  { type:'amber' },
+        '0_5':  { type:'red',   budget:1100, spent:1300, over:200 },
+        '0_6':  { type:'green', budget:1100, spent:900,  saved:200 },
+        '0_7':  { type:'red',   budget:1100, spent:1500, over:400 },
+        '0_8':  { type:'amber' },
+        '0_9':  { type:'red',   budget:1100, spent:1250, over:150 },
+        '0_10': { type:'red',   budget:1100, spent:1700, over:600 },
+        '0_11': { type:'blue',  budget:1100, spent:1100 },
+        '0_12': { type:'red',   budget:1100, spent:1350, over:250 },
+        '0_13': { type:'red',   budget:1100, spent:1450, over:350 },
+        '0_14': { type:'amber' },
+        '0_15': { type:'green', budget:1100, spent:800,  saved:300 },
+        '0_16': { type:'red',   budget:1100, spent:1600, over:500 },
+        '0_17': { type:'red',   budget:1100, spent:1200, over:100 },
+        '0_18': { type:'blue',  budget:1100, spent:1100 },
+        '0_19': { type:'red',   budget:1100, spent:1550, over:450 },
+        '0_20': { type:'red',   budget:1100, spent:1380, over:280 },
+        '0_21': { type:'amber' },
+        '0_22': { type:'green', budget:1100, spent:950,  saved:150 },
+        '0_23': { type:'red',   budget:1100, spent:1420, over:320 },
+        '0_24': { type:'red',   budget:1100, spent:1650, over:550 },
+        '0_25': { type:'blue',  budget:1100, spent:1100 },
+        '0_26': { type:'red',   budget:1100, spent:1300, over:200 },
+        '0_27': { type:'red',   budget:1100, spent:1480, over:380 },
+        '0_28': { type:'red',   budget:1100, spent:1700, over:600 },
+        '0_29': { type:'amber' },
+        '0_30': { type:'red',   budget:1100, spent:1250, over:150 },
+        '0_31': { type:'red',   budget:1100, spent:1400, over:300 },
+      }
+    }
+  ];
+
+  // ── YEAR DATA ──
+  const YEAR_DATA = {
+    savings: {
+      label: '2026',
+      totalSpent: 285000, dailyAvg: 950, totalUnderspent: 12400, totalArchived: 8500,
+      archiveBalance: 8500,
+      months: [22000, 19000, 24000, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      archiveList: [
+        { cycle: 'Jan 1 – Jan 31',   amount: 3500 },
+        { cycle: 'Feb 1 – Feb 28',   amount: 2000 },
+        { cycle: 'Mar 9 – Apr 10',   amount: 3000 },
+      ]
+    },
+    empty: {
+      label: '2026',
+      totalSpent: 65000, dailyAvg: 1050, totalUnderspent: 4200, totalArchived: 0,
+      archiveBalance: 0,
+      months: [22000, 19000, 24000, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      archiveList: []
+    }
+  };
+
+  // ── STATE ──
+  let cycleIdx    = 0;
+  let viewMonth   = 2;   // 0-indexed
+  let viewYear    = 2026;
+  let yearKey     = 'savings';
+  let withdrawMax = 0;
+  let withdrawAmt = 0;
+
+  // ── VIEW SWITCH ──
+  function switchView(v) {
+    document.getElementById('viewCycle').style.display = v === 'cycle' ? 'flex' : 'none';
+    document.getElementById('viewYear').style.display  = v === 'year'  ? 'flex' : 'none';
+    document.getElementById('btnCycle').classList.toggle('active', v === 'cycle');
+    document.getElementById('btnYear').classList.toggle('active',  v === 'year');
+    document.getElementById('cpCycleSection').style.display  = v === 'cycle' ? '' : 'none';
+    document.getElementById('cpCycleModals').style.display   = v === 'cycle' ? '' : 'none';
+    document.getElementById('cpYearSection').style.display   = v === 'year'  ? '' : 'none';
+    document.getElementById('cpYearModals').style.display    = v === 'year'  ? '' : 'none';
+  }
+
+  // ── CYCLE NAVIGATION (outer arrows) ──
+  function navCycle(dir) {
+    const newIdx = cycleIdx + dir;
+    if (newIdx < 0 || newIdx >= CYCLES.length) return;
+    cycleIdx = newIdx;
+    // Reset view month to the cycle's start month
+    viewMonth = CYCLES[cycleIdx].start.month;
+    viewYear  = CYCLES[cycleIdx].start.year;
+    renderCycleView();
+  }
+
+  // ── MONTH NAVIGATION (inner arrows inside card) ──
+  function navMonth(dir) {
+    viewMonth += dir;
+    if (viewMonth < 0)  { viewMonth = 11; viewYear--; }
+    if (viewMonth > 11) { viewMonth = 0;  viewYear++; }
+    renderCalendar();
+    document.getElementById('calMonthLabel').textContent = MONTH_NAMES[viewMonth] + ' ' + viewYear;
+  }
+
+  // ── RENDER CYCLE VIEW ──
+  function renderCycleView() {
+    const cycle = CYCLES[cycleIdx];
+    document.getElementById('cycleLabel').textContent = cycle.label;
+    document.getElementById('cyclePrev').classList.toggle('disabled', cycleIdx >= CYCLES.length - 1);
+    document.getElementById('cycleNext').classList.toggle('disabled', cycleIdx <= 0);
+    document.getElementById('calMonthLabel').textContent = MONTH_NAMES[viewMonth] + ' ' + viewYear;
+    renderCalendar();
+    renderReservations(cycle);
+  }
+
+  // ── RENDER CALENDAR ──
+  function renderCalendar() {
+    const cycle  = CYCLES[cycleIdx];
+    const grid   = document.getElementById('calGrid');
+    const daysInMonth = getDaysInMonth(viewYear, viewMonth);
+    const startDow    = getStartDow(viewYear, viewMonth);
+    grid.innerHTML = '';
+
+    // Leading empty cells
+    for (let i = 0; i < startDow; i++) {
+      const cell = document.createElement('div');
+      cell.className = 'cal-cell outside-month';
+      const num = document.createElement('div');
+      num.className = 'cal-day-num';
+      num.textContent = '';
+      cell.appendChild(num);
+      grid.appendChild(cell);
+    }
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const insideCycle = inCycle(cycle, viewYear, viewMonth, d);
+      const data = insideCycle ? (cycle.dayData[dayKey(viewMonth, d)] || { type: 'grey' }) : null;
+
+      const cell = document.createElement('div');
+      const tappable = data && (data.type === 'green' || data.type === 'blue' || data.type === 'red' || data.type === 'amber');
+      cell.className = 'cal-cell' + (!insideCycle ? ' outside-cycle' : '') + (tappable ? ' tappable' : '');
+
+      // Day number
+      const num = document.createElement('div');
+      num.className = 'cal-day-num';
+      num.textContent = d;
+      cell.appendChild(num);
+
+      // Dot (only for days inside the cycle)
+      if (insideCycle && data) {
+        const dot = document.createElement('div');
+        dot.className = 'cal-dot ' + data.type;
+        if (data.type === 'green') dot.textContent = fmtAmt(data.saved);
+        if (data.type === 'red')   dot.textContent = fmtAmt(data.over);
+        cell.appendChild(dot);
+
+        if (tappable) {
+          cell.onclick = () => openDayModal(d, viewMonth, data);
+        }
+      }
+
+      grid.appendChild(cell);
+    }
+  }
+
+  // ── RENDER RESERVATIONS ──
+  function renderReservations(cycle) {
+    const list   = document.getElementById('resList');
+    const addBtn = document.getElementById('addResBtn');
+    list.innerHTML = '';
+
+    if (cycle.reservations.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'res-empty';
+      empty.textContent = 'No reservations for this cycle.';
+      list.appendChild(empty);
+    } else {
+      cycle.reservations.forEach(r => {
+        const row = document.createElement('div');
+        row.className = 'res-row';
+        row.innerHTML = `<span class="res-name">${r.name}</span><span class="res-amount">৳${r.amount.toLocaleString()}</span>`;
+        list.appendChild(row);
+      });
+    }
+    addBtn.style.display = cycle.isCurrent ? '' : 'none';
+  }
+
+  // ── DAY MODAL ──
+  function openDayModal(d, month, data) {
+    const monthName = MONTH_SHORT[month];
+    const dayLabel  = `${monthName} ${d}`;
+
+    if (data.type === 'amber') {
+      document.getElementById('missedTitle').textContent = dayLabel + ' — Missed';
+      openModal('modalMissed');
+      return;
+    }
+
+    document.getElementById('dayTitle').textContent = dayLabel;
+    const icon = document.getElementById('dayIcon');
+    icon.className = 'modal-icon ' + data.type;
+    icon.textContent = data.type === 'green' ? '✓' : data.type === 'blue' ? '●' : '↑';
+
+    document.getElementById('dayBudget').textContent = '৳' + data.budget.toLocaleString();
+    document.getElementById('daySpent').textContent  = '৳' + data.spent.toLocaleString();
+
+    const diffLabel = document.getElementById('dayDiffLabel');
+    const diffVal   = document.getElementById('dayDiff');
+
+    if (data.type === 'green') {
+      diffLabel.textContent = 'Saved';
+      diffVal.textContent   = '৳' + data.saved.toLocaleString();
+      diffVal.className     = 'modal-stat-value green';
+      document.getElementById('daySub').textContent = 'You came in under budget. Nice one.';
+    } else if (data.type === 'red') {
+      diffLabel.textContent = 'Over';
+      diffVal.textContent   = '৳' + data.over.toLocaleString();
+      diffVal.className     = 'modal-stat-value red';
+      document.getElementById('daySub').textContent = 'You went over budget today.';
+    } else {
+      diffLabel.textContent = 'Diff';
+      diffVal.textContent   = '৳0';
+      diffVal.className     = 'modal-stat-value';
+      document.getElementById('daySub').textContent = 'Spent exactly your daily budget. On the dot.';
+    }
+
+    openModal('modalDay');
+  }
+
+  function forceOpenDay(type) {
+    const sample = {
+      green: { type:'green', budget:1200, spent:990,  saved:210 },
+      blue:  { type:'blue',  budget:1200, spent:1200 },
+      red:   { type:'red',   budget:1200, spent:1520, over:320 },
+    };
+    openDayModal(12, 2, sample[type]);
+  }
+
+  function forceOpenMissed() {
+    document.getElementById('missedTitle').textContent = 'Mar 13 — Missed';
+    openModal('modalMissed');
+  }
+
+  // ── YEAR VIEW ──
+  function loadYear(key) {
+    yearKey = key;
+    switchView('year');
+    const p = YEAR_DATA[key];
+    document.getElementById('yearLabel').textContent      = p.label;
+    document.getElementById('yTotalSpent').textContent    = '৳' + p.totalSpent.toLocaleString();
+    document.getElementById('yDailyAvg').textContent      = '৳' + p.dailyAvg.toLocaleString();
+    document.getElementById('yUnderspent').textContent    = '৳' + p.totalUnderspent.toLocaleString();
+    document.getElementById('yArchived').textContent      = '৳' + p.totalArchived.toLocaleString();
+
+    // Bar chart
+    const chart  = document.getElementById('barChart');
+    chart.innerHTML = '';
+    const maxVal = Math.max(...p.months, 1);
+    p.months.forEach((val, i) => {
+      const col  = document.createElement('div'); col.className = 'bar-col';
+      const bar  = document.createElement('div');
+      bar.className = 'bar' + (val === 0 ? ' empty' : '');
+      bar.style.height = (val === 0 ? 4 : Math.max(Math.round((val/maxVal)*100), 5)) + '%';
+      const lbl  = document.createElement('div'); lbl.className = 'bar-month'; lbl.textContent = MONTH_SHORT[i];
+      col.appendChild(bar); col.appendChild(lbl);
+      chart.appendChild(col);
+    });
+
+    // Archived savings
+    const archList  = document.getElementById('archList');
+    const archEmpty = document.getElementById('archEmpty');
+    const wdBtn     = document.getElementById('withdrawBtn');
+    document.getElementById('archTotal').textContent = '৳' + p.archiveBalance.toLocaleString();
+    archList.innerHTML = '';
+
+    if (p.archiveList.length === 0) {
+      archEmpty.style.display = '';
+      wdBtn.style.display     = 'none';
+    } else {
+      archEmpty.style.display = 'none';
+      wdBtn.style.display     = '';
+      p.archiveList.forEach(a => {
+        const row = document.createElement('div'); row.className = 'archived-row';
+        row.innerHTML = `<span class="archived-cycle-label">${a.cycle}</span><span class="archived-cycle-amt">৳${a.amount.toLocaleString()}</span>`;
+        archList.appendChild(row);
+      });
+    }
+
+    withdrawMax = p.archiveBalance;
+    document.getElementById('wSlider').max   = withdrawMax;
+    document.getElementById('wSlider').value = 0;
+    document.getElementById('wAmtInput').value = '';
+    document.getElementById('wBalanceNote').textContent = '৳' + withdrawMax.toLocaleString();
+  }
+
+  // ── CYCLE LOADER (control panel) ──
+  function loadCycle(idx) {
+    cycleIdx  = idx;
+    viewMonth = CYCLES[idx].start.month;
+    viewYear  = CYCLES[idx].start.year;
+    switchView('cycle');
+    renderCycleView();
+  }
+
+  // ── WITHDRAW FLOW ──
+  function openWithdraw() { goWithdrawStep(1); openModal('modalWithdraw'); }
+
+  function goWithdrawStep(n) {
+    document.querySelectorAll('.withdraw-step').forEach((el, i) => el.classList.toggle('active', i === n-1));
+  }
+
+  function syncWithdrawSlider() {
+    const v = parseInt(document.getElementById('wSlider').value);
+    document.getElementById('wAmtInput').value = v;
+    withdrawAmt = v;
+    document.getElementById('wAmtWrap').classList.remove('warn');
+  }
+
+  function syncWithdrawInput() {
+    let v = parseInt(document.getElementById('wAmtInput').value) || 0;
+    document.getElementById('wAmtWrap').classList.toggle('warn', v > withdrawMax);
+    if (v > withdrawMax) v = withdrawMax;
+    document.getElementById('wSlider').value = v;
+    withdrawAmt = v;
+  }
+
+  function withdrawNext() {
+    if (withdrawAmt <= 0) return;
+    document.getElementById('wAmtSummary').textContent = `Moving ৳${withdrawAmt.toLocaleString()} into your cycle.`;
+    goWithdrawStep(2);
+  }
+
+  function withdrawConfirm(dest) {
+    const map = {
+      pool:        ['Added to pool',         'Your daily budget will update for the rest of the cycle.'],
+      reservation: ['Added to reservation',  'The amount is set aside and protected from spending.'],
+      expense:     ['Logged as expense',     'Goes in as a spend entry — net effect on pool is zero.'],
+    };
+    document.getElementById('wConfirmTitle').textContent = map[dest][0];
+    document.getElementById('wConfirmSub').textContent   = map[dest][1];
+    document.getElementById('wEmptyWarn').style.display  = withdrawAmt >= withdrawMax ? '' : 'none';
+    goWithdrawStep(3);
+  }
+
+  function withdrawDone() { closeModal('modalWithdraw'); }
+
+  // ── MODAL HELPERS ──
+  function openModal(id)  { document.getElementById(id).classList.add('open'); }
+  function closeModal(id, e) {
+    if (e && e.target !== document.getElementById(id)) return;
+    document.getElementById(id).classList.remove('open');
+  }
+
+  // ── INIT ──
+  loadCycle(0);
+  loadYear('savings');
+</script>
+</body>
+</html>

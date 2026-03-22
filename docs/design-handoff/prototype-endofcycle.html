@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Duit — End of Cycle Flow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --indigo: #4F46E5; --indigo-light: #EEF2FF; --indigo-dark: #3730A3;
+    --sky: #0EA5E9; --sky-light: #E0F2FE;
+    --red: #EF4444; --red-light: #FEF2F2;
+    --amber: #F59E0B; --amber-light: #FFFBEB;
+    --green: #10B981; --green-light: #ECFDF5;
+    --text: #111827; --text-sub: #6B7280; --text-placeholder: #9CA3AF;
+    --border: #E5E7EB; --surface: #F9FAFB; --white: #ffffff; --bg: #EEEEF2;
+    --font: 'Plus Jakarta Sans', sans-serif;
+  }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 32px;
+    padding: 24px;
+  }
+
+  /* ── PHONE ── */
+  .phone-wrap { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 12px; padding-top: 8px; }
+  .phone {
+    width: 390px; height: 844px;
+    background: var(--bg);
+    border-radius: 50px;
+    border: 8px solid #1C1C1E;
+    box-shadow: 0 0 0 1px #3a3a3c, 0 40px 80px rgba(0,0,0,0.25), inset 0 0 0 1px rgba(255,255,255,0.1);
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+  .phone::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%; transform: translateX(-50%);
+    width: 120px; height: 34px;
+    background: #1C1C1E;
+    border-radius: 0 0 20px 20px;
+    z-index: 100;
+  }
+  .phone-content { flex: 1; overflow: hidden; display: flex; flex-direction: column; position: relative; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .screen { display: none; flex-direction: column; flex: 1; overflow: hidden; }
+  .screen.active { display: flex; animation: fadeIn 0.2s ease; }
+
+  /* ── FLOW HEADER ── */
+  .flow-header {
+    display: flex;
+    align-items: center;
+    padding: 44px 18px 14px;
+    flex-shrink: 0;
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+    gap: 10px;
+  }
+  .flow-back {
+    width: 34px; height: 34px;
+    border: none; background: var(--surface); border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; flex-shrink: 0;
+  }
+  .flow-back svg { width: 16px; height: 16px; stroke: var(--text); fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+  .flow-title { flex: 1; text-align: center; font-size: 16px; font-weight: 800; color: var(--text); letter-spacing: -0.3px; }
+  .flow-step { font-size: 12px; font-weight: 600; color: var(--text-placeholder); width: 34px; text-align: right; flex-shrink: 0; }
+
+  /* ── LEFTOVER SCROLL AREA ── */
+  .leftover-scroll {
+    flex: 1;
+    overflow-y: auto;
+    scrollbar-width: none;
+    padding: 16px 16px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: var(--bg);
+  }
+  .leftover-scroll::-webkit-scrollbar { display: none; }
+
+  .leftover-intro { background: var(--white); border-radius: 20px; padding: 16px 18px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); }
+  .leftover-intro-title { font-size: 18px; font-weight: 800; color: var(--text); letter-spacing: -0.4px; margin-bottom: 4px; }
+  .leftover-intro-sub { font-size: 13px; color: var(--text-sub); line-height: 1.5; }
+
+  /* ── SOURCE CARDS ── */
+  .src-card {
+    background: var(--white);
+    border-radius: 16px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+    overflow: hidden;
+  }
+  .src-card.zero-card { opacity: 0.55; }
+
+  .src-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .src-header.locked { cursor: default; }
+
+  .src-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .dot-pool        { background: var(--indigo); }
+  .dot-savings     { background: var(--green); }
+  .dot-reservation { background: var(--amber); }
+
+  .src-info { flex: 1; }
+  .src-name { font-size: 14px; font-weight: 700; color: var(--text); }
+  .src-status { font-size: 11px; font-weight: 600; margin-top: 2px; }
+  .src-status.ok      { color: var(--green); }
+  .src-status.partial { color: var(--amber); }
+  .src-status.over    { color: var(--red); }
+  .src-status.zero    { color: var(--text-placeholder); }
+
+  .src-right { text-align: right; flex-shrink: 0; }
+  .src-amount { font-size: 15px; font-weight: 800; color: var(--text); }
+  .src-own-label { font-size: 10px; color: var(--text-placeholder); margin-top: 1px; }
+
+  .chevron {
+    width: 12px; height: 12px;
+    border-right: 2px solid #D1D5DB;
+    border-bottom: 2px solid #D1D5DB;
+    transform: rotate(45deg);
+    margin-bottom: 3px;
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+  }
+  .chevron.open { transform: rotate(-135deg); margin-bottom: -3px; border-color: #9CA3AF; }
+  .chevron.hidden { visibility: hidden; }
+
+  .src-body { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
+  .src-body.open { max-height: 800px; }
+  .src-body-inner { border-top: 1px solid var(--border); }
+
+  /* Breakdown (reservations) */
+  .breakdown-section { padding: 10px 16px 8px; border-bottom: 1px solid var(--border); }
+  .breakdown-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-sub); display: block; margin-bottom: 6px; }
+  .breakdown-badges { display: flex; flex-wrap: wrap; gap: 5px; }
+  .breakdown-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: var(--amber-light); color: #92400E;
+    border-radius: 20px; padding: 4px 10px;
+    font-size: 11px; font-weight: 600;
+  }
+
+  /* Received */
+  .received-section { padding: 8px 16px; background: #FAFAFA; border-bottom: 1px solid var(--border); }
+  .received-row { display: flex; align-items: center; gap: 7px; padding: 2px 0; font-size: 11px; }
+  .received-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .received-label { color: var(--text-sub); flex: 1; }
+  .received-amount { font-weight: 700; color: var(--text-sub); }
+
+  /* Alloc rows */
+  .alloc-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 16px;
+    border-bottom: 1px solid var(--surface);
+  }
+  .alloc-arrow { font-size: 11px; color: var(--text-placeholder); flex-shrink: 0; }
+  .dest-picker { flex: 1; min-width: 0; }
+  .dest-pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11px; font-weight: 700;
+    padding: 5px 10px; border-radius: 20px;
+    cursor: pointer; user-select: none; white-space: nowrap;
+  }
+  .pill-caret { font-size: 8px; opacity: 0.6; }
+  .pill-indigo { background: var(--indigo-light); color: var(--indigo); }
+  .pill-green  { background: var(--green-light);  color: var(--green); }
+  .pill-amber  { background: var(--amber-light);  color: #92400E; }
+  .pill-neutral{ background: var(--surface); color: var(--text-sub); border: 1px solid var(--border); }
+  .dest-desc { font-size: 10px; color: var(--text-placeholder); margin-top: 3px; }
+  .res-name-input {
+    display: block; margin-top: 6px; width: 100%;
+    padding: 5px 10px; font-size: 12px; font-family: var(--font);
+    border: 1.5px solid var(--border); border-radius: 8px;
+    outline: none; color: var(--text); background: var(--white);
+  }
+  .res-name-input:focus { border-color: var(--indigo); }
+  .res-name-input::placeholder { color: var(--text-placeholder); }
+
+  .amount-wrap {
+    display: flex; align-items: center; gap: 2px;
+    background: var(--white); border: 1.5px solid var(--border);
+    border-radius: 10px; padding: 5px 8px; flex-shrink: 0;
+  }
+  .amount-wrap:focus-within { border-color: var(--indigo); }
+  .amount-wrap.over { border-color: var(--red); background: var(--red-light); }
+  .taka-sym { font-size: 11px; color: var(--text-placeholder); }
+  .amount-input {
+    width: 54px; border: none; background: transparent;
+    font-size: 13px; font-weight: 700; color: var(--text);
+    outline: none; font-family: var(--font); text-align: right;
+  }
+  .amount-input::-webkit-outer-spin-button,
+  .amount-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+  .amount-input[type=number] { -moz-appearance: textfield; }
+  .amount-input.over { color: var(--red); }
+
+  .del-alloc {
+    width: 22px; height: 22px; font-size: 16px;
+    color: var(--text-placeholder); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; border: none; background: none; border-radius: 6px;
+  }
+  .del-alloc:hover { color: var(--red); }
+  .del-alloc.disabled { opacity: 0.25; pointer-events: none; }
+
+  .add-dest-btn {
+    display: flex; align-items: center; justify-content: center; gap: 5px;
+    padding: 10px 16px; font-size: 12px; font-weight: 600;
+    color: var(--indigo); cursor: pointer;
+    border-top: 1.5px dashed #C7D2FE; border-bottom: 1px solid var(--border);
+    background: none; width: 100%; font-family: var(--font);
+  }
+
+  /* Progress */
+  .progress-section { padding: 10px 16px 13px; background: #FAFAFA; }
+  .progress-row { display: flex; justify-content: space-between; font-size: 10px; color: var(--text-sub); margin-bottom: 5px; }
+  .progress-over { color: var(--red); font-weight: 700; }
+  .progress-track { height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 2px; transition: width 0.25s, background 0.25s; }
+  .pfill-ok      { background: var(--green); }
+  .pfill-partial { background: var(--amber); }
+  .pfill-over    { background: var(--red); }
+  .remainder-note { margin-top: 5px; font-size: 10px; color: var(--text-placeholder); font-style: italic; }
+  .remainder-over { color: var(--red); font-weight: 600; font-style: normal; }
+
+  /* Archive notice */
+  .archive-notice {
+    background: #FEFCE8; border: 1.5px solid #FDE68A;
+    border-radius: 16px; padding: 14px 16px;
+    display: flex; gap: 10px; align-items: flex-start;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  }
+  .archive-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  .archive-text { font-size: 12px; color: #92400E; line-height: 1.5; }
+  .archive-amount { font-size: 17px; font-weight: 800; color: #78350F; margin-top: 4px; letter-spacing: -0.4px; }
+  .archive-amount.zero { font-size: 13px; font-weight: 700; color: var(--green); }
+
+  /* Action row */
+  .action-row { display: flex; gap: 10px; }
+  .btn {
+    padding: 15px; border: none; border-radius: 16px;
+    font-family: var(--font); font-size: 15px; font-weight: 700;
+    cursor: pointer; letter-spacing: -0.2px;
+  }
+  .btn-primary { background: var(--indigo); color: var(--white); box-shadow: 0 4px 16px rgba(79,70,229,0.3); }
+  .btn-reset { background: var(--white); color: var(--red); border: 1.5px solid #FCA5A5; font-size: 14px; }
+
+  /* ── FLOATING PICKER ── */
+  .floating-picker {
+    position: absolute;
+    background: var(--white); border-radius: 14px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+    z-index: 400; padding: 5px; min-width: 185px; display: none;
+  }
+  .floating-picker.open { display: block; }
+  .picker-option {
+    padding: 9px 12px; font-size: 12px; font-weight: 600;
+    cursor: pointer; border-radius: 8px;
+    display: flex; align-items: center; gap: 8px; color: var(--text);
+  }
+  .picker-option:hover { background: var(--surface); }
+  .picker-option.selected { background: var(--indigo-light); color: var(--indigo); }
+  .picker-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+  /* ── MODALS ── */
+  .modal-backdrop {
+    position: absolute; inset: 0; background: rgba(0,0,0,0.5);
+    z-index: 300; display: none; align-items: center;
+    justify-content: center; padding: 20px;
+  }
+  .modal-backdrop.open { display: flex; animation: fadeIn 0.15s ease; }
+  .modal {
+    background: var(--white); border-radius: 24px;
+    padding: 22px 20px 20px; width: 100%;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .modal-title { font-size: 17px; font-weight: 800; color: var(--text); letter-spacing: -0.3px; }
+  .modal-body { font-size: 13px; color: var(--text-sub); line-height: 1.6; }
+  .modal-reset-list {
+    background: var(--surface); border-radius: 12px;
+    padding: 10px 14px; display: flex; flex-direction: column; gap: 8px;
+  }
+  .modal-reset-row { display: flex; justify-content: space-between; align-items: center; }
+  .modal-reset-label { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-sub); }
+  .modal-reset-amount { font-size: 13px; font-weight: 700; color: var(--text); }
+  .modal-actions { display: flex; gap: 8px; }
+  .modal-actions .btn { padding: 14px; font-size: 14px; }
+  .btn-danger { background: var(--red); color: var(--white); flex: 2; }
+  .btn-cancel { background: var(--surface); color: var(--text-sub); border: 1.5px solid var(--border); flex: 1; }
+  .btn-confirm { background: var(--indigo); color: var(--white); flex: 2; box-shadow: none; }
+
+  /* ── NEW CYCLE FORM ── */
+  .form-header {
+    display: flex;
+    align-items: center;
+    padding: 44px 18px 14px;
+    flex-shrink: 0;
+    background: var(--bg);
+    gap: 10px;
+  }
+  .form-scroll {
+    flex: 1; overflow-y: auto; scrollbar-width: none;
+    padding: 0 16px 40px;
+    display: flex; flex-direction: column; gap: 12px;
+    background: var(--bg);
+  }
+  .form-scroll::-webkit-scrollbar { display: none; }
+
+  .form-card {
+    background: var(--white); border-radius: 20px;
+    padding: 18px 18px 14px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+  }
+  .form-card-title {
+    font-size: 11px; font-weight: 700; color: var(--text-sub);
+    text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 16px;
+  }
+  .form-field { margin-bottom: 14px; }
+  .form-field:last-child { margin-bottom: 0; }
+  .form-label {
+    font-size: 12px; font-weight: 600; color: var(--text-sub);
+    margin-bottom: 6px; display: flex; align-items: center; gap: 6px;
+  }
+  .form-optional { font-size: 10px; font-weight: 500; color: var(--text-placeholder); text-transform: uppercase; }
+  .form-input-wrap { position: relative; }
+  .form-input {
+    width: 100%; padding: 12px 14px;
+    border: 1.5px solid var(--border); border-radius: 12px;
+    font-family: var(--font); font-size: 15px; font-weight: 600;
+    color: var(--text); background: var(--white); outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .form-input:focus { border-color: var(--indigo); box-shadow: 0 0 0 3px rgba(79,70,229,0.1); }
+  .form-input::placeholder { color: var(--text-placeholder); font-weight: 400; }
+  .form-input.pl { padding-left: 28px; }
+  .form-input.pr { padding-right: 40px; }
+  .form-prefix {
+    position: absolute; left: 13px; top: 50%; transform: translateY(-50%);
+    font-size: 15px; font-weight: 600; color: var(--text-placeholder); pointer-events: none;
+  }
+  .form-suffix {
+    position: absolute; right: 13px; top: 50%; transform: translateY(-50%); pointer-events: none;
+  }
+  .form-suffix svg { width: 16px; height: 16px; stroke: var(--text-placeholder); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .form-hint { font-size: 11px; color: var(--text-placeholder); margin-top: 5px; line-height: 1.5; }
+  .form-hint.warn { color: var(--amber); }
+
+  .carried-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 0; border-top: 1px solid var(--border); margin-top: 4px;
+  }
+  .carried-label { font-size: 12px; color: var(--text-sub); font-weight: 500; }
+  .carried-amount { font-size: 14px; font-weight: 800; color: var(--indigo); }
+
+  /* Segmented control */
+  .seg-control {
+    display: flex; background: var(--surface);
+    border: 1.5px solid var(--border); border-radius: 12px;
+    padding: 3px; gap: 3px;
+  }
+  .seg-btn {
+    flex: 1; padding: 9px 8px; border-radius: 9px;
+    font-size: 12px; font-weight: 600; color: var(--text-sub);
+    cursor: pointer; text-align: center;
+    border: none; background: none; font-family: var(--font);
+    transition: all 0.15s;
+  }
+  .seg-btn.active {
+    background: var(--white); color: var(--text);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.10);
+  }
+
+  /* Reservations in form */
+  .form-res-list { display: flex; flex-direction: column; }
+  .form-res-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 9px 0; border-bottom: 1px solid var(--border);
+  }
+  .form-res-row:last-child { border-bottom: none; }
+  .form-res-name-input {
+    flex: 1; border: none; background: transparent;
+    font-family: var(--font); font-size: 13px; font-weight: 500;
+    color: var(--text); outline: none;
+  }
+  .form-res-name-input::placeholder { color: var(--text-placeholder); }
+  .form-res-amt-wrap {
+    display: flex; align-items: center; gap: 2px;
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: 8px; padding: 4px 8px; flex-shrink: 0;
+  }
+  .form-res-amt-wrap:focus-within { border-color: var(--indigo); }
+  .form-res-amt { width: 50px; border: none; background: transparent; font-family: var(--font); font-size: 13px; font-weight: 700; color: var(--text); outline: none; text-align: right; }
+  .form-res-amt::-webkit-outer-spin-button, .form-res-amt::-webkit-inner-spin-button { -webkit-appearance: none; }
+  .form-res-amt[type=number] { -moz-appearance: textfield; }
+  .btn-del-res { width: 24px; height: 24px; font-size: 18px; color: var(--text-placeholder); border: none; background: none; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .btn-del-res:hover { color: var(--red); }
+  .btn-add-res {
+    width: 100%; padding: 10px; background: transparent;
+    border: 1.5px dashed var(--border); border-radius: 12px;
+    font-family: var(--font); font-size: 14px; font-weight: 600;
+    color: var(--text-sub); cursor: pointer; margin-top: 10px;
+  }
+
+  .btn-submit {
+    width: 100%; padding: 16px;
+    background: var(--indigo); color: var(--white);
+    border: none; border-radius: 16px;
+    font-family: var(--font); font-size: 16px; font-weight: 700;
+    cursor: pointer; box-shadow: 0 4px 16px rgba(79,70,229,0.35);
+    letter-spacing: -0.2px;
+  }
+
+  /* ── CONTROL PANEL ── */
+  .control-panel {
+    width: 220px; flex-shrink: 0;
+    display: flex; flex-direction: column; gap: 20px; padding-top: 8px;
+  }
+  .panel-section {
+    background: var(--white); border-radius: 16px; padding: 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .panel-section-title {
+    font-size: 11px; font-weight: 700; color: var(--text-sub);
+    text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 10px;
+  }
+  .panel-btn {
+    width: 100%; padding: 9px 12px;
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: 10px; font-family: var(--font); font-size: 13px;
+    font-weight: 600; color: var(--text); cursor: pointer;
+    text-align: left; margin-bottom: 6px;
+  }
+  .panel-btn:last-child { margin-bottom: 0; }
+  .panel-btn:hover { border-color: var(--indigo); color: var(--indigo); background: var(--indigo-light); }
+  .panel-btn.active { background: var(--indigo); color: var(--white); border-color: var(--indigo); }
+</style>
+</head>
+<body>
+
+<div class="phone-wrap">
+  <div class="phone">
+    <div class="phone-content">
+
+      <!-- ══ SCREEN 1: LEFTOVER PAGE ══ -->
+      <div class="screen active" id="screen-leftover">
+        <div class="flow-header">
+          <button class="flow-back"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
+          <div class="flow-title">Leftovers</div>
+          <div class="flow-step">1 of 2</div>
+        </div>
+        <div class="leftover-scroll" id="leftoverScroll">
+          <div class="leftover-intro">
+            <div class="leftover-intro-title">Where do your leftovers go?</div>
+            <div class="leftover-intro-sub">Tap a card to allocate. Anything unallocated will be archived — you can withdraw it anytime.</div>
+          </div>
+          <div id="srcCards" style="display:flex;flex-direction:column;gap:10px;"></div>
+          <div class="archive-notice">
+            <span class="archive-icon">💛</span>
+            <div>
+              <div class="archive-text">Going to archive</div>
+              <div class="archive-amount" id="archiveAmount">৳1,200</div>
+            </div>
+          </div>
+          <div class="action-row">
+            <button class="btn btn-reset" style="flex:1;" onclick="openResetModal()">Reset</button>
+            <button class="btn btn-primary" style="flex:2;" onclick="handleContinue()">Continue →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ SCREEN 2: NEW CYCLE FORM ══ -->
+      <div class="screen" id="screen-newcycle">
+        <div class="form-header">
+          <button class="flow-back" onclick="setScreen('leftover')" style="background:var(--white);">
+            <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <div class="flow-title">New Cycle</div>
+          <div class="flow-step">2 of 2</div>
+        </div>
+        <div class="form-scroll">
+
+          <!-- The basics -->
+          <div class="form-card">
+            <div class="form-card-title">The basics</div>
+
+            <div class="form-field">
+              <div class="form-label">Cycle start date</div>
+              <div class="form-input-wrap">
+                <input class="form-input pr" type="text" value="10 April 2026" readonly id="ncStartDate">
+                <div class="form-suffix"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+              </div>
+            </div>
+
+            <div class="form-field">
+              <div class="form-label">Cycle end date</div>
+              <div class="form-input-wrap">
+                <input class="form-input pr" type="text" value="9 May 2026" readonly id="ncEndDate">
+                <div class="form-suffix"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+              </div>
+            </div>
+
+            <div class="form-field">
+              <div class="form-label">Income</div>
+              <div class="form-input-wrap">
+                <span class="form-prefix">৳</span>
+                <input class="form-input pl" type="number" placeholder="0" id="ncIncome" oninput="updateBudgetHint()">
+              </div>
+            </div>
+
+            <div id="carriedRow" style="display:none;">
+              <div class="carried-row">
+                <div class="carried-label">Carried from last cycle</div>
+                <div class="carried-amount" id="carriedAmt">+৳350</div>
+              </div>
+            </div>
+
+            <div class="form-field" style="margin-bottom:0;">
+              <div class="form-label">Budget alert <span class="form-optional">daily floor</span></div>
+              <div class="form-input-wrap">
+                <span class="form-prefix">৳</span>
+                <input class="form-input pl" type="number" placeholder="0 = no alerts" id="ncAlert" oninput="updateBudgetHint()">
+              </div>
+              <div class="form-hint" id="budgetHint"></div>
+            </div>
+          </div>
+
+          <!-- Where are you now -->
+          <div class="form-card">
+            <div class="form-card-title">Where are you now? <span class="form-optional" style="text-transform:none;letter-spacing:0;">— optional</span></div>
+
+            <div class="form-field">
+              <div class="form-label">Starting point</div>
+              <div class="seg-control">
+                <button class="seg-btn active" id="seg-fresh"   onclick="selectSeg('fresh')">Fresh start</button>
+                <button class="seg-btn"        id="seg-spent"   onclick="selectSeg('spent')">Spent some</button>
+                <button class="seg-btn"        id="seg-have"    onclick="selectSeg('have')">Still have</button>
+              </div>
+            </div>
+
+            <div id="startAmtField" style="display:none;">
+              <div class="form-field" style="margin-bottom:0;">
+                <div class="form-label" id="startAmtLabel">Amount already spent</div>
+                <div class="form-input-wrap">
+                  <span class="form-prefix">৳</span>
+                  <input class="form-input pl" type="number" placeholder="0">
+                </div>
+              </div>
+            </div>
+
+            <div class="form-field" style="margin-bottom:0; margin-top:14px;">
+              <div class="form-label">Count today as a budget day?</div>
+              <div class="seg-control">
+                <button class="seg-btn active" id="seg-today"    onclick="selectStartDay('today')">Yes — start today</button>
+                <button class="seg-btn"        id="seg-tomorrow" onclick="selectStartDay('tomorrow')">No — start tomorrow</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Protect your money -->
+          <div class="form-card">
+            <div class="form-card-title">Protect your money <span class="form-optional" style="text-transform:none;letter-spacing:0;">— optional</span></div>
+
+            <div class="form-field">
+              <div class="form-label">Savings</div>
+              <div class="form-input-wrap">
+                <span class="form-prefix">৳</span>
+                <input class="form-input pl" type="number" placeholder="0" id="ncSavings">
+              </div>
+            </div>
+
+            <div class="form-field" style="margin-bottom:0;">
+              <div class="form-label">Reservations</div>
+              <div class="form-res-list" id="ncResList"></div>
+              <button class="btn-add-res" onclick="addRes()">+ Add reservation</button>
+            </div>
+          </div>
+
+          <button class="btn-submit">Start cycle →</button>
+
+        </div>
+      </div>
+
+    </div><!-- /phone-content -->
+
+    <!-- Floating picker (child of .phone so it positions within frame) -->
+    <div class="floating-picker" id="floatingPicker"></div>
+
+    <!-- Reset modal -->
+    <div class="modal-backdrop" id="resetModal" onclick="if(event.target===this)closeResetModal()">
+      <div class="modal">
+        <div class="modal-title">Reset all allocations?</div>
+        <div class="modal-body">Every card goes back to its original balance with nothing assigned.</div>
+        <div class="modal-reset-list" id="resetList"></div>
+        <div class="modal-actions">
+          <button class="btn btn-cancel" onclick="closeResetModal()">Cancel</button>
+          <button class="btn btn-danger" onclick="confirmReset()">Reset everything</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Archive confirm modal -->
+    <div class="modal-backdrop" id="archiveModal" onclick="if(event.target===this)closeArchiveModal()">
+      <div class="modal">
+        <div class="modal-title">Archive the rest?</div>
+        <div class="modal-body" id="archiveModalBody">৳X will be added to your archived savings. You can withdraw it anytime from the Year View.</div>
+        <div class="modal-actions">
+          <button class="btn btn-cancel" onclick="closeArchiveModal()">Go back</button>
+          <button class="btn btn-confirm" onclick="closeArchiveModal(); setScreen('newcycle')">Confirm</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /phone -->
+</div><!-- /phone-wrap -->
+
+<!-- ── CONTROL PANEL ── -->
+<div class="control-panel">
+
+  <div class="panel-section">
+    <div class="panel-section-title">Navigate</div>
+    <button class="panel-btn active" id="nav-leftover" onclick="setScreen('leftover')">1 — Leftover page</button>
+    <button class="panel-btn"        id="nav-newcycle" onclick="setScreen('newcycle')">2 — New cycle form</button>
+  </div>
+
+  <div class="panel-section" id="leftoverPanel">
+    <div class="panel-section-title">Leftover presets</div>
+    <button class="panel-btn" onclick="applyPreset('all')">All three sources</button>
+    <button class="panel-btn" onclick="applyPreset('poolonly')">Pool only</button>
+    <button class="panel-btn" onclick="applyPreset('nosavings')">Pool + reservations</button>
+    <button class="panel-btn" onclick="applyPreset('noreservations')">Pool + savings</button>
+    <button class="panel-btn" onclick="applyPreset('large')">Large amounts</button>
+  </div>
+
+  <div class="panel-section" id="newcyclePanel" style="display:none;">
+    <div class="panel-section-title">Form presets</div>
+    <button class="panel-btn" onclick="applyNCPreset('fresh')">Fresh start</button>
+    <button class="panel-btn" onclick="applyNCPreset('carried')">With carried amount</button>
+    <button class="panel-btn" onclick="applyNCPreset('reservations')">With reservations</button>
+  </div>
+
+</div>
+
+<script>
+  // ── SCREEN NAV ──
+  function setScreen(name) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('screen-' + name).classList.add('active');
+    document.querySelectorAll('[id^="nav-"]').forEach(b => b.classList.remove('active'));
+    const btn = document.getElementById('nav-' + name);
+    if (btn) btn.classList.add('active');
+    document.getElementById('leftoverPanel').style.display  = name === 'leftover'  ? '' : 'none';
+    document.getElementById('newcyclePanel').style.display  = name === 'newcycle'  ? '' : 'none';
+    closePicker();
+  }
+
+  // ── LEFTOVER STATE ──
+  let sources = [];
+  let allocId = 0;
+  function nextAllocId() { return allocId++; }
+
+  const TYPE_META = {
+    pool:        { dot: 'dot-pool',        dotColor: '#4F46E5', pillCls: 'pill-indigo', label: 'Pool',         carryDesc: "Goes into your new cycle's spending budget." },
+    savings:     { dot: 'dot-savings',     dotColor: '#10B981', pillCls: 'pill-green',  label: 'Savings',      carryDesc: "Goes into your new cycle's savings." },
+    reservation: { dot: 'dot-reservation', dotColor: '#F59E0B', pillCls: 'pill-amber',  label: 'Reservations', carryDesc: "Carried over individually into your next cycle." }
+  };
+
+  function receivedBy(id) {
+    const items = [];
+    sources.forEach(src => {
+      if (src.id === id) return;
+      src.allocs.forEach(a => {
+        if (a.destType === 'card' && a.destId === id)
+          items.push({ fromId: src.id, fromName: src.name, fromType: src.type, amount: Number(a.amount) || 0 });
+      });
+    });
+    return items;
+  }
+
+  function effectiveTotal(src) {
+    return src.own + receivedBy(src.id).reduce((s, r) => s + r.amount, 0);
+  }
+  function allocatedTotal(src) {
+    return src.allocs.reduce((s, a) => s + (Number(a.amount) || 0), 0);
+  }
+  function rem(src) { return effectiveTotal(src) - allocatedTotal(src); }
+  function unallocatedTotal() { return sources.reduce((s, src) => s + Math.max(0, rem(src)), 0); }
+
+  function destsFor(srcId, viaAddBtn) {
+    const src = sources.find(s => s.id === srcId);
+    const dests = [];
+    // Carry over: not available on Reservations card via Add Destination button
+    if (!(src.type === 'reservation' && viaAddBtn)) {
+      const m = TYPE_META[src.type];
+      dests.push({ type: 'carry_forward', label: 'Carry over', pillCls: m.pillCls, dotColor: m.dotColor, desc: m.carryDesc });
+    }
+    sources.forEach(s => {
+      if (s.id !== srcId) {
+        const m = TYPE_META[s.type];
+        dests.push({ type: 'card', destId: s.id, label: `→ ${m.label}`, pillCls: m.pillCls, dotColor: m.dotColor, desc: `Adds to the ${s.name} card on this page.` });
+      }
+    });
+    dests.push({ type: 'new_reservation', label: 'New reservation', pillCls: 'pill-amber', dotColor: '#F59E0B', desc: 'Creates a new named reservation in your next cycle.' });
+    return dests;
+  }
+
+  function allocInfo(src, a) {
+    if (a.destType === 'carry_forward') {
+      const m = TYPE_META[src.type];
+      return { label: 'Carry over', pillCls: m.pillCls, dotColor: m.dotColor, desc: m.carryDesc };
+    }
+    if (a.destType === 'card') {
+      const dest = sources.find(s => s.id === a.destId);
+      const m = TYPE_META[dest.type];
+      return { label: `→ ${m.label}`, pillCls: m.pillCls, dotColor: m.dotColor, desc: `Adds to the ${dest.name} card on this page.` };
+    }
+    return { label: 'New reservation', pillCls: 'pill-amber', dotColor: '#F59E0B', desc: 'Creates a new named reservation in your next cycle.' };
+  }
+
+  // ── RENDER ──
+  function render() {
+    const container = document.getElementById('srcCards');
+    container.innerHTML = sources.map(renderCard).join('');
+    updateArchiveBadge();
+  }
+
+  function renderCard(src) {
+    const recv = receivedBy(src.id);
+    const et = effectiveTotal(src);
+    const at = allocatedTotal(src);
+    const r  = rem(src);
+    const m  = TYPE_META[src.type];
+
+    const isZero = src.own === 0 && recv.length === 0;
+
+    // Status
+    let statusCls, statusText;
+    if (isZero) { statusCls = 'zero'; statusText = 'Nothing left over'; }
+    else if (r === 0) { statusCls = 'ok'; statusText = 'All set ✓'; }
+    else if (r > 0) { statusCls = 'partial'; statusText = `৳${r.toLocaleString()} unallocated`; }
+    else { statusCls = 'over'; statusText = `৳${Math.abs(r).toLocaleString()} over`; }
+
+    const pct    = Math.min(100, et > 0 ? (at / et) * 100 : 0);
+    const pfill  = r === 0 ? 'pfill-ok' : r > 0 ? 'pfill-partial' : 'pfill-over';
+    const ownLbl = et !== src.own ? `<div class="src-own-label">own ৳${src.own.toLocaleString()}</div>` : '';
+
+    // Body sections
+    const breakdownHTML = (src.breakdown && src.breakdown.length > 0) ? `
+      <div class="breakdown-section">
+        <span class="breakdown-label">Made up of</span>
+        <div class="breakdown-badges">
+          ${src.breakdown.map(b => `<span class="breakdown-badge">${b.name} ৳${b.amount.toLocaleString()}</span>`).join('')}
+        </div>
+      </div>` : '';
+
+    const recvHTML = recv.length > 0 ? `
+      <div class="received-section">
+        ${recv.map(r => `
+          <div class="received-row">
+            <div class="received-dot" style="background:${TYPE_META[r.fromType].dotColor}"></div>
+            <span class="received-label">Received from ${r.fromName}</span>
+            <span class="received-amount">+৳${r.amount.toLocaleString()}</span>
+          </div>`).join('')}
+      </div>` : '';
+
+    const rowsHTML = src.allocs.map((a, j) => {
+      const info = allocInfo(src, a);
+      const isOver = at > et;
+      return `
+        <div class="alloc-row">
+          <span class="alloc-arrow">→</span>
+          <div class="dest-picker">
+            <div class="dest-pill ${info.pillCls}" id="pill-${src.id}-${j}" onclick="openPicker(event,'${src.id}',${j})">
+              ${info.label} <span class="pill-caret">▾</span>
+            </div>
+            <div class="dest-desc">${info.desc}</div>
+            ${a.destType === 'new_reservation' ? `<input class="res-name-input" placeholder="Name this reservation…" value="${a.resName||''}" oninput="updateResName('${src.id}',${j},this.value)">` : ''}
+          </div>
+          <div class="amount-wrap ${isOver ? 'over' : ''}" id="aw-${src.id}-${j}">
+            <span class="taka-sym">৳</span>
+            <input class="amount-input ${isOver ? 'over' : ''}" type="number" min="0"
+              value="${a.amount}" oninput="updateAmount('${src.id}',${j},this.value)" id="ai-${src.id}-${j}">
+          </div>
+          <button class="del-alloc" onclick="removeAlloc('${src.id}',${j})">×</button>
+        </div>`;
+    }).join('');
+
+    let noteHTML = '';
+    if (r > 0) noteHTML = `<div class="remainder-note">৳${r.toLocaleString()} unallocated → will be archived</div>`;
+    if (r < 0) noteHTML = `<div class="remainder-note remainder-over">৳${Math.abs(r).toLocaleString()} over — reduce an amount</div>`;
+
+    const bodyHTML = isZero ? '' : `
+      <div class="src-body ${src.expanded ? 'open' : ''}" id="body-${src.id}">
+        <div class="src-body-inner">
+          ${breakdownHTML}
+          ${recvHTML}
+          <div id="rows-${src.id}">${rowsHTML}</div>
+          <button class="add-dest-btn" onclick="addAlloc('${src.id}')">＋ Add destination</button>
+          <div class="progress-section" id="prog-${src.id}">
+            <div class="progress-row">
+              <span>Allocated</span>
+              <span class="${r < 0 ? 'progress-over' : ''}">৳${at.toLocaleString()} / ৳${et.toLocaleString()}</span>
+            </div>
+            <div class="progress-track"><div class="progress-fill ${pfill}" style="width:${pct}%"></div></div>
+            ${noteHTML}
+          </div>
+        </div>
+      </div>`;
+
+    return `
+      <div class="src-card ${isZero ? 'zero-card' : ''}" id="card-${src.id}">
+        <div class="src-header ${isZero ? 'locked' : ''}" ${isZero ? '' : `onclick="toggleCard('${src.id}')"`}>
+          <div class="src-dot ${m.dot}"></div>
+          <div class="src-info">
+            <div class="src-name">${src.name}</div>
+            <div class="src-status ${statusCls}" id="badge-${src.id}">${statusText}</div>
+          </div>
+          <div class="src-right">
+            <div class="src-amount" id="hdr-total-${src.id}">৳${et.toLocaleString()}</div>
+            ${ownLbl}
+          </div>
+          <div class="chevron ${src.expanded ? 'open' : ''} ${isZero ? 'hidden' : ''}" id="chev-${src.id}"></div>
+        </div>
+        ${bodyHTML}
+      </div>`;
+  }
+
+  function refreshCard(id) {
+    const src = sources.find(s => s.id === id);
+    if (!src) return;
+    const et = effectiveTotal(src);
+    const at = allocatedTotal(src);
+    const r  = rem(src);
+    const pct = Math.min(100, et > 0 ? (at / et) * 100 : 0);
+    const pfill = r === 0 ? 'pfill-ok' : r > 0 ? 'pfill-partial' : 'pfill-over';
+
+    const badge = document.getElementById('badge-' + id);
+    if (badge) {
+      badge.className = 'src-status ' + (r === 0 ? 'ok' : r > 0 ? 'partial' : 'over');
+      badge.textContent = r === 0 ? 'All set ✓' : r > 0 ? `৳${r.toLocaleString()} unallocated` : `৳${Math.abs(r).toLocaleString()} over`;
+    }
+    const hdr = document.getElementById('hdr-total-' + id);
+    if (hdr) hdr.textContent = `৳${et.toLocaleString()}`;
+
+    const prog = document.getElementById('prog-' + id);
+    if (prog) {
+      let noteHTML = '';
+      if (r > 0) noteHTML = `<div class="remainder-note">৳${r.toLocaleString()} unallocated → will be archived</div>`;
+      if (r < 0) noteHTML = `<div class="remainder-note remainder-over">৳${Math.abs(r).toLocaleString()} over — reduce an amount</div>`;
+      prog.innerHTML = `
+        <div class="progress-row">
+          <span>Allocated</span>
+          <span class="${r < 0 ? 'progress-over' : ''}">৳${at.toLocaleString()} / ৳${et.toLocaleString()}</span>
+        </div>
+        <div class="progress-track"><div class="progress-fill ${pfill}" style="width:${pct}%"></div></div>
+        ${noteHTML}`;
+    }
+
+    src.allocs.forEach((a, j) => {
+      const isOver = at > et;
+      const aw = document.getElementById(`aw-${id}-${j}`);
+      const ai = document.getElementById(`ai-${id}-${j}`);
+      if (aw) aw.classList.toggle('over', isOver);
+      if (ai) ai.classList.toggle('over', isOver);
+    });
+
+    updateArchiveBadge();
+  }
+
+  function updateArchiveBadge() {
+    const u  = unallocatedTotal();
+    const el = document.getElementById('archiveAmount');
+    if (!el) return;
+    if (u === 0) { el.textContent = '✓ All money allocated'; el.className = 'archive-amount zero'; }
+    else         { el.textContent = `৳${u.toLocaleString()} unallocated`; el.className = 'archive-amount'; }
+  }
+
+  // ── INTERACTIONS ──
+  function toggleCard(id) {
+    const src = sources.find(s => s.id === id);
+    src.expanded = !src.expanded;
+    closePicker();
+    render();
+  }
+
+  function addAlloc(id) {
+    const src   = sources.find(s => s.id === id);
+    const r     = rem(src);
+    const dests = destsFor(id, true);
+    const dest  = dests[0];
+    const alloc = { id: nextAllocId(), destType: dest.type, amount: Math.max(0, r), resName: '' };
+    if (dest.type === 'card') alloc.destId = dest.destId;
+    src.allocs.push(alloc);
+    closePicker();
+    render();
+  }
+
+  function removeAlloc(id, j) {
+    const src = sources.find(s => s.id === id);
+    const removed = src.allocs.splice(j, 1)[0];
+    closePicker();
+    render();
+    if (removed.destType === 'card') refreshCard(removed.destId);
+  }
+
+  function updateAmount(id, j, val) {
+    const src = sources.find(s => s.id === id);
+    src.allocs[j].amount = parseInt(val) || 0;
+    refreshCard(id);
+    if (src.allocs[j].destType === 'card') refreshCard(src.allocs[j].destId);
+  }
+
+  function updateResName(id, j, val) {
+    sources.find(s => s.id === id).allocs[j].resName = val;
+  }
+
+  // ── PICKER ──
+  let activePicker = null;
+
+  function openPicker(e, id, j) {
+    e.stopPropagation();
+    if (activePicker && activePicker.id === id && activePicker.j === j) { closePicker(); return; }
+    activePicker = { id, j };
+
+    const src    = sources.find(s => s.id === id);
+    const cur    = src.allocs[j];
+    const dests  = destsFor(id, false);
+    const picker = document.getElementById('floatingPicker');
+
+    picker.innerHTML = dests.map(d => {
+      const isSel = (d.type === 'carry_forward' && cur.destType === 'carry_forward') ||
+                    (d.type === 'card' && cur.destType === 'card' && d.destId === cur.destId) ||
+                    (d.type === 'new_reservation' && cur.destType === 'new_reservation');
+      return `
+        <div class="picker-option ${isSel ? 'selected' : ''}"
+             onclick="selectDest(event,'${id}',${j},'${d.type}','${d.destId || ''}')">
+          <div class="picker-dot" style="background:${d.dotColor}"></div>
+          ${d.label}
+        </div>`;
+    }).join('');
+
+    const pill      = document.getElementById(`pill-${id}-${j}`);
+    const phoneEl   = document.querySelector('.phone');
+    const phoneRect = phoneEl.getBoundingClientRect();
+    const pillRect  = pill.getBoundingClientRect();
+    let top  = pillRect.bottom - phoneRect.top + 4;
+    let left = pillRect.left   - phoneRect.left;
+    const pickerH = dests.length * 38 + 10;
+    if (top + pickerH > 844 - 16) top = pillRect.top - phoneRect.top - pickerH - 4;
+    if (left + 185 > 374) left = 374 - 185;
+
+    picker.style.top  = top  + 'px';
+    picker.style.left = left + 'px';
+    picker.classList.add('open');
+  }
+
+  function selectDest(e, id, j, type, destId) {
+    e.stopPropagation();
+    const src    = sources.find(s => s.id === id);
+    const oldDst = src.allocs[j].destId;
+    src.allocs[j].destType = type;
+    src.allocs[j].destId   = destId || null;
+    src.allocs[j].resName  = '';
+    closePicker();
+    render();
+    if (oldDst) refreshCard(oldDst);
+  }
+
+  function closePicker() {
+    activePicker = null;
+    const p = document.getElementById('floatingPicker');
+    if (p) p.classList.remove('open');
+  }
+
+  // ── MODALS ──
+  function openResetModal() {
+    document.getElementById('resetList').innerHTML = sources.map(src => {
+      const m = TYPE_META[src.type];
+      return `
+        <div class="modal-reset-row">
+          <div class="modal-reset-label">
+            <div class="picker-dot" style="background:${m.dotColor}"></div>
+            ${src.name}
+          </div>
+          <div class="modal-reset-amount">৳${src.own.toLocaleString()}</div>
+        </div>`;
+    }).join('');
+    document.getElementById('resetModal').classList.add('open');
+  }
+  function closeResetModal() { document.getElementById('resetModal').classList.remove('open'); }
+  function confirmReset() {
+    sources.forEach(src => { src.allocs = []; src.expanded = false; });
+    closeResetModal();
+    render();
+  }
+
+  function handleContinue() {
+    const u = unallocatedTotal();
+    if (u > 0) {
+      document.getElementById('archiveModalBody').textContent =
+        `৳${u.toLocaleString()} will be added to your archived savings. You can withdraw it anytime from the Year View.`;
+      document.getElementById('archiveModal').classList.add('open');
+    } else {
+      setScreen('newcycle');
+    }
+  }
+  function closeArchiveModal() { document.getElementById('archiveModal').classList.remove('open'); }
+
+  // ── LEFTOVER PRESETS ──
+  function applyPreset(preset) {
+    setScreen('leftover');
+    const CONFIGS = {
+      all: [
+        { id: 'pool',         name: 'Budget Pool',  type: 'pool',        own: 350, breakdown: null },
+        { id: 'savings',      name: 'Savings',      type: 'savings',     own: 500, breakdown: null },
+        { id: 'reservations', name: 'Reservations', type: 'reservation', own: 350, breakdown: [{ name: 'Dates', amount: 200 }, { name: 'Gym', amount: 150 }] }
+      ],
+      poolonly: [
+        { id: 'pool',         name: 'Budget Pool',  type: 'pool',        own: 480, breakdown: null },
+        { id: 'savings',      name: 'Savings',      type: 'savings',     own: 0,   breakdown: null },
+        { id: 'reservations', name: 'Reservations', type: 'reservation', own: 0,   breakdown: [] }
+      ],
+      nosavings: [
+        { id: 'pool',         name: 'Budget Pool',  type: 'pool',        own: 220, breakdown: null },
+        { id: 'savings',      name: 'Savings',      type: 'savings',     own: 0,   breakdown: null },
+        { id: 'reservations', name: 'Reservations', type: 'reservation', own: 200, breakdown: [{ name: 'Emergency fund', amount: 200 }] }
+      ],
+      noreservations: [
+        { id: 'pool',         name: 'Budget Pool',  type: 'pool',        own: 600, breakdown: null },
+        { id: 'savings',      name: 'Savings',      type: 'savings',     own: 300, breakdown: null },
+        { id: 'reservations', name: 'Reservations', type: 'reservation', own: 0,   breakdown: [] }
+      ],
+      large: [
+        { id: 'pool',         name: 'Budget Pool',  type: 'pool',        own: 1200, breakdown: null },
+        { id: 'savings',      name: 'Savings',      type: 'savings',     own: 2500, breakdown: null },
+        { id: 'reservations', name: 'Reservations', type: 'reservation', own: 800,  breakdown: [{ name: 'Dates', amount: 300 }, { name: 'Gym', amount: 300 }, { name: 'Books', amount: 200 }] }
+      ]
+    };
+    sources = CONFIGS[preset].map(c => ({ ...c, allocs: [], expanded: false }));
+    render();
+  }
+
+  // ── NEW CYCLE FORM ──
+  function updateBudgetHint() {
+    const income = parseFloat(document.getElementById('ncIncome').value) || 0;
+    const alert  = parseFloat(document.getElementById('ncAlert').value)  || 0;
+    const hint   = document.getElementById('budgetHint');
+    const daily  = income > 0 ? Math.round(income / 30) : 0;
+    if (income > 0 && alert > 0 && alert > daily) {
+      hint.textContent = `Your alert (৳${alert.toLocaleString()}) is above the estimated daily budget of ৳${daily.toLocaleString()}. You may want to lower it.`;
+      hint.className = 'form-hint warn';
+    } else if (income > 0) {
+      hint.textContent = `Estimated daily budget: ৳${daily.toLocaleString()}`;
+      hint.className = 'form-hint';
+    } else {
+      hint.textContent = '';
+    }
+  }
+
+  function selectSeg(val) {
+    ['fresh','spent','have'].forEach(v =>
+      document.getElementById('seg-' + v).classList.toggle('active', v === val));
+    const field = document.getElementById('startAmtField');
+    const label = document.getElementById('startAmtLabel');
+    field.style.display = val === 'fresh' ? 'none' : '';
+    if (val === 'spent') label.textContent = 'Amount already spent';
+    if (val === 'have')  label.textContent = 'Amount you still have';
+  }
+
+  function selectStartDay(val) {
+    document.getElementById('seg-today').classList.toggle('active',    val === 'today');
+    document.getElementById('seg-tomorrow').classList.toggle('active', val === 'tomorrow');
+  }
+
+  let resCounter = 0;
+  let ncResList  = [];
+
+  function addRes() {
+    ncResList.push({ id: resCounter++, name: '', amount: '' });
+    renderResList();
+  }
+  function removeRes(id) {
+    ncResList = ncResList.filter(r => r.id !== id);
+    renderResList();
+  }
+  function renderResList() {
+    const el = document.getElementById('ncResList');
+    el.innerHTML = ncResList.map(r => `
+      <div class="form-res-row">
+        <input class="form-res-name-input" placeholder="Reservation name"
+          value="${r.name}" oninput="ncResList.find(x=>x.id===${r.id}).name=this.value">
+        <div class="form-res-amt-wrap">
+          <span class="taka-sym">৳</span>
+          <input class="form-res-amt" type="number" placeholder="0"
+            value="${r.amount}" oninput="ncResList.find(x=>x.id===${r.id}).amount=parseInt(this.value)||0">
+        </div>
+        <button class="btn-del-res" onclick="removeRes(${r.id})">×</button>
+      </div>`).join('');
+  }
+
+  function applyNCPreset(preset) {
+    setScreen('newcycle');
+    ncResList = []; resCounter = 0;
+    const income = document.getElementById('ncIncome');
+    const alert  = document.getElementById('ncAlert');
+    const carried = document.getElementById('carriedRow');
+
+    income.value = '40000';
+    alert.value  = '300';
+    carried.style.display = 'none';
+    selectSeg('fresh');
+    selectStartDay('today');
+    document.getElementById('ncSavings').value = '';
+
+    if (preset === 'carried') {
+      carried.style.display = '';
+      document.getElementById('carriedAmt').textContent = '+৳350';
+    }
+    if (preset === 'reservations') {
+      ncResList = [
+        { id: resCounter++, name: 'Emergency fund', amount: 500 },
+        { id: resCounter++, name: 'Dates', amount: 200 }
+      ];
+    }
+    updateBudgetHint();
+    renderResList();
+  }
+
+  // Close picker on outside click
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.floating-picker') && !e.target.closest('.dest-pill')) closePicker();
+  });
+
+  // ── INIT ──
+  applyPreset('all');
+</script>
+</body>
+</html>
