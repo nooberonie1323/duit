@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "duit",
+    "name": "Duit",
     "slug": "duit",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -38,8 +38,7 @@
             "backgroundColor": "#000000"
           }
         }
-      ],
-      "expo-sqlite"
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

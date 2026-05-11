@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-npm start            # Start Expo dev server (scan QR with Expo Go)
+npm start            # Start Expo dev server (scan QR with Expo Go or press w for web)
 npm run android      # Start with Android emulator
 npm run ios          # Start with iOS simulator
 npm run lint         # Run ESLint
@@ -19,26 +19,27 @@ There is no test runner configured yet. There is no build step for local develop
 
 ## What this app is
 
-**Duit** — a personal offline budget tracker built around pay cycles, not calendar months. The core question it answers: "how much can I spend today?" Full product spec and all screen prototypes are in `docs/design-handoff/`. Read `docs/design-handoff/design.md` and `docs/design-handoff/schema.md` before touching any business logic. The build order and phase plan are in `docs/build-plan.md`.
+**Duit** — a personal offline budget tracker built around pay cycles, not calendar months. The core question it answers: "how much can I spend today?"
+
+**Source of truth:** `docs/design-handoff/prd.md` — read this before touching any business logic or screens. `docs/design-rules.md` covers UI/component decisions and overrides anything in planning docs when there's a conflict.
 
 ---
 
 ## Tech stack
 
 - **Expo SDK 54**, managed workflow, new architecture enabled (`newArchEnabled: true`)
-- **Expo Router v6** for file-based navigation
+- **Expo Router v6** for file-based navigation. Web support enabled for dev previewing — navigate to any screen via URL in the browser during development.
 - **NativeWind v4** for styling (Tailwind classes on React Native components). Configured via `babel.config.js` (`jsxImportSource: "nativewind"`) and `metro.config.js` (`withNativeWind`). Global CSS entry is `global.css`.
-- **expo-sqlite v16** for the local database — uses `SQLiteProvider` context and `useSQLiteContext` hook (not the legacy sync API)
-- **react-native-reanimated v4** + **react-native-gesture-handler** for animations and gestures (both already installed)
-- **react-native-gifted-charts** for the Year View bar chart. Peer dep `react-native-svg` is already present.
+- **expo-sqlite** for the local database — uses `SQLiteProvider` context and `useSQLiteContext` hook (not the legacy sync API)
+- **react-native-reanimated** + **react-native-gesture-handler** for animations and gestures
+- **react-native-gifted-charts** for the Year View bar chart. Peer dep `react-native-svg` required.
 - **expo-notifications** for local review-reminder push notifications
+- **react-native-safe-area-context** for safe area insets. `SafeAreaProvider` must be at the root of `app/_layout.tsx`. **Do NOT use `SafeAreaView` as a wrapper** — it behaves inconsistently on Android (tested on Xiaomi Redmi Note 10 Pro / MIUI). Always use the `useSafeAreaInsets()` hook and apply `paddingTop: insets.top` and `paddingBottom: Math.max(insets.bottom, 24)` manually. Never use `SafeAreaView` from `react-native` (deprecated).
 - TypeScript strict mode. Path alias `@/` maps to the project root.
 
 ---
 
 ## Planned directory structure
-
-The project is currently the default Expo template. The target structure, per `docs/build-plan.md`, is:
 
 ```
 app/
@@ -50,23 +51,26 @@ app/
     stats.tsx              # Stats tab (Cycle View + Year View)
     more.tsx               # Settings
   onboarding/
-    _layout.tsx            # Stack navigator for pages 1–5
+    _layout.tsx            # Stack navigator for pages 1–5 + OnboardingProvider
     index.tsx              # Page 1 — Welcome
     basics.tsx             # Page 2 — Name, dates, income, budget alert
     position.tsx           # Page 3 — Already spent / still have
     protect.tsx            # Page 4 — Savings, reservations
     summary.tsx            # Page 5 — Review and confirm
+    # NOTE: Do NOT put non-route utility files inside app/ — Expo Router treats
+    # every file in app/ as a screen. Context/provider files live in contexts/.
+
+contexts/
+  onboarding.tsx           # OnboardingProvider, useOnboardingContext, ProgressDots
 
 lib/
-  db.ts                    # Opens SQLite DB, exports the db instance
+  db.ts                    # Opens SQLite DB, runs migrations, exports db instance
 
 services/
   settingsService.ts
   cycleService.ts
   dayService.ts
-  spendService.ts
-  extraCashService.ts
-  modalPullService.ts
+  entryService.ts
   reservationService.ts
   archiveService.ts
 
@@ -75,50 +79,24 @@ utils/
   validation.ts            # hardCapCheck, thresholdCheck
 
 components/
-  modals/
-    Modal1.tsx             # Soft threshold warning with toggleable pulls + sliders
-    Modal2.tsx             # Pull-everything modal
-    SpendConsequencesModal.tsx
   ui/
-    AmountSlider.tsx       # Slider + synced text input (used in Modal1 and archive withdraw)
     CalendarModal.tsx      # Date picker, used in onboarding and new cycle form
-    BottomSheet.tsx        # Slide-up modal container
-    NavPill.tsx            # Bottom navigation with missed-review red dot
-    DayCalendarGrid.tsx    # Custom calendar grid with coloured dots (Stats tab)
-    ConfirmationSheet.tsx  # Reusable confirm/cancel sheet
+    BottomSheet.tsx        # Centered modal container (name is legacy — not a bottom sheet)
+    NavPill.tsx            # Floating pill bottom navigation with missed-review red dot
+    ConfirmationSheet.tsx  # Reusable confirm/cancel modal
 ```
 
 ---
 
-## Architecture rules (from the spec)
+## Architecture rules
 
 **No component queries SQLite directly.** All DB access goes through the services layer.
 
-**Staged vs. committed entries.** Spend entries and extra cash entries are written to the DB immediately as `is_staged = 1`. They are committed (`is_staged = 0`) only when the user confirms a review. Staged entries survive app kills. Deleting a staged spend must also reverse any `modal_pulls` rows linked to it.
+**Staged vs. committed entries.** Entries have a `staged` boolean. Staged = not yet committed. They survive app kills. Committed on review confirm.
 
-**`pool_balance` reflects committed entries only.** Never update `pool_balance` for staged actions — only on review confirm.
+**Calculated values are never stored.** Left today, current daily budget, days remaining — all derived at read time from the data in the DB.
 
-**Savings is protected.** `cycles.savings_balance` only decreases via explicit modal pulls. Regular spending never touches it.
-
-**Calculated values are never stored.** Left today, current daily budget, days remaining, archive total balance — all derived at read time. See `docs/design-handoff/schema.md` for the full list.
-
-**Onboarding progress persists.** The `onboarding_state` table stores `current_page` and `partial_data` (JSON blob). If the user kills the app mid-onboarding, they resume where they left off. Delete this row when `onboarding_complete` is set to 1.
-
-**Missed days get a DB row.** When a cycle day passes without review, create a row in `days` with `flag = 'amber'`, `is_reviewed = 0`. Do this at midnight or on next app open, whichever comes first.
-
----
-
-## Key business logic to know
-
-**Daily budget formula:**
-- Start from today: `(income + pool_carryover − already_spent − savings − reservations) / (days_remaining + 1)`
-- Start from tomorrow: same numerator `/ days_remaining`
-
-**Spend validation (runs on every spend/reservation save, in order):**
-1. Hard cap: amount > pool + savings + all reservations → reject, no modal
-2. Threshold: does spend drop daily budget below `budget_alert`? → if yes, route to Modal 1 or Modal 2 (or consequences warning if nothing to pull). Skip entirely if `budget_alert = 0` or it's the last day of the cycle.
-
-**Modal routing:** Modal 1 = partial pulls can fix it. Modal 2 = only full pull reaches the threshold. Consequences warning = nothing to pull from.
+**Onboarding progress persists.** The `onboarding_state` table stores `current_page` and `partial_data` (JSON blob). If the user kills the app mid-onboarding, they resume where they left off. Row is deleted when onboarding completes.
 
 **Home screen has 5 states** (normal / review in progress / post-review pre-midnight / cycle ended / waiting). Detecting these correctly on every app open is critical — use a single `getHomeState()` utility.
 
@@ -126,31 +104,45 @@ components/
 
 ---
 
-## Design tokens
+## Key business logic to know
 
-The prototype HTML files define the colour palette used throughout the app:
+**Daily budget formula:**
+- Start from today: `(income + pool_leftover − already_spent − savings − reservations) / (days_remaining + 1)`
+- Start from tomorrow: same numerator `/ days_remaining`
+- After each review: `remaining_pool / days_left`
+
+**Spend validation (in order):**
+1. Hard cap: `amount > remaining pool` → reject, show error
+2. Threshold: does spend drop projected daily budget below `budget_alert`? → show inline warning. Skip if `budget_alert = 0` or last day of cycle.
+
+No modals for spend validation in MVP — inline warnings only.
+
+---
+
+## Design tokens
 
 | Token | Hex |
 |-------|-----|
-| Indigo (primary) | `#4F46E5` |
-| Indigo dark | `#3730A3` |
-| Indigo light (bg) | `#EEF2FF` |
+| Green (primary) | `#16A34A` |
+| Green dark | `#14532D` |
+| Green light (bg) | `#F0FDF4` |
 | Sky (extra cash) | `#0EA5E9` |
 | Sky light | `#E0F2FE` |
 | Red (errors) | `#EF4444` |
 | Amber (warnings, review) | `#F59E0B` |
-| Green (success) | `#10B981` |
+| Teal (success/positive) | `#10B981` |
 | Text primary | `#111827` |
 | Text secondary | `#6B7280` |
 | Border | `#E5E7EB` |
 | Surface | `#F9FAFB` |
+| Card | `#FFFFFF` |
 
-Font: **Plus Jakarta Sans** (to be loaded via `expo-font`).
+Font: **Plus Jakarta Sans** (loaded via `expo-font`).
 
-These should be added to `tailwind.config.js` as custom theme tokens and to `constants/theme.ts` before building any screens.
+Add to `tailwind.config.js` as custom theme tokens and to `constants/theme.ts` before building any screens.
 
 ---
 
 ## Current state of the repo
 
-The `app/(tabs)` directory still contains the default Expo template screens (`explore.tsx`, placeholder `index.tsx`). The `components/` directory contains template components. These will be replaced in Phase 1 of the build plan. Do not build on top of the template files — replace them.
+Fresh Expo SDK 54 scaffold. Default template files are placeholders — replace them, do not build on top of them.
