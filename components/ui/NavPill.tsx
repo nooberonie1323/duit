@@ -9,8 +9,7 @@ type IconName = ComponentProps<typeof MaterialIcons>['name'];
 const TABS: Array<{ name: string; label: string; icon: IconName }> = [
   { name: 'index', label: 'Home', icon: 'home' },
   { name: 'log', label: 'Log', icon: 'receipt' },
-  { name: 'stats', label: 'Stats', icon: 'show-chart' },
-  { name: 'more', label: 'More', icon: 'settings' },
+  { name: 'more', label: 'More', icon: 'tune' },
 ];
 
 export function NavPill({ state, navigation }: BottomTabBarProps) {
@@ -23,14 +22,16 @@ export function NavPill({ state, navigation }: BottomTabBarProps) {
       left: 24,
       right: 24,
       backgroundColor: '#fff',
-      borderRadius: 32,
+      borderRadius: 40,
       flexDirection: 'row',
-      paddingVertical: 10,
+      alignItems: 'center',
+      paddingVertical: 8,
+      paddingHorizontal: 8,
       shadowColor: '#16A34A',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.12,
-      shadowRadius: 20,
-      elevation: 8,
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.10,
+      shadowRadius: 24,
+      elevation: 10,
     }}>
       {TABS.map((tab, index) => {
         const focused = state.index === index;
@@ -38,20 +39,34 @@ export function NavPill({ state, navigation }: BottomTabBarProps) {
           <Pressable
             key={tab.name}
             onPress={() => navigation.navigate(tab.name)}
-            style={{ flex: 1, alignItems: 'center', paddingVertical: 4, gap: 3 }}
+            style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 2 }}
           >
-            <MaterialIcons
-              name={tab.icon}
-              size={22}
-              color={focused ? '#16A34A' : '#9CA3AF'}
-            />
-            <Text style={{
-              fontSize: 10,
-              fontFamily: focused ? 'PlusJakartaSans_600SemiBold' : 'PlusJakartaSans_400Regular',
-              color: focused ? '#16A34A' : '#9CA3AF',
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: focused ? 7 : 0,
+              backgroundColor: focused ? '#16A34A' : 'transparent',
+              borderRadius: 100,
+              overflow: 'hidden',
+              paddingHorizontal: focused ? 20 : 14,
+              paddingVertical: 10,
             }}>
-              {tab.label}
-            </Text>
+              <MaterialIcons
+                name={tab.icon}
+                size={21}
+                color={focused ? '#fff' : '#B0B7C3'}
+              />
+              {focused && (
+                <Text style={{
+                  fontSize: 13,
+                  fontFamily: 'PlusJakartaSans_700Bold',
+                  color: '#fff',
+                  letterSpacing: 0.1,
+                }}>
+                  {tab.label}
+                </Text>
+              )}
+            </View>
           </Pressable>
         );
       })}
