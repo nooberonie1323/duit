@@ -1,6 +1,10 @@
 import { useOnboarding } from '@/contexts/onboarding';
+import { saveSettings } from '@/services/settingsService';
+import { createCycle } from '@/services/cycleService';
 import { router } from 'expo-router';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { useSQLiteContext } from 'expo-sqlite';
+import { useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 function fmtShort(d: Date) {
@@ -20,7 +24,9 @@ const Divider = () => <View style={{ height: 1, backgroundColor: '#F3F4F6' }} />
 
 export default function SummaryScreen() {
   const insets = useSafeAreaInsets();
+  const db = useSQLiteContext();
   const { data } = useOnboarding();
+  const [saving, setSaving] = useState(false);
 
   const income = parseFloat(data.income) || 0;
   const savings = parseFloat(data.savings) || 0;
@@ -206,12 +212,45 @@ export default function SummaryScreen() {
       {/* Footer */}
       <View style={{ backgroundColor: '#F9FAFB', borderTopWidth: 1, borderTopColor: '#F3F4F6', paddingHorizontal: 20, paddingTop: 14, paddingBottom: Math.max(insets.bottom, 24) }}>
         <Pressable
-          onPress={() => canConfirm && router.replace('/(tabs)')}
+          onPress={async () => {
+            if (!canConfirm || saving) return;
+            setSaving(true);
+            try {
+              let alreadySpent = 0;
+              if (data.positionMode === 'spent') {
+                alreadySpent = parseFloat(data.alreadySpent) || 0;
+              } else if (data.positionMode === 'have') {
+                const stillHave = parseFloat(data.stillHave) || 0;
+                alreadySpent = income - stillHave;
+              }
+
+              await saveSettings(db, data.name);
+              await createCycle(db, {
+                startDate: data.cycleStartDate!,
+                endDate: data.cycleEndDate!,
+                income,
+                alreadySpent,
+                savings,
+                budgetAlert,
+                startFromToday: data.startFromToday,
+                reservations: data.reservations.map(r => ({
+                  name: r.name,
+                  amount: parseFloat(r.amount) || 0,
+                })),
+              });
+
+              router.replace('/(tabs)');
+            } catch (e) {
+              console.error('[Finalize error]', e);
+              setSaving(false);
+            }
+          }}
           style={{ backgroundColor: canConfirm ? '#16A34A' : '#E5E7EB', borderRadius: 16, paddingVertical: 16, alignItems: 'center' }}
         >
-          <Text style={{ color: canConfirm ? '#fff' : '#9CA3AF', fontSize: 16, fontFamily: 'PlusJakartaSans_700Bold', letterSpacing: 0.2 }}>
-            Finalize
-          </Text>
+          {saving
+            ? <ActivityIndicator color="#fff" />
+            : <Text style={{ color: canConfirm ? '#fff' : '#9CA3AF', fontSize: 16, fontFamily: 'PlusJakartaSans_700Bold', letterSpacing: 0.2 }}>Finalize</Text>
+          }
         </Pressable>
       </View>
     </View>

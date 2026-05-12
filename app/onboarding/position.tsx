@@ -1,6 +1,6 @@
 import { useOnboarding } from '@/contexts/onboarding';
 import { router } from 'expo-router';
-import { InteractionManager, Keyboard, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { InteractionManager, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useState } from 'react';
 
@@ -48,7 +48,7 @@ export default function PositionScreen() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
+    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: '#F9FAFB' }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       {/* Header */}
       <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 24, paddingBottom: 16, backgroundColor: '#F9FAFB' }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
@@ -247,6 +247,6 @@ export default function PositionScreen() {
           </Text>
         </Pressable>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }

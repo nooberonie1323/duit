@@ -2,7 +2,7 @@ import { CalendarModal } from '@/components/ui/CalendarModal';
 import { useOnboarding } from '@/contexts/onboarding';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { InteractionManager, Keyboard, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { InteractionManager, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 function fmt(d: Date) {
@@ -39,7 +39,7 @@ export default function BasicsScreen() {
   const bc = (field: string) => focused === field ? '#111827' : '#E5E7EB';
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
+    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: '#F9FAFB' }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       {/* Header */}
       <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 24, paddingBottom: 16, backgroundColor: '#F9FAFB' }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
@@ -257,6 +257,6 @@ export default function BasicsScreen() {
         minimumDate={data.cycleStartDate ? addDays(data.cycleStartDate, 2) : undefined}
         title="Cycle end date"
       />
-    </View>
+    </KeyboardAvoidingView>
   );
 }

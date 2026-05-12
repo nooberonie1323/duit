@@ -2,7 +2,7 @@ import { useOnboarding } from '@/contexts/onboarding';
 import type { Reservation } from '@/contexts/onboarding';
 import { router } from 'expo-router';
 import { useRef, useState } from 'react';
-import { InteractionManager, Keyboard, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { InteractionManager, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function ProtectScreen() {
@@ -41,7 +41,7 @@ export default function ProtectScreen() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#fff' }}>
+    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: '#fff' }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       {/* Header */}
       <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 24, paddingBottom: 16 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
@@ -186,6 +186,6 @@ export default function ProtectScreen() {
           </Text>
         </Pressable>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
