@@ -14,6 +14,7 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  FlatList,
   Modal,
   Pressable,
   ScrollView,
@@ -380,12 +381,12 @@ export default function HomeScreen() {
     elevation: 2,
   };
 
+  const navPillOffset = Math.max(insets.bottom, 16) + 76;
+
   return (
     <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingTop: insets.top + 16, paddingBottom: 120 }}
-      >
+      {/* ── Fixed top section ── */}
+      <View style={{ paddingTop: insets.top + 16 }}>
         {/* ── Hero card ── */}
         <View style={{
           marginHorizontal: 16, borderRadius: 20,
@@ -464,54 +465,47 @@ export default function HomeScreen() {
           </Pressable>
         </View>
 
-        {/* ── Log card ── */}
-        {entries.length > 0 && (
-          <>
-            <View style={{ height: 12 }} />
-            <View style={{ ...card, overflow: 'hidden' }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}>
-                <Text style={{ fontSize: 13, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#6B7280' }}>Today's log</Text>
-                <Text style={{ fontSize: 12, color: '#9CA3AF', fontFamily: 'PlusJakartaSans_400Regular' }}>{entries.length} {entries.length === 1 ? 'item' : 'items'}</Text>
-              </View>
-              <ScrollView
-                nestedScrollEnabled
-                showsVerticalScrollIndicator={false}
-                style={{ maxHeight: 280 }}
-              >
-                {entries.map((entry, i) => (
-                  <View
-                    key={entry.id}
-                    style={{
-                      flexDirection: 'row', alignItems: 'center',
-                      borderBottomWidth: i < entries.length - 1 ? 1 : 0,
-                      borderBottomColor: '#F3F4F6',
-                    }}
-                  >
-                    <Pressable
-                      onPress={() => openEdit(entry)}
-                      style={{ flex: 1, flexDirection: 'row', alignItems: 'center', paddingVertical: 13, paddingLeft: 16, paddingRight: 8 }}
-                    >
-                      <Text style={{ flex: 1, fontSize: 14, color: '#374151', fontFamily: 'PlusJakartaSans_400Regular' }} numberOfLines={1}>
-                        {entry.note || 'general spending'}
-                      </Text>
-                      <Text style={{ fontSize: 14, color: '#111827', fontFamily: 'PlusJakartaSans_600SemiBold', marginRight: 4 }}>
-                        ৳{entry.amount.toLocaleString()}
-                      </Text>
-                    </Pressable>
-                    <Pressable
-                      onPress={() => setConfirmDeleteEntry(entry)}
-                      hitSlop={8}
-                      style={{ paddingVertical: 13, paddingRight: 16, paddingLeft: 8 }}
-                    >
-                      <Text style={{ fontSize: 18, color: '#EF4444', lineHeight: 20, includeFontPadding: false }}>×</Text>
-                    </Pressable>
-                  </View>
-                ))}
-              </ScrollView>
+      </View>
+
+      {/* ── Log card — fills remaining space above NavPill ── */}
+      {entries.length > 0 ? (
+        <View style={{ flex: 1, marginTop: 12, marginHorizontal: 16, paddingBottom: navPillOffset }}>
+          <View style={{ flex: 1, backgroundColor: '#fff', borderRadius: 20, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}>
+              <Text style={{ fontSize: 13, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#6B7280' }}>Today's log</Text>
+              <Text style={{ fontSize: 12, color: '#9CA3AF', fontFamily: 'PlusJakartaSans_400Regular' }}>{entries.length} {entries.length === 1 ? 'item' : 'items'}</Text>
             </View>
-          </>
-        )}
-      </ScrollView>
+            <FlatList
+              data={entries}
+              keyExtractor={item => String(item.id)}
+              showsVerticalScrollIndicator={true}
+              renderItem={({ item: entry, index: i }) => (
+                <View style={{ flexDirection: 'row', alignItems: 'center', borderBottomWidth: i < entries.length - 1 ? 1 : 0, borderBottomColor: '#F3F4F6' }}>
+                  <Pressable
+                    onPress={() => openEdit(entry)}
+                    style={{ flex: 1, flexDirection: 'row', alignItems: 'center', paddingVertical: 13, paddingLeft: 16, paddingRight: 8 }}
+                  >
+                    <Text style={{ flex: 1, fontSize: 14, color: '#374151', fontFamily: 'PlusJakartaSans_400Regular' }} numberOfLines={1}>
+                      {entry.note || 'general spending'}
+                    </Text>
+                    <Text style={{ fontSize: 14, color: '#111827', fontFamily: 'PlusJakartaSans_600SemiBold', marginRight: 4 }}>
+                      ৳{entry.amount.toLocaleString()}
+                    </Text>
+                  </Pressable>
+                  <Pressable onPress={() => setConfirmDeleteEntry(entry)} hitSlop={8} style={{ paddingVertical: 13, paddingRight: 16, paddingLeft: 8 }}>
+                    <Text style={{ fontSize: 18, color: '#EF4444', lineHeight: 20, includeFontPadding: false }}>×</Text>
+                  </Pressable>
+                </View>
+              )}
+              ListFooterComponent={entries.length > 4 ? (
+                <View style={{ paddingVertical: 10, alignItems: 'center', borderTopWidth: 1, borderTopColor: '#F3F4F6' }}>
+                  <Text style={{ fontSize: 11, color: '#D1D5DB', fontFamily: 'PlusJakartaSans_400Regular', letterSpacing: 0.5 }}>scroll for more  ↕</Text>
+                </View>
+              ) : null}
+            />
+          </View>
+        </View>
+      ) : null}
 
       {/* ── Add / Edit modal ── */}
       <Modal visible={showModal} transparent animationType="fade" onRequestClose={closeModal}>

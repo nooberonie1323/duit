@@ -73,3 +73,34 @@ export async function deleteEntry(
 ): Promise<void> {
   await db.runAsync('DELETE FROM entries WHERE id = ?', [entryId]);
 }
+
+export interface ReviewedDay {
+  id: number;
+  date: string;
+  daily_budget: number;
+  total_spent: number;
+  reviewed_at: string;
+}
+
+export async function getReviewedDays(
+  db: SQLiteDatabase,
+  cycleId: number
+): Promise<ReviewedDay[]> {
+  return db.getAllAsync<ReviewedDay>(
+    `SELECT id, date, daily_budget, total_spent, reviewed_at
+     FROM days
+     WHERE cycle_id = ? AND reviewed_at IS NOT NULL
+     ORDER BY date DESC`,
+    [cycleId]
+  );
+}
+
+export async function getDayEntries(
+  db: SQLiteDatabase,
+  dayId: number
+): Promise<EntryRow[]> {
+  return db.getAllAsync<EntryRow>(
+    `SELECT * FROM entries WHERE day_id = ? ORDER BY id ASC`,
+    [dayId]
+  );
+}
