@@ -1,4 +1,4 @@
-import { fromDateStr } from '@/lib/db';
+import { fromDateStr, toDateStr } from '@/lib/db';
 import { getActiveCycle, getCycleTotalSpent, type ActiveCycleData } from '@/services/cycleService';
 import {
   addEntry,
@@ -28,6 +28,7 @@ interface HomeData {
   cycleData: ActiveCycleData;
   entries: EntryRow[];
   cycleTotalSpent: number;
+  todayReviewed: boolean;
 }
 
 interface EditingEntry {
@@ -36,14 +37,20 @@ interface EditingEntry {
   amount: number;
 }
 
-function getHomeState(cycleData: ActiveCycleData, devState?: string): 'normal' | 'waiting' | 'ended' {
+type HomeStateType = 'normal' | 'waiting' | 'ended' | 'review' | 'post_review';
+
+function getHomeState(cycleData: ActiveCycleData, todayReviewed: boolean, devState?: string): HomeStateType {
   if (devState === 'ended') return 'ended';
   if (devState === 'waiting') return 'waiting';
+  if (devState === 'review') return 'review';
+  if (devState === 'postReview') return 'post_review';
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const start = fromDateStr(cycleData.cycle.start_date); start.setHours(0, 0, 0, 0);
   const end = fromDateStr(cycleData.cycle.end_date); end.setHours(0, 0, 0, 0);
   if (start > today) return 'waiting';
   if (end < today) return 'ended';
+  if (todayReviewed) return 'post_review';
+  // 'review' state set by Log tab when review is started — detected via DB flag added in that feature
   return 'normal';
 }
 
@@ -67,11 +74,16 @@ export default function HomeScreen() {
       getActiveCycle(db),
     ]);
     if (!settings || !cycleData) { setData(null); setLoading(false); return; }
-    const [entries, cycleTotalSpent] = await Promise.all([
+    const [entries, cycleTotalSpent, todayDay] = await Promise.all([
       getTodayEntries(db, cycleData.cycle.id),
       getCycleTotalSpent(db, cycleData.cycle.id),
+      db.getFirstAsync<{ reviewed_at: string | null }>(
+        'SELECT reviewed_at FROM days WHERE cycle_id = ? AND date = ?',
+        [cycleData.cycle.id, toDateStr(new Date())]
+      ),
     ]);
-    setData({ name: settings.name, cycleData, entries, cycleTotalSpent });
+    const todayReviewed = !!(todayDay?.reviewed_at);
+    setData({ name: settings.name, cycleData, entries, cycleTotalSpent, todayReviewed });
     setLoading(false);
   }, [db]);
 
@@ -147,8 +159,8 @@ export default function HomeScreen() {
     );
   }
 
-  const { cycleData, entries } = data;
-  const homeState = getHomeState(cycleData, devState);
+  const { cycleData, entries, todayReviewed } = data;
+  const homeState = getHomeState(cycleData, todayReviewed, devState);
 
   // ── Cycle ended ──────────────────────────────────────────────────────────
   if (homeState === 'ended') {
@@ -251,6 +263,73 @@ export default function HomeScreen() {
         <Pressable style={{ backgroundColor: '#16A34A', borderRadius: 16, paddingVertical: 16, paddingHorizontal: 40, alignItems: 'center' }}>
           <Text style={{ color: '#fff', fontSize: 16, fontFamily: 'PlusJakartaSans_700Bold' }}>Start new cycle</Text>
         </Pressable>
+      </View>
+    );
+  }
+
+  // ── Review in progress ───────────────────────────────────────────────────
+  if (homeState === 'review') {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#FFFBEB', paddingTop: insets.top, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 }}>
+        <Text style={{ fontSize: 36, marginBottom: 20 }}>📋</Text>
+        <Text style={{ fontSize: 24, fontFamily: 'PlusJakartaSans_800ExtraBold', color: '#92400E', textAlign: 'center', letterSpacing: -0.5, marginBottom: 12 }}>
+          Finish your review to continue.
+        </Text>
+        <Text style={{ fontSize: 14, color: '#B45309', fontFamily: 'PlusJakartaSans_400Regular', textAlign: 'center', lineHeight: 22 }}>
+          Head to the Log tab to complete today's review.
+        </Text>
+      </View>
+    );
+  }
+
+  // ── Post-review, pre-midnight ─────────────────────────────────────────────
+  if (homeState === 'post_review') {
+    const todayTotalSpent = entries.reduce((s, e) => s + e.amount, 0);
+    const todaySaved = Math.max(0, cycleData.dailyBudget - todayTotalSpent);
+
+    const now = new Date();
+    const midnight = new Date(now); midnight.setHours(24, 0, 0, 0);
+    const msLeft = midnight.getTime() - now.getTime();
+    const hoursLeft = Math.floor(msLeft / 3600000);
+    const minsLeft = Math.floor((msLeft % 3600000) / 60000);
+    const countdown = hoursLeft > 0 ? `${hoursLeft}h ${minsLeft}m until tomorrow` : `${minsLeft}m until tomorrow`;
+
+    return (
+      <View style={{ flex: 1, backgroundColor: '#F9FAFB', paddingTop: insets.top }}>
+        <ScrollView contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 40, paddingBottom: Math.max(insets.bottom, 32) }} showsVerticalScrollIndicator={false}>
+          <Text style={{ fontSize: 36, marginBottom: 16 }}>✅</Text>
+          <Text style={{ fontSize: 30, fontFamily: 'PlusJakartaSans_800ExtraBold', color: '#111827', letterSpacing: -0.5, marginBottom: 8 }}>
+            You're done for today.
+          </Text>
+          <Text style={{ fontSize: 15, color: '#9CA3AF', fontFamily: 'PlusJakartaSans_400Regular', marginBottom: 32 }}>
+            See you tomorrow.
+          </Text>
+
+          <View style={{ backgroundColor: '#fff', borderRadius: 20, paddingHorizontal: 16, marginBottom: 16, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 13 }}>
+              <Text style={{ fontSize: 14, color: '#6B7280', fontFamily: 'PlusJakartaSans_400Regular' }}>Spent today</Text>
+              <Text style={{ fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#111827' }}>৳{Math.floor(todayTotalSpent).toLocaleString()}</Text>
+            </View>
+            {todaySaved > 0 && (
+              <>
+                <View style={{ height: 1, backgroundColor: '#F3F4F6' }} />
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 13 }}>
+                  <Text style={{ fontSize: 14, color: '#6B7280', fontFamily: 'PlusJakartaSans_400Regular' }}>Saved today</Text>
+                  <Text style={{ fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#16A34A' }}>৳{Math.floor(todaySaved).toLocaleString()}</Text>
+                </View>
+              </>
+            )}
+            <View style={{ height: 1, backgroundColor: '#F3F4F6' }} />
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 13 }}>
+              <Text style={{ fontSize: 14, color: '#6B7280', fontFamily: 'PlusJakartaSans_400Regular' }}>New daily budget</Text>
+              <Text style={{ fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#111827' }}>৳{Math.floor(cycleData.dailyBudget).toLocaleString()}</Text>
+            </View>
+          </View>
+
+          <Text style={{ fontSize: 12, color: '#D1D5DB', fontFamily: 'PlusJakartaSans_400Regular', textAlign: 'center' }}>
+            {countdown}
+          </Text>
+        </ScrollView>
       </View>
     );
   }
