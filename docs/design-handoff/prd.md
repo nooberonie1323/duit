@@ -140,14 +140,14 @@ Bottom nav: **Home | Log | Stats | More**
 
 #### Layout (top to bottom)
 
-1. **Hero area** — indigo background. Shows date, day of cycle, and the big "Left today" number.
+1. **Hero area** — forest green card. Shows date, day of cycle, and the big "Left today" number.
    - "Left today" = today's daily budget minus total staged spends for today.
 2. **Cycle Overview card** — three stats:
    - Left in cycle (total remaining budget pool)
    - Days left
    - Daily average (total spent ÷ days reviewed so far. Shows "—" until one day is reviewed)
-3. **Spending card** — staged spend entries for today. "+ Add spend" button.
-4. **Extra Cash card** — staged extra cash entries for today. "+ Add extra cash" button.
+3. **Spending card** — shows total spent today + "+ Add spend" button.
+4. **Log card** — appears below spending card when entries exist. Scrollable list (internal scroll, max height ~280px). Tapping a row opens edit/delete modal.
 
 #### Home screen states
 
@@ -161,50 +161,39 @@ Bottom nav: **Home | Log | Stats | More**
 
 ---
 
-### 4. Spending Card
+### 4. Spending Card + Log Card
 
-- Tapping "+ Add spend" opens a modal:
-  - Amount field (auto-focused). Hard block if ৳0 or below.
-  - Optional note field. Placeholder: "general spending" if left empty.
-- Each entry shown as a row: note | amount | X (delete)
+**Spending card:**
+- Header: "Spending" + total spent today.
+- "+ Add spend" button opens a modal:
+  - Note field (optional). Placeholder: "general spending".
+  - Amount field. Hard block if ৳0 or below.
 - Multiple entries per day allowed.
 
-**Threshold warning (non-modal):**
-After a spend is staged, the app checks:
+**Log card (appears below spending card when entries exist):**
+- Internally scrollable list, max height ~280px. Does not cause page to scroll.
+- Each row: note | amount | › chevron (tappable).
+- Tapping a row opens the edit modal pre-filled with that row's data.
+- Edit modal has Save + Delete options.
 
+**Threshold warning (non-modal):**
+After a spend is staged:
 ```
 Projected daily budget = (remaining pool − spend amount) / days after today
 ```
-
-If this drops below the budget alert → inline warning shown on the spending card: "Your daily budget is now below your alert of ৳X." No blocking. No modals. User just sees the warning and moves on. This check is skipped on the last day of the cycle.
+If this drops below budget alert → inline warning on spending card. Non-blocking. Skipped on last day of cycle.
 
 **Hard cap check:**
 If spend amount > entire remaining pool → hard block. Error shown. Cannot proceed.
 
-**Deleting a spend:**
-
-- Tapping X removes the entry.
-- Amount is returned to today's budget.
-
 ---
 
-### 5. Extra Cash Card
+### 5. Staging vs. Committed
 
-- Tapping "+ Add extra cash" opens a modal:
-  - Amount field. Hard block if ৳0 or below.
-  - Optional label. Placeholder: "extra cash" if left empty.
-- Each entry shown as a row: label | amount (sky blue) | X (delete)
-- Extra cash is always shown in sky blue, never indigo. It is separate from the regular budget.
-- Extra cash only benefits the pool after review. It does not affect "Left today" before review.
-
----
-
-### 6. Staging vs. Committed
-
-- All entries on the home screen (spends, extra cash) are **staged** — not written to the database yet.
-- Staged entries persist between app sessions (if app is killed and reopened, they are still there).
-- Staged entries can be edited or deleted freely.
-- Everything is committed to the database at **review time**.
+- All spend entries on the home screen are **staged** — written to the DB immediately but flagged `staged = 1`.
+- Staged entries persist between app sessions.
+- Staged entries can be edited or deleted freely from the log card.
+- Everything is committed (`staged = 0`) at **review time**.
 
 ---
 
@@ -233,7 +222,6 @@ What the user sees:
 - Spend entries — each editable (amount and note only) and deletable
   - New spends can be added during review. Same validation applies (hard cap + threshold warning).
   - Deleting a spend during review reverses the amount back to the pool.
-- Extra cash entries — editable and deletable
 - Notes card — optional free-text field
 - Confirm button
 
@@ -241,7 +229,6 @@ What the user sees:
 
 - All staged entries committed to database.
 - Underspent amount (if any) added back to the budget pool.
-- Extra cash (if any) added to the budget pool.
 - Budget pool recalculated. New daily budget = remaining pool ÷ days left.
 - User taken to "Day Wrapped Up" screen.
 

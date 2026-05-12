@@ -126,8 +126,6 @@ No modals for spend validation in MVP — inline warnings only.
 | Green (primary) | `#16A34A` |
 | Green dark | `#14532D` |
 | Green light (bg) | `#F0FDF4` |
-| Sky (extra cash) | `#0EA5E9` |
-| Sky light | `#E0F2FE` |
 | Red (errors) | `#EF4444` |
 | Amber (warnings, review) | `#F59E0B` |
 | Teal (success/positive) | `#10B981` |
@@ -145,4 +143,4 @@ Add to `tailwind.config.js` as custom theme tokens and to `constants/theme.ts` b
 
 ## Current state of the repo
 
-Fresh Expo SDK 54 scaffold. Default template files are placeholders — replace them, do not build on top of them.
+Onboarding complete. Home screen functional with real SQLite data. Spending entries (add/edit/delete) wired to DB. Tab navigation live with NavPill. Log, Stats, More tabs are placeholder screens.

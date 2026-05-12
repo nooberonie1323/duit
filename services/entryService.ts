@@ -1,0 +1,75 @@
+import { toDateStr } from '@/lib/db';
+import type { SQLiteDatabase } from 'expo-sqlite';
+
+export interface EntryRow {
+  id: number;
+  day_id: number;
+  amount: number;
+  note: string;
+  time: string;
+  staged: number;
+}
+
+export async function getOrCreateTodayDay(
+  db: SQLiteDatabase,
+  cycleId: number,
+  dailyBudget: number
+): Promise<number> {
+  const today = toDateStr(new Date());
+  const existing = await db.getFirstAsync<{ id: number }>(
+    'SELECT id FROM days WHERE cycle_id = ? AND date = ?',
+    [cycleId, today]
+  );
+  if (existing) return existing.id;
+
+  const result = await db.runAsync(
+    'INSERT INTO days (cycle_id, date, daily_budget) VALUES (?, ?, ?)',
+    [cycleId, today, dailyBudget]
+  );
+  return result.lastInsertRowId;
+}
+
+export async function getTodayEntries(
+  db: SQLiteDatabase,
+  cycleId: number
+): Promise<EntryRow[]> {
+  const today = toDateStr(new Date());
+  return db.getAllAsync<EntryRow>(
+    `SELECT e.* FROM entries e
+     JOIN days d ON e.day_id = d.id
+     WHERE d.cycle_id = ? AND d.date = ? AND e.type = 'spend'
+     ORDER BY e.id ASC`,
+    [cycleId, today]
+  );
+}
+
+export async function addEntry(
+  db: SQLiteDatabase,
+  dayId: number,
+  note: string,
+  amount: number
+): Promise<void> {
+  await db.runAsync(
+    `INSERT INTO entries (day_id, type, amount, note) VALUES (?, 'spend', ?, ?)`,
+    [dayId, amount, note]
+  );
+}
+
+export async function updateEntry(
+  db: SQLiteDatabase,
+  entryId: number,
+  note: string,
+  amount: number
+): Promise<void> {
+  await db.runAsync(
+    'UPDATE entries SET note = ?, amount = ? WHERE id = ?',
+    [note, amount, entryId]
+  );
+}
+
+export async function deleteEntry(
+  db: SQLiteDatabase,
+  entryId: number
+): Promise<void> {
+  await db.runAsync('DELETE FROM entries WHERE id = ?', [entryId]);
+}
