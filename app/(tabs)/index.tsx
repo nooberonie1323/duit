@@ -1,4 +1,5 @@
-import { getActiveCycle, type ActiveCycleData } from '@/services/cycleService';
+import { fromDateStr } from '@/lib/db';
+import { getActiveCycle, getCycleTotalSpent, type ActiveCycleData } from '@/services/cycleService';
 import {
   addEntry,
   deleteEntry,
@@ -8,6 +9,7 @@ import {
   type EntryRow,
 } from '@/services/entryService';
 import { getSettings } from '@/services/settingsService';
+import { useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useState } from 'react';
 import {
@@ -25,6 +27,7 @@ interface HomeData {
   name: string;
   cycleData: ActiveCycleData;
   entries: EntryRow[];
+  cycleTotalSpent: number;
 }
 
 interface EditingEntry {
@@ -33,9 +36,21 @@ interface EditingEntry {
   amount: number;
 }
 
+function getHomeState(cycleData: ActiveCycleData, devState?: string): 'normal' | 'waiting' | 'ended' {
+  if (devState === 'ended') return 'ended';
+  if (devState === 'waiting') return 'waiting';
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const start = fromDateStr(cycleData.cycle.start_date); start.setHours(0, 0, 0, 0);
+  const end = fromDateStr(cycleData.cycle.end_date); end.setHours(0, 0, 0, 0);
+  if (start > today) return 'waiting';
+  if (end < today) return 'ended';
+  return 'normal';
+}
+
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const db = useSQLiteContext();
+  const { devState } = useLocalSearchParams<{ devState?: string }>();
   const [data, setData] = useState<HomeData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -52,8 +67,11 @@ export default function HomeScreen() {
       getActiveCycle(db),
     ]);
     if (!settings || !cycleData) { setData(null); setLoading(false); return; }
-    const entries = await getTodayEntries(db, cycleData.cycle.id);
-    setData({ name: settings.name, cycleData, entries });
+    const [entries, cycleTotalSpent] = await Promise.all([
+      getTodayEntries(db, cycleData.cycle.id),
+      getCycleTotalSpent(db, cycleData.cycle.id),
+    ]);
+    setData({ name: settings.name, cycleData, entries, cycleTotalSpent });
     setLoading(false);
   }, [db]);
 
@@ -130,6 +148,114 @@ export default function HomeScreen() {
   }
 
   const { cycleData, entries } = data;
+  const homeState = getHomeState(cycleData, devState);
+
+  // ── Cycle ended ──────────────────────────────────────────────────────────
+  if (homeState === 'ended') {
+    const { cycleTotalSpent } = data;
+    const startFmt = fromDateStr(cycleData.cycle.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const endFmt = fromDateStr(cycleData.cycle.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const spendable = cycleData.pool - cycleData.cycle.savings - cycleData.reservationsTotal;
+    const avgPerDay = cycleData.totalDays > 0 ? cycleTotalSpent / cycleData.totalDays : 0;
+    const netAmount = spendable - cycleTotalSpent;
+    const didSave = netAmount >= 0;
+    const hasProtected = cycleData.cycle.savings > 0 || cycleData.reservations.length > 0;
+
+    const statRow = (label: string, value: string, valueColor = '#111827') => (
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 11 }}>
+        <Text style={{ fontSize: 14, color: '#6B7280', fontFamily: 'PlusJakartaSans_400Regular' }}>{label}</Text>
+        <Text style={{ fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: valueColor }}>{value}</Text>
+      </View>
+    );
+
+    return (
+      <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
+        <ScrollView contentContainerStyle={{ paddingTop: insets.top + 24, paddingBottom: Math.max(insets.bottom, 32), paddingHorizontal: 20 }} showsVerticalScrollIndicator={false}>
+          <Text style={{ fontSize: 11, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#9CA3AF', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6, marginLeft: 4 }}>
+            {startFmt} – {endFmt}
+          </Text>
+          <Text style={{ fontSize: 34, fontFamily: 'PlusJakartaSans_800ExtraBold', color: '#111827', letterSpacing: -1, marginBottom: 4, marginLeft: 4 }}>
+            That's a wrap.
+          </Text>
+          <Text style={{ fontSize: 14, color: '#9CA3AF', fontFamily: 'PlusJakartaSans_400Regular', marginBottom: 24, marginLeft: 4 }}>
+            Your cycle has ended. Start a new one to continue.
+          </Text>
+
+          {/* Spending summary */}
+          <View style={{ backgroundColor: '#fff', borderRadius: 20, paddingHorizontal: 16, marginBottom: 12, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 }}>
+            {statRow('Total spent', `৳${Math.floor(cycleTotalSpent).toLocaleString()}`)}
+            <View style={{ height: 1, backgroundColor: '#F3F4F6' }} />
+            {statRow('Daily average', `৳${Math.floor(avgPerDay).toLocaleString()}`)}
+            <View style={{ height: 1, backgroundColor: '#F3F4F6' }} />
+            {statRow(
+              didSave ? 'Underspent' : 'Overspent',
+              `৳${Math.floor(Math.abs(netAmount)).toLocaleString()}`,
+              didSave ? '#16A34A' : '#EF4444'
+            )}
+          </View>
+
+          {/* Protected money */}
+          {hasProtected && (
+            <View style={{ backgroundColor: '#fff', borderRadius: 20, paddingHorizontal: 16, marginBottom: 12, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 }}>
+              {cycleData.cycle.savings > 0 && (
+                <>
+                  {statRow('Savings (untouched)', `৳${Math.floor(cycleData.cycle.savings).toLocaleString()}`, '#16A34A')}
+                  {cycleData.reservations.length > 0 && <View style={{ height: 1, backgroundColor: '#F3F4F6' }} />}
+                </>
+              )}
+              {cycleData.reservations.map((r, i) => (
+                <View key={r.id}>
+                  {statRow(`${r.name} (reserved)`, `৳${Math.floor(r.amount).toLocaleString()}`, '#6B7280')}
+                  {i < cycleData.reservations.length - 1 && <View style={{ height: 1, backgroundColor: '#F3F4F6' }} />}
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* Remaining pool */}
+          {cycleData.leftInCycle > 0 && (
+            <View style={{ backgroundColor: '#fff', borderRadius: 20, paddingHorizontal: 16, marginBottom: 24, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 }}>
+              {statRow('Left in pool', `৳${Math.floor(cycleData.leftInCycle).toLocaleString()}`)}
+            </View>
+          )}
+
+          <Pressable style={{ backgroundColor: '#16A34A', borderRadius: 16, paddingVertical: 16, alignItems: 'center', marginBottom: 12 }}>
+            <Text style={{ color: '#fff', fontSize: 16, fontFamily: 'PlusJakartaSans_700Bold' }}>Start new cycle</Text>
+          </Pressable>
+          <Pressable style={{ borderRadius: 16, paddingVertical: 16, alignItems: 'center', borderWidth: 1.5, borderColor: '#E5E7EB' }}>
+            <Text style={{ color: '#6B7280', fontSize: 16, fontFamily: 'PlusJakartaSans_600SemiBold' }}>Wait — pay was delayed</Text>
+          </Pressable>
+        </ScrollView>
+      </View>
+    );
+  }
+
+  // ── Waiting ───────────────────────────────────────────────────────────────
+  if (homeState === 'waiting') {
+    const startFmt = fromDateStr(cycleData.cycle.start_date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+    const today2 = new Date(); today2.setHours(0, 0, 0, 0);
+    const start2 = fromDateStr(cycleData.cycle.start_date); start2.setHours(0, 0, 0, 0);
+    const daysUntil = Math.round((start2.getTime() - today2.getTime()) / 86400000);
+    return (
+      <View style={{ flex: 1, backgroundColor: '#F9FAFB', paddingTop: insets.top, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 }}>
+        <Text style={{ fontSize: 40, marginBottom: 16 }}>⏳</Text>
+        <Text style={{ fontSize: 26, fontFamily: 'PlusJakartaSans_800ExtraBold', color: '#111827', textAlign: 'center', letterSpacing: -0.5, marginBottom: 12 }}>
+          Waiting patiently.
+        </Text>
+        <Text style={{ fontSize: 14, color: '#9CA3AF', fontFamily: 'PlusJakartaSans_400Regular', textAlign: 'center', lineHeight: 22, marginBottom: 8 }}>
+          Unlike your friends that leave when you're broke, we're still here.
+        </Text>
+        <Text style={{ fontSize: 13, color: '#16A34A', fontFamily: 'PlusJakartaSans_600SemiBold', textAlign: 'center', marginBottom: 40 }}>
+          Cycle starts {startFmt} · {daysUntil} {daysUntil === 1 ? 'day' : 'days'} away
+        </Text>
+        <Pressable style={{ backgroundColor: '#16A34A', borderRadius: 16, paddingVertical: 16, paddingHorizontal: 40, alignItems: 'center' }}>
+          <Text style={{ color: '#fff', fontSize: 16, fontFamily: 'PlusJakartaSans_700Bold' }}>Start new cycle</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  // ── Normal ────────────────────────────────────────────────────────────────
   const totalSpent = entries.reduce((s, e) => s + e.amount, 0);
   const leftToday = cycleData.dailyBudget - totalSpent;
   const overspentBy = totalSpent > cycleData.dailyBudget ? totalSpent - cycleData.dailyBudget : 0;
@@ -224,7 +350,7 @@ export default function HomeScreen() {
           <View style={{ flexDirection: 'row', paddingVertical: 18 }}>
             <View style={{ flex: 1, alignItems: 'center' }}>
               <Text style={{ fontSize: 19, fontFamily: 'PlusJakartaSans_700Bold', color: '#111827', marginBottom: 4 }}>
-                ৳{Math.floor(cycleData.leftInCycle).toLocaleString()}
+                ৳{Math.floor(Math.max(0, cycleData.leftInCycle - totalSpent)).toLocaleString()}
               </Text>
               <Text style={{ fontSize: 11, color: '#9CA3AF', fontFamily: 'PlusJakartaSans_400Regular' }}>Left in cycle</Text>
             </View>

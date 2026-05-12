@@ -129,3 +129,13 @@ export async function getActiveCycle(db: SQLiteDatabase): Promise<ActiveCycleDat
     leftInCycle,
   };
 }
+
+export async function getCycleTotalSpent(db: SQLiteDatabase, cycleId: number): Promise<number> {
+  const row = await db.getFirstAsync<{ total: number }>(
+    `SELECT COALESCE(SUM(e.amount), 0) as total
+     FROM entries e JOIN days d ON e.day_id = d.id
+     WHERE d.cycle_id = ?`,
+    [cycleId]
+  );
+  return row?.total ?? 0;
+}
