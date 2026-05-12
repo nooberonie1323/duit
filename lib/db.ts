@@ -69,6 +69,8 @@ export async function migrateDb(db: SQLite.SQLiteDatabase) {
 
   // Safe column migrations for existing databases
   await db.execAsync('ALTER TABLE days ADD COLUMN notes TEXT').catch(() => {});
+  await db.execAsync('ALTER TABLE reservations ADD COLUMN paid_at TEXT').catch(() => {});
+  await db.execAsync('ALTER TABLE reservations ADD COLUMN paid_note TEXT').catch(() => {});
 }
 
 export function toDateStr(d: Date): string {

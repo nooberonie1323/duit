@@ -1,5 +1,5 @@
 import { fromDateStr, toDateStr } from '@/lib/db';
-import { getActiveCycle, getCycleTotalSpent, type ActiveCycleData } from '@/services/cycleService';
+import { getActiveCycle, getCycleTotalSpent, markReservationPaid, markReservationUnpaid, type ActiveCycleData, type ReservationRow } from '@/services/cycleService';
 import {
   addEntry,
   deleteEntry,
@@ -10,7 +10,7 @@ import {
 } from '@/services/entryService';
 import { getSettings } from '@/services/settingsService';
 import { confirmReview } from '@/services/reviewService';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useState } from 'react';
 import {
@@ -76,6 +76,10 @@ export default function HomeScreen() {
   const [modalAmount, setModalAmount] = useState('');
   const [modalSaving, setModalSaving] = useState(false);
   const [confirmDeleteEntry, setConfirmDeleteEntry] = useState<EntryRow | null>(null);
+
+  const [selectedReservation, setSelectedReservation] = useState<ReservationRow | null>(null);
+  const [resNote, setResNote] = useState('');
+  const [markingRes, setMarkingRes] = useState(false);
 
   const load = useCallback(async () => {
     const [settings, cycleData] = await Promise.all([
@@ -259,7 +263,16 @@ export default function HomeScreen() {
             </View>
           )}
 
-          <Pressable style={{ backgroundColor: '#16A34A', borderRadius: 16, paddingVertical: 16, alignItems: 'center', marginBottom: 12 }}>
+          <Pressable
+            onPress={() => router.push({
+              pathname: '/new-cycle',
+              params: {
+                leftover: String(cycleData.leftInCycle > 0 ? Math.floor(cycleData.leftInCycle) : 0),
+                prevCycleId: String(cycleData.cycle.id),
+              },
+            })}
+            style={{ backgroundColor: '#16A34A', borderRadius: 16, paddingVertical: 16, alignItems: 'center', marginBottom: 12 }}
+          >
             <Text style={{ color: '#fff', fontSize: 16, fontFamily: 'PlusJakartaSans_700Bold' }}>Start new cycle</Text>
           </Pressable>
           <Pressable style={{ borderRadius: 16, paddingVertical: 16, alignItems: 'center', borderWidth: 1.5, borderColor: '#E5E7EB' }}>
@@ -288,7 +301,16 @@ export default function HomeScreen() {
         <Text style={{ fontSize: 13, color: '#16A34A', fontFamily: 'PlusJakartaSans_600SemiBold', textAlign: 'center', marginBottom: 40 }}>
           Cycle starts {startFmt} · {daysUntil} {daysUntil === 1 ? 'day' : 'days'} away
         </Text>
-        <Pressable style={{ backgroundColor: '#16A34A', borderRadius: 16, paddingVertical: 16, paddingHorizontal: 40, alignItems: 'center' }}>
+        <Pressable
+          onPress={() => router.push({
+            pathname: '/new-cycle',
+            params: {
+              leftover: '0',
+              prevCycleId: String(cycleData.cycle.id),
+            },
+          })}
+          style={{ backgroundColor: '#16A34A', borderRadius: 16, paddingVertical: 16, paddingHorizontal: 40, alignItems: 'center' }}
+        >
           <Text style={{ color: '#fff', fontSize: 16, fontFamily: 'PlusJakartaSans_700Bold' }}>Start new cycle</Text>
         </Pressable>
       </View>
@@ -597,6 +619,47 @@ export default function HomeScreen() {
 
         <View style={{ height: 12 }} />
 
+        {/* ── Reservations ── */}
+        {(cycleData.reservations.length > 0 || cycleData.cycle.savings > 0) && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
+            style={{ marginBottom: 12 }}
+          >
+            {cycleData.cycle.savings > 0 && (
+              <View style={{ backgroundColor: '#F0FDF4', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={{ fontSize: 11, color: '#16A34A', fontFamily: 'PlusJakartaSans_600SemiBold' }}>Savings</Text>
+                <Text style={{ fontSize: 11, color: '#16A34A', fontFamily: 'PlusJakartaSans_700Bold' }}>৳{Math.floor(cycleData.cycle.savings).toLocaleString()}</Text>
+              </View>
+            )}
+            {cycleData.reservations.map(r => {
+              const paid = !!r.paid_at;
+              return (
+                <Pressable
+                  key={r.id}
+                  onPress={() => { setSelectedReservation(r); setResNote(''); }}
+                  style={{
+                    borderRadius: 20,
+                    paddingHorizontal: 14,
+                    paddingVertical: 8,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 6,
+                    backgroundColor: paid ? '#F0FDF4' : '#F9FAFB',
+                    borderWidth: 1,
+                    borderColor: paid ? '#86EFAC' : '#E5E7EB',
+                  }}
+                >
+                  {paid && <Text style={{ fontSize: 11, color: '#16A34A' }}>✓</Text>}
+                  <Text style={{ fontSize: 11, color: paid ? '#16A34A' : '#6B7280', fontFamily: 'PlusJakartaSans_500Medium' }}>{r.name}</Text>
+                  <Text style={{ fontSize: 11, color: paid ? '#16A34A' : '#111827', fontFamily: 'PlusJakartaSans_700Bold' }}>৳{Math.floor(r.amount).toLocaleString()}</Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        )}
+
         {/* ── Spending card ── */}
         <View style={card}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}>
@@ -797,6 +860,122 @@ export default function HomeScreen() {
                 </Pressable>
               </View>
             </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* ── Reservation detail modal ── */}
+      <Modal
+        visible={!!selectedReservation}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSelectedReservation(null)}
+      >
+        <Pressable
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center', padding: 24 }}
+          onPress={() => setSelectedReservation(null)}
+        >
+          <Pressable onPress={() => {}} style={{ width: '100%' }}>
+            {selectedReservation && (() => {
+              const paid = !!selectedReservation.paid_at;
+              const paidDate = paid
+                ? new Date(selectedReservation.paid_at!).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                : null;
+
+              async function handleMarkPaid() {
+                if (!selectedReservation) return;
+                setMarkingRes(true);
+                await markReservationPaid(db, selectedReservation.id, resNote);
+                await load();
+                setMarkingRes(false);
+                setSelectedReservation(null);
+              }
+
+              async function handleMarkUnpaid() {
+                if (!selectedReservation) return;
+                setMarkingRes(true);
+                await markReservationUnpaid(db, selectedReservation.id);
+                await load();
+                setMarkingRes(false);
+                setSelectedReservation(null);
+              }
+
+              return (
+                <View style={{ backgroundColor: '#fff', borderRadius: 20, paddingHorizontal: 24, paddingTop: 24, paddingBottom: 20 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+                    <View>
+                      <Text style={{ fontSize: 17, fontFamily: 'PlusJakartaSans_700Bold', color: '#111827' }}>
+                        {selectedReservation.name}
+                      </Text>
+                      <Text style={{ fontSize: 13, color: '#9CA3AF', fontFamily: 'PlusJakartaSans_400Regular', marginTop: 2 }}>
+                        ৳{Math.floor(selectedReservation.amount).toLocaleString()} reserved
+                      </Text>
+                    </View>
+                    <Pressable onPress={() => setSelectedReservation(null)} hitSlop={8}>
+                      <Text style={{ fontSize: 22, color: '#9CA3AF', lineHeight: 24, includeFontPadding: false }}>×</Text>
+                    </Pressable>
+                  </View>
+
+                  {paid ? (
+                    <>
+                      <View style={{ backgroundColor: '#F0FDF4', borderRadius: 12, padding: 14, marginBottom: 16 }}>
+                        <Text style={{ fontSize: 13, color: '#16A34A', fontFamily: 'PlusJakartaSans_600SemiBold', marginBottom: 2 }}>
+                          ✓ Used on {paidDate}
+                        </Text>
+                        {selectedReservation.paid_note ? (
+                          <Text style={{ fontSize: 13, color: '#16A34A', fontFamily: 'PlusJakartaSans_400Regular' }}>
+                            {selectedReservation.paid_note}
+                          </Text>
+                        ) : null}
+                      </View>
+                      <Pressable
+                        onPress={handleMarkUnpaid}
+                        disabled={markingRes}
+                        style={{ paddingVertical: 14, alignItems: 'center', borderRadius: 14, borderWidth: 1.5, borderColor: '#E5E7EB' }}
+                      >
+                        <Text style={{ fontSize: 15, color: '#6B7280', fontFamily: 'PlusJakartaSans_600SemiBold' }}>
+                          Mark as unused
+                        </Text>
+                      </Pressable>
+                    </>
+                  ) : (
+                    <>
+                      <Text style={{ fontSize: 11, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#9CA3AF', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 6 }}>
+                        Note (optional)
+                      </Text>
+                      <View style={{ backgroundColor: '#F9FAFB', borderRadius: 12, borderWidth: 1.5, borderColor: '#E5E7EB', paddingHorizontal: 14, paddingVertical: 12, marginBottom: 16 }}>
+                        <TextInput
+                          value={resNote}
+                          onChangeText={setResNote}
+                          placeholder="e.g. paid via bKash"
+                          placeholderTextColor="#D1D5DB"
+                          style={{ fontSize: 15, color: '#111827', fontFamily: 'PlusJakartaSans_400Regular' }}
+                          maxLength={60}
+                        />
+                      </View>
+                      <View style={{ flexDirection: 'row', gap: 10 }}>
+                        <Pressable
+                          onPress={() => setSelectedReservation(null)}
+                          style={{ flex: 1, paddingVertical: 14, alignItems: 'center', borderRadius: 14, borderWidth: 1.5, borderColor: '#E5E7EB' }}
+                        >
+                          <Text style={{ fontSize: 15, color: '#6B7280', fontFamily: 'PlusJakartaSans_600SemiBold' }}>Cancel</Text>
+                        </Pressable>
+                        <Pressable
+                          onPress={handleMarkPaid}
+                          disabled={markingRes}
+                          style={{ flex: 1, paddingVertical: 14, alignItems: 'center', borderRadius: 14, backgroundColor: '#16A34A' }}
+                        >
+                          {markingRes
+                            ? <ActivityIndicator color="#fff" />
+                            : <Text style={{ fontSize: 15, color: '#fff', fontFamily: 'PlusJakartaSans_600SemiBold' }}>Mark as used</Text>
+                          }
+                        </Pressable>
+                      </View>
+                    </>
+                  )}
+                </View>
+              );
+            })()}
           </Pressable>
         </Pressable>
       </Modal>

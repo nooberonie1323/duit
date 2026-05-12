@@ -19,6 +19,8 @@ export interface ReservationRow {
   cycle_id: number;
   name: string;
   amount: number;
+  paid_at: string | null;
+  paid_note: string | null;
 }
 
 export interface CreateCycleInput {
@@ -29,6 +31,7 @@ export interface CreateCycleInput {
   savings: number;
   budgetAlert: number;
   startFromToday: boolean;
+  poolLeftover: number;
   reservations: Array<{ name: string; amount: number }>;
 }
 
@@ -44,10 +47,42 @@ export interface ActiveCycleData {
   leftInCycle: number;
 }
 
+export async function markReservationPaid(
+  db: SQLiteDatabase,
+  reservationId: number,
+  note: string
+): Promise<void> {
+  await db.runAsync(
+    'UPDATE reservations SET paid_at = ?, paid_note = ? WHERE id = ?',
+    [new Date().toISOString(), note.trim() || null, reservationId]
+  );
+}
+
+export async function markReservationUnpaid(
+  db: SQLiteDatabase,
+  reservationId: number
+): Promise<void> {
+  await db.runAsync(
+    'UPDATE reservations SET paid_at = NULL, paid_note = NULL WHERE id = ?',
+    [reservationId]
+  );
+}
+
+export async function archiveLeftoverAsSavings(
+  db: SQLiteDatabase,
+  cycleId: number,
+  amount: number
+): Promise<void> {
+  await db.runAsync(
+    'INSERT INTO archived_savings (cycle_id, amount) VALUES (?, ?)',
+    [cycleId, amount]
+  );
+}
+
 export async function createCycle(db: SQLiteDatabase, input: CreateCycleInput): Promise<number> {
   const result = await db.runAsync(
-    `INSERT INTO cycles (start_date, end_date, income, already_spent, savings, budget_alert, start_from_today)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO cycles (start_date, end_date, income, already_spent, savings, budget_alert, start_from_today, pool_leftover)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       toDateStr(input.startDate),
       toDateStr(input.endDate),
@@ -56,6 +91,7 @@ export async function createCycle(db: SQLiteDatabase, input: CreateCycleInput): 
       input.savings,
       input.budgetAlert,
       input.startFromToday ? 1 : 0,
+      input.poolLeftover,
     ]
   );
 
