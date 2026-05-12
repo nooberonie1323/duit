@@ -1,5 +1,5 @@
 import { fromDateStr, toDateStr } from '@/lib/db';
-import { getActiveCycle, getCycleTotalSpent, markReservationPaid, markReservationUnpaid, type ActiveCycleData, type ReservationRow } from '@/services/cycleService';
+import { getActiveCycle, getCycleTotalSpent, markReservationPaid, markReservationUnpaid, updateReservation, deleteReservation, type ActiveCycleData, type ReservationRow } from '@/services/cycleService';
 import {
   addEntry,
   deleteEntry,
@@ -9,12 +9,13 @@ import {
   type EntryRow,
 } from '@/services/entryService';
 import { getSettings } from '@/services/settingsService';
-import { confirmReview } from '@/services/reviewService';
+import { confirmReview, confirmCatchUpReview, getMissedDays, getMissedEntries, type MissedDay } from '@/services/reviewService';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  AppState,
   FlatList,
   KeyboardAvoidingView,
   Modal,
@@ -34,6 +35,8 @@ interface HomeData {
   entries: EntryRow[];
   cycleTotalSpent: number;
   todayReviewed: boolean;
+  missedDays: MissedDay[];
+  missedEntries: EntryRow[];
 }
 
 interface EditingEntry {
@@ -42,9 +45,15 @@ interface EditingEntry {
   amount: number;
 }
 
-type HomeStateType = 'normal' | 'waiting' | 'ended' | 'review' | 'post_review';
+type HomeStateType = 'normal' | 'waiting' | 'ended' | 'review' | 'post_review' | 'missed_review';
 
-function getHomeState(cycleData: ActiveCycleData, todayReviewed: boolean, isReviewMode: boolean, devState?: string): HomeStateType {
+function getHomeState(
+  cycleData: ActiveCycleData,
+  todayReviewed: boolean,
+  isReviewMode: boolean,
+  hasMissedDays: boolean,
+  devState?: string
+): HomeStateType {
   if (devState === 'ended') return 'ended';
   if (devState === 'waiting') return 'waiting';
   if (devState === 'review') return 'review';
@@ -54,6 +63,7 @@ function getHomeState(cycleData: ActiveCycleData, todayReviewed: boolean, isRevi
   const end = fromDateStr(cycleData.cycle.end_date); end.setHours(0, 0, 0, 0);
   if (start > today) return 'waiting';
   if (end < today) return 'ended';
+  if (hasMissedDays) return 'missed_review';
   if (todayReviewed) return 'post_review';
   if (isReviewMode) return 'review';
   return 'normal';
@@ -80,6 +90,15 @@ export default function HomeScreen() {
   const [selectedReservation, setSelectedReservation] = useState<ReservationRow | null>(null);
   const [resNote, setResNote] = useState('');
   const [markingRes, setMarkingRes] = useState(false);
+  const [resEditName, setResEditName] = useState('');
+  const [resEditAmount, setResEditAmount] = useState('');
+  const [resEditMode, setResEditMode] = useState(false);
+
+  const [catchUpAmount, setCatchUpAmount] = useState('');
+  const [catchUpNote, setCatchUpNote] = useState('');
+  const [confirmingCatchUp, setConfirmingCatchUp] = useState(false);
+
+  const [isPayDelayed, setIsPayDelayed] = useState(false);
 
   const load = useCallback(async () => {
     const [settings, cycleData] = await Promise.all([
@@ -87,20 +106,33 @@ export default function HomeScreen() {
       getActiveCycle(db),
     ]);
     if (!settings || !cycleData) { setData(null); setLoading(false); return; }
-    const [entries, cycleTotalSpent, todayDay] = await Promise.all([
+    const [entries, cycleTotalSpent, todayDay, missedDays] = await Promise.all([
       getTodayEntries(db, cycleData.cycle.id),
       getCycleTotalSpent(db, cycleData.cycle.id),
       db.getFirstAsync<{ reviewed_at: string | null }>(
         'SELECT reviewed_at FROM days WHERE cycle_id = ? AND date = ?',
         [cycleData.cycle.id, toDateStr(new Date())]
       ),
+      getMissedDays(db, cycleData.cycle.id),
     ]);
+    const missedEntries = await getMissedEntries(db, missedDays.map(d => d.id));
     const todayReviewed = !!(todayDay?.reviewed_at);
-    setData({ name: settings.name, reviewTime: settings.review_time, cycleData, entries, cycleTotalSpent, todayReviewed });
+    setData({ name: settings.name, reviewTime: settings.review_time, cycleData, entries, cycleTotalSpent, todayReviewed, missedDays, missedEntries });
     setLoading(false);
   }, [db]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', state => {
+      if (state === 'active') load();
+    });
+    const now = new Date();
+    const midnight = new Date(now);
+    midnight.setHours(24, 0, 0, 0);
+    const timer = setTimeout(() => load(), midnight.getTime() - now.getTime() + 500);
+    return () => { sub.remove(); clearTimeout(timer); };
+  }, [load]);
 
   function openAdd() {
     setEditingEntry(null);
@@ -189,14 +221,34 @@ export default function HomeScreen() {
     );
   }
 
-  const { cycleData, entries, todayReviewed } = data;
+  const { cycleData, entries, todayReviewed, missedDays, missedEntries, cycleTotalSpent } = data;
   const navPillOffset = Math.max(insets.bottom, 16) + 76;
-  const homeState = getHomeState(cycleData, todayReviewed, isReviewMode, devState);
+  const homeState = getHomeState(cycleData, todayReviewed, isReviewMode, missedDays.length > 0, devState);
   const reviewAvailable = new Date().getHours() >= data.reviewTime && !todayReviewed && homeState === 'normal';
+
+  // ── Pay delayed (from ended state) ───────────────────────────────────────
+  if (homeState === 'ended' && isPayDelayed) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#F9FAFB', paddingTop: insets.top, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 }}>
+        <Text style={{ fontSize: 40, marginBottom: 16 }}>⏳</Text>
+        <Text style={{ fontSize: 26, fontFamily: 'PlusJakartaSans_800ExtraBold', color: '#111827', textAlign: 'center', letterSpacing: -0.5, marginBottom: 12 }}>
+          Waiting for pay.
+        </Text>
+        <Text style={{ fontSize: 14, color: '#9CA3AF', fontFamily: 'PlusJakartaSans_400Regular', textAlign: 'center', lineHeight: 22, marginBottom: 40 }}>
+          Come back when your pay arrives to start a new cycle.
+        </Text>
+        <Pressable
+          onPress={() => router.push({ pathname: '/new-cycle', params: { leftover: String(Math.floor(cycleData.leftInCycle)), prevCycleId: String(cycleData.cycle.id) } })}
+          style={{ backgroundColor: '#16A34A', borderRadius: 16, paddingVertical: 16, paddingHorizontal: 40, alignItems: 'center' }}
+        >
+          <Text style={{ color: '#fff', fontSize: 16, fontFamily: 'PlusJakartaSans_700Bold' }}>Pay arrived — start new cycle</Text>
+        </Pressable>
+      </View>
+    );
+  }
 
   // ── Cycle ended ──────────────────────────────────────────────────────────
   if (homeState === 'ended') {
-    const { cycleTotalSpent } = data;
     const startFmt = fromDateStr(cycleData.cycle.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     const endFmt = fromDateStr(cycleData.cycle.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     const spendable = cycleData.pool - cycleData.cycle.savings - cycleData.reservationsTotal;
@@ -275,7 +327,10 @@ export default function HomeScreen() {
           >
             <Text style={{ color: '#fff', fontSize: 16, fontFamily: 'PlusJakartaSans_700Bold' }}>Start new cycle</Text>
           </Pressable>
-          <Pressable style={{ borderRadius: 16, paddingVertical: 16, alignItems: 'center', borderWidth: 1.5, borderColor: '#E5E7EB' }}>
+          <Pressable
+            onPress={() => setIsPayDelayed(true)}
+            style={{ borderRadius: 16, paddingVertical: 16, alignItems: 'center', borderWidth: 1.5, borderColor: '#E5E7EB' }}
+          >
             <Text style={{ color: '#6B7280', fontSize: 16, fontFamily: 'PlusJakartaSans_600SemiBold' }}>Wait — pay was delayed</Text>
           </Pressable>
         </ScrollView>
@@ -314,6 +369,108 @@ export default function HomeScreen() {
           <Text style={{ color: '#fff', fontSize: 16, fontFamily: 'PlusJakartaSans_700Bold' }}>Start new cycle</Text>
         </Pressable>
       </View>
+    );
+  }
+
+  // ── Missed review catch-up ────────────────────────────────────────────────
+  if (homeState === 'missed_review') {
+    const firstDate = fromDateStr(missedDays[0].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const lastDate = fromDateStr(missedDays[missedDays.length - 1].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const dateLabel = missedDays.length === 1 ? firstDate : `${firstDate} – ${lastDate}`;
+    const stagedTotal = missedEntries.reduce((s, e) => s + e.amount, 0);
+
+    async function handleConfirmCatchUp() {
+      const total = parseFloat(catchUpAmount) || 0;
+      setConfirmingCatchUp(true);
+      await confirmCatchUpReview(db, missedDays, total, cycleData.leftInCycle, catchUpNote);
+      setCatchUpAmount('');
+      setCatchUpNote('');
+      await load();
+      setConfirmingCatchUp(false);
+    }
+
+    return (
+      <KeyboardAvoidingView
+        style={{ flex: 1, backgroundColor: '#F9FAFB' }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView
+          contentContainerStyle={{ paddingTop: insets.top + 24, paddingHorizontal: 20, paddingBottom: Math.max(insets.bottom, 24) + navPillOffset }}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <Text style={{ fontSize: 11, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#F59E0B', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 }}>
+            Missed review
+          </Text>
+          <Text style={{ fontSize: 28, fontFamily: 'PlusJakartaSans_800ExtraBold', color: '#111827', letterSpacing: -0.5, marginBottom: 6 }}>
+            Catch up first.
+          </Text>
+          <Text style={{ fontSize: 14, color: '#9CA3AF', fontFamily: 'PlusJakartaSans_400Regular', marginBottom: 24 }}>
+            {missedDays.length === 1 ? `You missed your review on ${dateLabel}.` : `You missed ${missedDays.length} reviews (${dateLabel}).`} How much did you spend?
+          </Text>
+
+          {missedEntries.length > 0 && (
+            <View style={{ backgroundColor: '#fff', borderRadius: 20, marginBottom: 16, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 }}>
+              <View style={{ paddingHorizontal: 16, paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}>
+                <Text style={{ fontSize: 13, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#6B7280' }}>
+                  Logged entries ({missedEntries.length})
+                </Text>
+              </View>
+              {missedEntries.map((e, i) => (
+                <View key={e.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: i < missedEntries.length - 1 ? 1 : 0, borderBottomColor: '#F3F4F6' }}>
+                  <Text style={{ flex: 1, fontSize: 14, color: '#374151', fontFamily: 'PlusJakartaSans_400Regular' }} numberOfLines={1}>
+                    {e.note || 'general spending'}
+                  </Text>
+                  <Text style={{ fontSize: 14, color: '#111827', fontFamily: 'PlusJakartaSans_600SemiBold' }}>
+                    ৳{e.amount.toLocaleString()}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
+
+          <Text style={{ fontSize: 11, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#9CA3AF', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 8 }}>
+            Total spent{missedDays.length > 1 ? ' (all days combined)' : ''}
+          </Text>
+          <View style={{ backgroundColor: '#fff', borderRadius: 16, borderWidth: 1.5, borderColor: '#E5E7EB', paddingHorizontal: 16, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+            <Text style={{ fontSize: 20, color: '#9CA3AF', fontFamily: 'PlusJakartaSans_700Bold', marginRight: 6 }}>৳</Text>
+            <TextInput
+              value={catchUpAmount}
+              onChangeText={setCatchUpAmount}
+              keyboardType="numeric"
+              placeholder={stagedTotal > 0 ? String(Math.floor(stagedTotal)) : '0'}
+              placeholderTextColor="#D1D5DB"
+              style={{ flex: 1, fontSize: 22, color: '#111827', fontFamily: 'PlusJakartaSans_700Bold' }}
+              autoFocus
+            />
+          </View>
+
+          <Text style={{ fontSize: 11, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#9CA3AF', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 8 }}>
+            Note (optional)
+          </Text>
+          <View style={{ backgroundColor: '#fff', borderRadius: 16, borderWidth: 1.5, borderColor: '#E5E7EB', paddingHorizontal: 16, paddingVertical: 14, marginBottom: 24 }}>
+            <TextInput
+              value={catchUpNote}
+              onChangeText={setCatchUpNote}
+              placeholder="Add a note…"
+              placeholderTextColor="#D1D5DB"
+              style={{ fontSize: 15, color: '#111827', fontFamily: 'PlusJakartaSans_400Regular' }}
+              multiline
+            />
+          </View>
+
+          <Pressable
+            onPress={handleConfirmCatchUp}
+            disabled={confirmingCatchUp}
+            style={{ backgroundColor: '#16A34A', borderRadius: 16, paddingVertical: 16, alignItems: 'center' }}
+          >
+            {confirmingCatchUp
+              ? <ActivityIndicator color="#fff" />
+              : <Text style={{ color: '#fff', fontSize: 16, fontFamily: 'PlusJakartaSans_700Bold' }}>Confirm & continue</Text>
+            }
+          </Pressable>
+        </ScrollView>
+      </KeyboardAvoidingView>
     );
   }
 
@@ -611,7 +768,11 @@ export default function HomeScreen() {
             </View>
             <View style={{ width: 1, backgroundColor: '#F3F4F6', marginVertical: 4 }} />
             <View style={{ flex: 1, alignItems: 'center' }}>
-              <Text style={{ fontSize: 19, fontFamily: 'PlusJakartaSans_700Bold', color: '#9CA3AF', marginBottom: 4 }}>—</Text>
+              <Text style={{ fontSize: 19, fontFamily: 'PlusJakartaSans_700Bold', color: '#111827', marginBottom: 4 }}>
+                {cycleData.dayOfCycle > 1
+                  ? `৳${Math.floor(cycleTotalSpent / cycleData.dayOfCycle).toLocaleString()}`
+                  : '—'}
+              </Text>
               <Text style={{ fontSize: 11, color: '#9CA3AF', fontFamily: 'PlusJakartaSans_400Regular' }}>Daily avg</Text>
             </View>
           </View>
@@ -869,11 +1030,11 @@ export default function HomeScreen() {
         visible={!!selectedReservation}
         transparent
         animationType="fade"
-        onRequestClose={() => setSelectedReservation(null)}
+        onRequestClose={() => { setSelectedReservation(null); setResEditMode(false); }}
       >
         <Pressable
           style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center', padding: 24 }}
-          onPress={() => setSelectedReservation(null)}
+          onPress={() => { setSelectedReservation(null); setResEditMode(false); }}
         >
           <Pressable onPress={() => {}} style={{ width: '100%' }}>
             {selectedReservation && (() => {
@@ -900,10 +1061,29 @@ export default function HomeScreen() {
                 setSelectedReservation(null);
               }
 
+              async function handleSaveEdit() {
+                if (!selectedReservation || !resEditName.trim() || !(parseFloat(resEditAmount) > 0)) return;
+                setMarkingRes(true);
+                await updateReservation(db, selectedReservation.id, resEditName.trim(), parseFloat(resEditAmount));
+                await load();
+                setMarkingRes(false);
+                setResEditMode(false);
+                setSelectedReservation(null);
+              }
+
+              async function handleDelete() {
+                if (!selectedReservation) return;
+                setMarkingRes(true);
+                await deleteReservation(db, selectedReservation.id);
+                await load();
+                setMarkingRes(false);
+                setSelectedReservation(null);
+              }
+
               return (
                 <View style={{ backgroundColor: '#fff', borderRadius: 20, paddingHorizontal: 24, paddingTop: 24, paddingBottom: 20 }}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
-                    <View>
+                    <View style={{ flex: 1 }}>
                       <Text style={{ fontSize: 17, fontFamily: 'PlusJakartaSans_700Bold', color: '#111827' }}>
                         {selectedReservation.name}
                       </Text>
@@ -911,10 +1091,46 @@ export default function HomeScreen() {
                         ৳{Math.floor(selectedReservation.amount).toLocaleString()} reserved
                       </Text>
                     </View>
-                    <Pressable onPress={() => setSelectedReservation(null)} hitSlop={8}>
-                      <Text style={{ fontSize: 22, color: '#9CA3AF', lineHeight: 24, includeFontPadding: false }}>×</Text>
-                    </Pressable>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                      <Pressable onPress={() => { setResEditName(selectedReservation.name); setResEditAmount(String(selectedReservation.amount)); setResEditMode(true); }} hitSlop={8}>
+                        <Text style={{ fontSize: 13, color: '#6B7280', fontFamily: 'PlusJakartaSans_500Medium' }}>Edit</Text>
+                      </Pressable>
+                      <Pressable onPress={() => setSelectedReservation(null)} hitSlop={8}>
+                        <Text style={{ fontSize: 22, color: '#9CA3AF', lineHeight: 24, includeFontPadding: false }}>×</Text>
+                      </Pressable>
+                    </View>
                   </View>
+
+                  {resEditMode && (
+                    <View style={{ backgroundColor: '#F9FAFB', borderRadius: 14, padding: 14, marginBottom: 16 }}>
+                      <TextInput
+                        value={resEditName}
+                        onChangeText={setResEditName}
+                        placeholder="Name"
+                        placeholderTextColor="#D1D5DB"
+                        style={{ borderWidth: 1.5, borderColor: '#E5E7EB', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: '#111827', marginBottom: 8 }}
+                      />
+                      <View style={{ flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderColor: '#E5E7EB', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 12 }}>
+                        <Text style={{ fontSize: 14, color: '#9CA3AF', marginRight: 6, fontFamily: 'PlusJakartaSans_400Regular' }}>৳</Text>
+                        <TextInput
+                          value={resEditAmount}
+                          onChangeText={setResEditAmount}
+                          keyboardType="numeric"
+                          placeholder="0"
+                          placeholderTextColor="#D1D5DB"
+                          style={{ flex: 1, fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: '#111827' }}
+                        />
+                      </View>
+                      <View style={{ flexDirection: 'row', gap: 8 }}>
+                        <Pressable onPress={handleDelete} style={{ flex: 1, paddingVertical: 11, alignItems: 'center', borderRadius: 12, backgroundColor: '#FEF2F2' }}>
+                          <Text style={{ fontSize: 13, color: '#EF4444', fontFamily: 'PlusJakartaSans_600SemiBold' }}>Delete</Text>
+                        </Pressable>
+                        <Pressable onPress={handleSaveEdit} disabled={markingRes} style={{ flex: 2, paddingVertical: 11, alignItems: 'center', borderRadius: 12, backgroundColor: '#16A34A' }}>
+                          <Text style={{ fontSize: 13, color: '#fff', fontFamily: 'PlusJakartaSans_600SemiBold' }}>Save changes</Text>
+                        </Pressable>
+                      </View>
+                    </View>
+                  )}
 
                   {paid ? (
                     <>

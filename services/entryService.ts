@@ -82,6 +82,23 @@ export interface ReviewedDay {
   reviewed_at: string;
 }
 
+export interface ReviewedDayWithCycle extends ReviewedDay {
+  cycle_id: number;
+  cycle_start: string;
+  cycle_end: string;
+}
+
+export async function getAllReviewedDays(db: SQLiteDatabase): Promise<ReviewedDayWithCycle[]> {
+  return db.getAllAsync<ReviewedDayWithCycle>(
+    `SELECT d.id, d.date, d.daily_budget, d.total_spent, d.reviewed_at,
+            d.cycle_id, c.start_date as cycle_start, c.end_date as cycle_end
+     FROM days d
+     JOIN cycles c ON d.cycle_id = c.id
+     WHERE d.reviewed_at IS NOT NULL
+     ORDER BY d.date DESC`
+  );
+}
+
 export async function getReviewedDays(
   db: SQLiteDatabase,
   cycleId: number

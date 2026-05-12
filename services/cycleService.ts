@@ -47,6 +47,25 @@ export interface ActiveCycleData {
   leftInCycle: number;
 }
 
+export async function updateReservation(
+  db: SQLiteDatabase,
+  reservationId: number,
+  name: string,
+  amount: number
+): Promise<void> {
+  await db.runAsync(
+    'UPDATE reservations SET name = ?, amount = ? WHERE id = ?',
+    [name, amount, reservationId]
+  );
+}
+
+export async function deleteReservation(
+  db: SQLiteDatabase,
+  reservationId: number
+): Promise<void> {
+  await db.runAsync('DELETE FROM reservations WHERE id = ?', [reservationId]);
+}
+
 export async function markReservationPaid(
   db: SQLiteDatabase,
   reservationId: number,
