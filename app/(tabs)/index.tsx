@@ -9,13 +9,16 @@ import {
   type EntryRow,
 } from '@/services/entryService';
 import { getSettings } from '@/services/settingsService';
+import { confirmReview } from '@/services/reviewService';
 import { useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -26,6 +29,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface HomeData {
   name: string;
+  reviewTime: number;
   cycleData: ActiveCycleData;
   entries: EntryRow[];
   cycleTotalSpent: number;
@@ -40,7 +44,7 @@ interface EditingEntry {
 
 type HomeStateType = 'normal' | 'waiting' | 'ended' | 'review' | 'post_review';
 
-function getHomeState(cycleData: ActiveCycleData, todayReviewed: boolean, devState?: string): HomeStateType {
+function getHomeState(cycleData: ActiveCycleData, todayReviewed: boolean, isReviewMode: boolean, devState?: string): HomeStateType {
   if (devState === 'ended') return 'ended';
   if (devState === 'waiting') return 'waiting';
   if (devState === 'review') return 'review';
@@ -51,7 +55,7 @@ function getHomeState(cycleData: ActiveCycleData, todayReviewed: boolean, devSta
   if (start > today) return 'waiting';
   if (end < today) return 'ended';
   if (todayReviewed) return 'post_review';
-  // 'review' state set by Log tab when review is started — detected via DB flag added in that feature
+  if (isReviewMode) return 'review';
   return 'normal';
 }
 
@@ -61,6 +65,10 @@ export default function HomeScreen() {
   const { devState } = useLocalSearchParams<{ devState?: string }>();
   const [data, setData] = useState<HomeData | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const [isReviewMode, setIsReviewMode] = useState(false);
+  const [reviewNote, setReviewNote] = useState('');
+  const [confirmingReview, setConfirmingReview] = useState(false);
 
   const [showModal, setShowModal] = useState(false);
   const [editingEntry, setEditingEntry] = useState<EditingEntry | null>(null);
@@ -84,7 +92,7 @@ export default function HomeScreen() {
       ),
     ]);
     const todayReviewed = !!(todayDay?.reviewed_at);
-    setData({ name: settings.name, cycleData, entries, cycleTotalSpent, todayReviewed });
+    setData({ name: settings.name, reviewTime: settings.review_time, cycleData, entries, cycleTotalSpent, todayReviewed });
     setLoading(false);
   }, [db]);
 
@@ -142,6 +150,23 @@ export default function HomeScreen() {
     }
   }
 
+  async function handleConfirmReview() {
+    if (!data || confirmingReview) return;
+    setConfirmingReview(true);
+    try {
+      const { cycleData, entries } = data;
+      const totalSpent = entries.reduce((s, e) => s + e.amount, 0);
+      await confirmReview(db, cycleData.cycle.id, cycleData.dailyBudget, cycleData.leftInCycle, entries, reviewNote);
+      setIsReviewMode(false);
+      setReviewNote('');
+      await load();
+    } catch (e) {
+      console.error('[confirm review error]', e);
+    } finally {
+      setConfirmingReview(false);
+    }
+  }
+
   if (loading) {
     return (
       <View style={{ flex: 1, backgroundColor: '#F9FAFB', alignItems: 'center', justifyContent: 'center' }}>
@@ -161,7 +186,9 @@ export default function HomeScreen() {
   }
 
   const { cycleData, entries, todayReviewed } = data;
-  const homeState = getHomeState(cycleData, todayReviewed, devState);
+  const navPillOffset = Math.max(insets.bottom, 16) + 76;
+  const homeState = getHomeState(cycleData, todayReviewed, isReviewMode, devState);
+  const reviewAvailable = new Date().getHours() >= data.reviewTime && !todayReviewed && homeState === 'normal';
 
   // ── Cycle ended ──────────────────────────────────────────────────────────
   if (homeState === 'ended') {
@@ -268,17 +295,138 @@ export default function HomeScreen() {
     );
   }
 
-  // ── Review in progress ───────────────────────────────────────────────────
+  // ── Review mode ───────────────────────────────────────────────────────────
   if (homeState === 'review') {
+    const totalSpent = entries.reduce((s, e) => s + e.amount, 0);
+    const today = new Date();
+    const dateStr = today.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
     return (
-      <View style={{ flex: 1, backgroundColor: '#FFFBEB', paddingTop: insets.top, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 }}>
-        <Text style={{ fontSize: 36, marginBottom: 20 }}>📋</Text>
-        <Text style={{ fontSize: 24, fontFamily: 'PlusJakartaSans_800ExtraBold', color: '#92400E', textAlign: 'center', letterSpacing: -0.5, marginBottom: 12 }}>
-          Finish your review to continue.
-        </Text>
-        <Text style={{ fontSize: 14, color: '#B45309', fontFamily: 'PlusJakartaSans_400Regular', textAlign: 'center', lineHeight: 22 }}>
-          Head to the Log tab to complete today's review.
-        </Text>
+      <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ paddingTop: insets.top + 16, paddingBottom: navPillOffset + 80 }}
+          >
+            {/* Header */}
+            <View style={{ paddingHorizontal: 20, marginBottom: 20 }}>
+              <Text style={{ fontSize: 11, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#F59E0B', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>
+                Daily review
+              </Text>
+              <Text style={{ fontSize: 28, fontFamily: 'PlusJakartaSans_800ExtraBold', color: '#111827', letterSpacing: -0.5, marginBottom: 2 }}>
+                How'd today go?
+              </Text>
+              <Text style={{ fontSize: 13, color: '#9CA3AF', fontFamily: 'PlusJakartaSans_400Regular' }}>{dateStr}</Text>
+            </View>
+
+            {/* Spending summary */}
+            <View style={{ marginHorizontal: 16, backgroundColor: '#fff', borderRadius: 20, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2, marginBottom: 12 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}>
+                <Text style={{ fontSize: 14, fontFamily: 'PlusJakartaSans_700Bold', color: '#111827' }}>Spending</Text>
+                <Text style={{ fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: totalSpent > 0 ? '#111827' : '#D1D5DB' }}>
+                  ৳{totalSpent.toLocaleString()}
+                </Text>
+              </View>
+              {entries.map((entry, i) => (
+                <View key={entry.id} style={{ flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}>
+                  <Pressable onPress={() => openEdit(entry)} style={{ flex: 1, flexDirection: 'row', alignItems: 'center', paddingVertical: 13, paddingLeft: 16, paddingRight: 8 }}>
+                    <Text style={{ flex: 1, fontSize: 14, color: '#374151', fontFamily: 'PlusJakartaSans_400Regular' }} numberOfLines={1}>
+                      {entry.note || 'general spending'}
+                    </Text>
+                    <Text style={{ fontSize: 14, color: '#111827', fontFamily: 'PlusJakartaSans_600SemiBold', marginRight: 4 }}>
+                      ৳{entry.amount.toLocaleString()}
+                    </Text>
+                  </Pressable>
+                  <Pressable onPress={() => setConfirmDeleteEntry(entry)} hitSlop={8} style={{ paddingVertical: 13, paddingRight: 16, paddingLeft: 8 }}>
+                    <Text style={{ fontSize: 18, color: '#EF4444', lineHeight: 20, includeFontPadding: false }}>×</Text>
+                  </Pressable>
+                </View>
+              ))}
+              <Pressable onPress={openAdd} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 14, gap: 6 }}>
+                <Text style={{ fontSize: 20, color: '#16A34A', lineHeight: 22, includeFontPadding: false }}>+</Text>
+                <Text style={{ fontSize: 14, color: '#16A34A', fontFamily: 'PlusJakartaSans_600SemiBold' }}>Add spend</Text>
+              </Pressable>
+            </View>
+
+            {/* Notes */}
+            <View style={{ marginHorizontal: 16, backgroundColor: '#fff', borderRadius: 20, padding: 16, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 }}>
+              <Text style={{ fontSize: 11, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#9CA3AF', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 10 }}>
+                Notes (optional)
+              </Text>
+              <TextInput
+                value={reviewNote}
+                onChangeText={setReviewNote}
+                placeholder="How was today? Anything to note..."
+                placeholderTextColor="#D1D5DB"
+                multiline
+                style={{ fontSize: 14, color: '#111827', fontFamily: 'PlusJakartaSans_400Regular', minHeight: 72, textAlignVertical: 'top' }}
+              />
+            </View>
+          </ScrollView>
+
+          {/* Confirm button */}
+          <View style={{ position: 'absolute', bottom: navPillOffset + 8, left: 16, right: 16 }}>
+            <Pressable
+              onPress={handleConfirmReview}
+              disabled={confirmingReview}
+              style={{ backgroundColor: '#16A34A', borderRadius: 16, paddingVertical: 16, alignItems: 'center' }}
+            >
+              {confirmingReview
+                ? <ActivityIndicator color="#fff" />
+                : <Text style={{ color: '#fff', fontSize: 16, fontFamily: 'PlusJakartaSans_700Bold' }}>Confirm review</Text>
+              }
+            </Pressable>
+          </View>
+        </KeyboardAvoidingView>
+
+        {/* Shared modals available during review */}
+        <Modal visible={showModal} transparent animationType="fade" onRequestClose={closeModal}>
+          <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center', padding: 24 }} onPress={closeModal}>
+            <Pressable onPress={() => {}} style={{ width: '100%' }}>
+              <View style={{ backgroundColor: '#fff', borderRadius: 20, paddingHorizontal: 24, paddingTop: 24, paddingBottom: 20 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                  <Text style={{ fontSize: 17, fontFamily: 'PlusJakartaSans_700Bold', color: '#111827' }}>{editingEntry ? 'Edit spend' : 'Add spend'}</Text>
+                  <Pressable onPress={closeModal} hitSlop={8}><Text style={{ fontSize: 22, color: '#9CA3AF', lineHeight: 24, includeFontPadding: false }}>×</Text></Pressable>
+                </View>
+                <Text style={{ fontSize: 11, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#9CA3AF', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 6 }}>Note (optional)</Text>
+                <View style={{ backgroundColor: '#F9FAFB', borderRadius: 12, borderWidth: 1.5, borderColor: '#E5E7EB', paddingHorizontal: 14, paddingVertical: 12, marginBottom: 14 }}>
+                  <TextInput value={modalNote} onChangeText={setModalNote} placeholder="What did you spend on?" placeholderTextColor="#D1D5DB" style={{ fontSize: 15, color: '#111827', fontFamily: 'PlusJakartaSans_400Regular' }} maxLength={60} />
+                </View>
+                <Text style={{ fontSize: 11, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#9CA3AF', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 6 }}>Amount</Text>
+                <View style={{ backgroundColor: '#F9FAFB', borderRadius: 12, borderWidth: 1.5, borderColor: (parseFloat(modalAmount) > 0) ? '#16A34A' : '#E5E7EB', paddingHorizontal: 14, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
+                  <Text style={{ fontSize: 18, color: modalAmount ? '#111827' : '#D1D5DB', fontFamily: 'PlusJakartaSans_700Bold', marginRight: 4 }}>৳</Text>
+                  <TextInput value={modalAmount} onChangeText={v => setModalAmount(v.replace(/[^0-9.]/g, ''))} placeholder="0" placeholderTextColor="#D1D5DB" keyboardType="decimal-pad" style={{ flex: 1, fontSize: 22, color: '#111827', fontFamily: 'PlusJakartaSans_700Bold' }} />
+                </View>
+                <View style={{ flexDirection: 'row', gap: 10 }}>
+                  <Pressable onPress={closeModal} style={{ flex: 1, paddingVertical: 14, alignItems: 'center', borderRadius: 14, borderWidth: 1.5, borderColor: '#E5E7EB' }}>
+                    <Text style={{ fontSize: 15, color: '#6B7280', fontFamily: 'PlusJakartaSans_600SemiBold' }}>Cancel</Text>
+                  </Pressable>
+                  <Pressable onPress={handleSave} disabled={!(parseFloat(modalAmount) > 0) || modalSaving} style={{ flex: 1, paddingVertical: 14, alignItems: 'center', borderRadius: 14, backgroundColor: (parseFloat(modalAmount) > 0) ? '#16A34A' : '#E5E7EB' }}>
+                    {modalSaving ? <ActivityIndicator color="#fff" /> : <Text style={{ fontSize: 15, color: (parseFloat(modalAmount) > 0) ? '#fff' : '#9CA3AF', fontFamily: 'PlusJakartaSans_600SemiBold' }}>{editingEntry ? 'Save' : 'Add'}</Text>}
+                  </Pressable>
+                </View>
+              </View>
+            </Pressable>
+          </Pressable>
+        </Modal>
+        <Modal visible={!!confirmDeleteEntry} transparent animationType="fade" onRequestClose={() => setConfirmDeleteEntry(null)}>
+          <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center', padding: 24 }} onPress={() => setConfirmDeleteEntry(null)}>
+            <Pressable onPress={() => {}} style={{ width: '100%' }}>
+              <View style={{ backgroundColor: '#fff', borderRadius: 20, paddingHorizontal: 24, paddingTop: 24, paddingBottom: 20 }}>
+                <Text style={{ fontSize: 17, fontFamily: 'PlusJakartaSans_700Bold', color: '#111827', marginBottom: 8 }}>Delete entry?</Text>
+                <Text style={{ fontSize: 14, color: '#6B7280', fontFamily: 'PlusJakartaSans_400Regular', marginBottom: 24 }}>"{confirmDeleteEntry?.note || 'general spending'}" — ৳{confirmDeleteEntry?.amount.toLocaleString()} will be removed.</Text>
+                <View style={{ flexDirection: 'row', gap: 10 }}>
+                  <Pressable onPress={() => setConfirmDeleteEntry(null)} style={{ flex: 1, paddingVertical: 14, alignItems: 'center', borderRadius: 14, borderWidth: 1.5, borderColor: '#E5E7EB' }}>
+                    <Text style={{ fontSize: 15, color: '#6B7280', fontFamily: 'PlusJakartaSans_600SemiBold' }}>Cancel</Text>
+                  </Pressable>
+                  <Pressable onPress={handleDelete} style={{ flex: 1, paddingVertical: 14, alignItems: 'center', borderRadius: 14, backgroundColor: '#EF4444' }}>
+                    <Text style={{ fontSize: 15, color: '#fff', fontFamily: 'PlusJakartaSans_600SemiBold' }}>Delete</Text>
+                  </Pressable>
+                </View>
+              </View>
+            </Pressable>
+          </Pressable>
+        </Modal>
       </View>
     );
   }
@@ -380,8 +528,6 @@ export default function HomeScreen() {
     shadowRadius: 8,
     elevation: 2,
   };
-
-  const navPillOffset = Math.max(insets.bottom, 16) + 76;
 
   return (
     <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
@@ -506,6 +652,17 @@ export default function HomeScreen() {
           </View>
         </View>
       ) : null}
+
+      {/* ── Review available banner ── */}
+      {reviewAvailable && (
+        <Pressable
+          onPress={() => setIsReviewMode(true)}
+          style={{ position: 'absolute', bottom: navPillOffset + 10, left: 16, right: 16, backgroundColor: '#F59E0B', borderRadius: 16, paddingVertical: 15, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, shadowColor: '#F59E0B', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 6 }}
+        >
+          <Text style={{ fontSize: 16 }}>⏰</Text>
+          <Text style={{ fontSize: 15, color: '#fff', fontFamily: 'PlusJakartaSans_700Bold' }}>Time to review your day</Text>
+        </Pressable>
+      )}
 
       {/* ── Add / Edit modal ── */}
       <Modal visible={showModal} transparent animationType="fade" onRequestClose={closeModal}>

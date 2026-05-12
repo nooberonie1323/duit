@@ -66,6 +66,9 @@ export async function migrateDb(db: SQLite.SQLiteDatabase) {
       partial_data TEXT NOT NULL DEFAULT '{}'
     );
   `);
+
+  // Safe column migrations for existing databases
+  await db.execAsync('ALTER TABLE days ADD COLUMN notes TEXT').catch(() => {});
 }
 
 export function toDateStr(d: Date): string {
