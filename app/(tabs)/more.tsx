@@ -1,4 +1,5 @@
 import { getSettings, updateSettings, type Settings } from '@/services/settingsService';
+import { cancelReviewNotifications, requestNotificationPermission, scheduleReviewNotifications } from '@/services/notificationService';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useState } from 'react';
 import {
@@ -46,10 +47,20 @@ export default function MoreScreen() {
     if (!settings) return;
     await updateSettings(db, { review_time: value });
     setSettings({ ...settings, review_time: value });
+    if (settings.notifications_enabled === 1) {
+      await scheduleReviewNotifications(value);
+    }
   }
 
   async function handleNotifications(value: boolean) {
     if (!settings) return;
+    if (value) {
+      const granted = await requestNotificationPermission();
+      if (!granted) return;
+      await scheduleReviewNotifications(settings.review_time);
+    } else {
+      await cancelReviewNotifications();
+    }
     await updateSettings(db, { notifications_enabled: value ? 1 : 0 });
     setSettings({ ...settings, notifications_enabled: value ? 1 : 0 });
   }

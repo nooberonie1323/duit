@@ -194,7 +194,14 @@ export default function LogScreen() {
                     )}
                   </ScrollView>
 
-                  {detail.entries.length > 0 && (() => {
+                  {detail.day.notes ? (
+                    <View style={{ marginHorizontal: 20, marginTop: 12, backgroundColor: '#F9FAFB', borderRadius: 12, padding: 12 }}>
+                      <Text style={{ fontSize: 11, color: '#9CA3AF', fontFamily: 'PlusJakartaSans_600SemiBold', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 4 }}>Note</Text>
+                      <Text style={{ fontSize: 13, color: '#374151', fontFamily: 'PlusJakartaSans_400Regular' }}>{detail.day.notes}</Text>
+                    </View>
+                  ) : null}
+
+                  {(() => {
                     const saved = detail.day.daily_budget - detail.day.total_spent;
                     const didSave = saved >= 0;
                     return (

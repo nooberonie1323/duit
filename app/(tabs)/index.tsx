@@ -10,6 +10,7 @@ import {
 } from '@/services/entryService';
 import { getSettings } from '@/services/settingsService';
 import { confirmReview, confirmCatchUpReview, getMissedDays, getMissedEntries, type MissedDay } from '@/services/reviewService';
+import { scheduleReviewNotifications } from '@/services/notificationService';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useState } from 'react';
@@ -117,6 +118,9 @@ export default function HomeScreen() {
     ]);
     const missedEntries = await getMissedEntries(db, missedDays.map(d => d.id));
     const todayReviewed = !!(todayDay?.reviewed_at);
+    if (settings.notifications_enabled === 1) {
+      scheduleReviewNotifications(settings.review_time).catch(() => {});
+    }
     setData({ name: settings.name, reviewTime: settings.review_time, cycleData, entries, cycleTotalSpent, todayReviewed, missedDays, missedEntries });
     setLoading(false);
   }, [db]);

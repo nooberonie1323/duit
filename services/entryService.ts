@@ -80,6 +80,7 @@ export interface ReviewedDay {
   daily_budget: number;
   total_spent: number;
   reviewed_at: string;
+  notes: string | null;
 }
 
 export interface ReviewedDayWithCycle extends ReviewedDay {
@@ -90,7 +91,7 @@ export interface ReviewedDayWithCycle extends ReviewedDay {
 
 export async function getAllReviewedDays(db: SQLiteDatabase): Promise<ReviewedDayWithCycle[]> {
   return db.getAllAsync<ReviewedDayWithCycle>(
-    `SELECT d.id, d.date, d.daily_budget, d.total_spent, d.reviewed_at,
+    `SELECT d.id, d.date, d.daily_budget, d.total_spent, d.reviewed_at, d.notes,
             d.cycle_id, c.start_date as cycle_start, c.end_date as cycle_end
      FROM days d
      JOIN cycles c ON d.cycle_id = c.id
@@ -104,7 +105,7 @@ export async function getReviewedDays(
   cycleId: number
 ): Promise<ReviewedDay[]> {
   return db.getAllAsync<ReviewedDay>(
-    `SELECT id, date, daily_budget, total_spent, reviewed_at
+    `SELECT id, date, daily_budget, total_spent, reviewed_at, notes
      FROM days
      WHERE cycle_id = ? AND reviewed_at IS NOT NULL
      ORDER BY date DESC`,
