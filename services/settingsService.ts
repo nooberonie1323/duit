@@ -23,3 +23,17 @@ export async function saveSettings(db: SQLiteDatabase, name: string): Promise<vo
 export async function getSettings(db: SQLiteDatabase): Promise<Settings | null> {
   return db.getFirstAsync<Settings>('SELECT * FROM settings WHERE id = 1');
 }
+
+export async function updateSettings(
+  db: SQLiteDatabase,
+  patch: Partial<Omit<Settings, 'id'>>
+): Promise<void> {
+  const fields = Object.keys(patch) as (keyof Omit<Settings, 'id'>)[];
+  if (fields.length === 0) return;
+  const setClauses = fields.map(f => `${f} = ?`).join(', ');
+  const values = fields.map(f => patch[f]);
+  await db.runAsync(
+    `UPDATE settings SET ${setClauses} WHERE id = 1`,
+    values as (string | number)[]
+  );
+}
