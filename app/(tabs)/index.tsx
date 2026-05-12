@@ -81,8 +81,8 @@ export default function HomeScreen() {
   }
 
   async function handleSave() {
+    if (!canSave || !data) return;
     const amount = parseFloat(modalAmount);
-    if (!amount || amount <= 0 || !data) return;
     setModalSaving(true);
     try {
       if (editingEntry) {
@@ -132,11 +132,37 @@ export default function HomeScreen() {
   const { cycleData, entries } = data;
   const totalSpent = entries.reduce((s, e) => s + e.amount, 0);
   const leftToday = cycleData.dailyBudget - totalSpent;
+  const overspentBy = totalSpent > cycleData.dailyBudget ? totalSpent - cycleData.dailyBudget : 0;
 
   const today = new Date();
   const dateStr = today.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 
-  const amountValid = parseFloat(modalAmount) > 0;
+  // Remaining pool = total cycle pool minus what's already been staged today
+  const remainingPool = cycleData.leftInCycle - totalSpent;
+  // For edits, add back the old amount since it's being replaced
+  const effectivePool = editingEntry
+    ? cycleData.leftInCycle - totalSpent + editingEntry.amount
+    : remainingPool;
+
+  const modalAmountNum = parseFloat(modalAmount) || 0;
+  const amountValid = modalAmountNum > 0;
+  const poolExhausted = remainingPool <= 0 && !editingEntry;
+
+  const hardCapError = amountValid && modalAmountNum > effectivePool
+    ? `Exceeds remaining pool of ৳${Math.floor(effectivePool).toLocaleString()}`
+    : null;
+
+  const projectedDaily = !hardCapError && amountValid && cycleData.daysLeft > 0
+    ? (effectivePool - modalAmountNum) / cycleData.daysLeft
+    : null;
+
+  const thresholdWarning = projectedDaily !== null
+    && cycleData.cycle.budget_alert > 0
+    && projectedDaily < cycleData.cycle.budget_alert
+    ? `Daily budget will drop to ৳${Math.floor(projectedDaily).toLocaleString()}, below your ৳${Math.floor(cycleData.cycle.budget_alert).toLocaleString()} alert`
+    : null;
+
+  const canSave = amountValid && !hardCapError && !poolExhausted;
 
   const card = {
     backgroundColor: '#fff',
@@ -181,6 +207,13 @@ export default function HomeScreen() {
             <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', marginTop: 8 }}>
               of ৳{Math.floor(cycleData.dailyBudget).toLocaleString()} daily budget
             </Text>
+            {overspentBy > 0 && (
+              <View style={{ marginTop: 10, backgroundColor: 'rgba(239,68,68,0.25)', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 5, alignSelf: 'flex-start' }}>
+                <Text style={{ color: '#FCA5A5', fontSize: 12, fontFamily: 'PlusJakartaSans_600SemiBold' }}>
+                  over by ৳{Math.floor(overspentBy).toLocaleString()} today
+                </Text>
+              </View>
+            )}
           </View>
         </View>
 
@@ -309,11 +342,20 @@ export default function HomeScreen() {
                   />
                 </View>
 
+                {/* Pool exhausted */}
+                {poolExhausted && (
+                  <View style={{ backgroundColor: '#FEF2F2', borderRadius: 10, padding: 10, marginBottom: 12 }}>
+                    <Text style={{ fontSize: 13, color: '#EF4444', fontFamily: 'PlusJakartaSans_500Medium' }}>
+                      Your pool is empty — no budget remaining this cycle.
+                    </Text>
+                  </View>
+                )}
+
                 {/* Amount field */}
                 <Text style={{ fontSize: 11, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#9CA3AF', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 6 }}>
                   Amount
                 </Text>
-                <View style={{ backgroundColor: '#F9FAFB', borderRadius: 12, borderWidth: 1.5, borderColor: amountValid ? '#16A34A' : '#E5E7EB', paddingHorizontal: 14, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
+                <View style={{ backgroundColor: '#F9FAFB', borderRadius: 12, borderWidth: 1.5, borderColor: hardCapError ? '#EF4444' : amountValid ? '#16A34A' : '#E5E7EB', paddingHorizontal: 14, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', marginBottom: hardCapError || thresholdWarning ? 8 : 20 }}>
                   <Text style={{ fontSize: 18, color: modalAmount ? '#111827' : '#D1D5DB', fontFamily: 'PlusJakartaSans_700Bold', marginRight: 4 }}>৳</Text>
                   <TextInput
                     value={modalAmount}
@@ -321,12 +363,31 @@ export default function HomeScreen() {
                     placeholder="0"
                     placeholderTextColor="#D1D5DB"
                     keyboardType="decimal-pad"
+                    editable={!poolExhausted}
                     style={{ flex: 1, fontSize: 22, color: '#111827', fontFamily: 'PlusJakartaSans_700Bold' }}
                   />
                 </View>
 
+                {/* Hard cap error */}
+                {hardCapError && (
+                  <View style={{ backgroundColor: '#FEF2F2', borderRadius: 10, padding: 10, marginBottom: 12 }}>
+                    <Text style={{ fontSize: 13, color: '#EF4444', fontFamily: 'PlusJakartaSans_500Medium' }}>
+                      {hardCapError}
+                    </Text>
+                  </View>
+                )}
+
+                {/* Threshold warning */}
+                {thresholdWarning && (
+                  <View style={{ backgroundColor: '#FFFBEB', borderRadius: 10, padding: 10, marginBottom: 12 }}>
+                    <Text style={{ fontSize: 13, color: '#92400E', fontFamily: 'PlusJakartaSans_400Regular' }}>
+                      ⚡ {thresholdWarning}
+                    </Text>
+                  </View>
+                )}
+
                 {/* Action buttons */}
-                <View style={{ flexDirection: 'row', gap: 10 }}>
+                <View style={{ flexDirection: 'row', gap: 10, marginTop: hardCapError || thresholdWarning ? 8 : 0 }}>
                   <Pressable
                     onPress={closeModal}
                     style={{ flex: 1, paddingVertical: 14, alignItems: 'center', borderRadius: 14, borderWidth: 1.5, borderColor: '#E5E7EB' }}
@@ -335,12 +396,12 @@ export default function HomeScreen() {
                   </Pressable>
                   <Pressable
                     onPress={handleSave}
-                    disabled={!amountValid || modalSaving}
-                    style={{ flex: 1, paddingVertical: 14, alignItems: 'center', borderRadius: 14, backgroundColor: amountValid ? '#16A34A' : '#E5E7EB' }}
+                    disabled={!canSave || modalSaving}
+                    style={{ flex: 1, paddingVertical: 14, alignItems: 'center', borderRadius: 14, backgroundColor: canSave ? '#16A34A' : '#E5E7EB' }}
                   >
                     {modalSaving
                       ? <ActivityIndicator color="#fff" />
-                      : <Text style={{ fontSize: 15, color: amountValid ? '#fff' : '#9CA3AF', fontFamily: 'PlusJakartaSans_600SemiBold' }}>
+                      : <Text style={{ fontSize: 15, color: canSave ? '#fff' : '#9CA3AF', fontFamily: 'PlusJakartaSans_600SemiBold' }}>
                           {editingEntry ? 'Save' : 'Add'}
                         </Text>
                     }
