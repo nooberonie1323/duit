@@ -1,50 +1,81 @@
-# Welcome to your Expo app 👋
+# duit
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A personal offline budget tracker built around pay cycles, not calendar months.
 
-## Get started
+The core question it answers: **how much can I spend today?**
 
-1. Install dependencies
+---
 
-   ```bash
-   npm install
-   ```
+## Features
 
-2. Start the app
+- **Pay cycle tracking** — set your income period (e.g. 25th to 25th), not tied to calendar months
+- **Daily budget** — automatically calculated from your remaining pool divided by days left
+- **Daily review** — confirm your spending each evening, pool recalculates for tomorrow
+- **Reservations** — set aside money for recurring expenses (rent, bills) that won't affect daily budget
+- **Savings** — protect a portion of income from the daily spending pool
+- **Missed review catch-up** — if you skip a review, the app prompts you to catch up
+- **Spend history** — full log grouped by pay cycle
+- **Notifications** — daily reminder at your chosen review time
+- **Offline** — everything runs locally on device, no account required
 
-   ```bash
-   npx expo start
-   ```
+---
 
-In the output, you'll find options to open the app in a
+## Tech stack
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+- **Expo SDK 54** — managed workflow, new architecture
+- **Expo Router v6** — file-based navigation
+- **expo-sqlite** — local SQLite database
+- **React Native** — inline styles
+- **EAS Build + Update** — build and OTA update delivery
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+---
 
-## Get a fresh project
-
-When you're ready, run:
+## Development setup
 
 ```bash
-npm run reset-project
+npm install
+npx expo start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Scan the QR code with Expo Go (Android/iOS) to run on device.
 
-## Learn more
+---
 
-To learn more about developing your project with Expo, look at the following resources:
+## Build
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+```bash
+npx eas build -p android --profile preview
+```
 
-## Join the community
+Produces an APK for direct installation (no Play Store).
 
-Join our community of developers creating universal apps.
+## Update (after code changes)
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+```bash
+npx eas update --branch preview --message "what changed"
+```
+
+Pushes JS bundle update to installed apps — no reinstall needed.
+
+---
+
+## Project structure
+
+```
+app/
+  (tabs)/         # Main tab screens: Home, Log, More
+  onboarding/     # First-time setup flow
+  new-cycle.tsx   # New pay cycle form
+components/
+  home/           # Home screen state components + modals
+  ui/             # Shared UI components
+services/         # All database access (no direct DB calls in components)
+lib/
+  db.ts           # Schema, migrations, date utilities
+```
+
+---
+
+## Version
+
+`0.1.0`
