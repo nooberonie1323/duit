@@ -233,6 +233,7 @@ export default function SummaryScreen() {
                 savings,
                 budgetAlert,
                 startFromToday: data.startFromToday,
+                poolLeftover: 0,
                 reservations: data.reservations.map(r => ({
                   name: r.name,
                   amount: parseFloat(r.amount) || 0,

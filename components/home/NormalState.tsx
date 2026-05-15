@@ -1,5 +1,6 @@
 import type { ActiveCycleData, ReservationRow } from '@/services/cycleService';
 import type { EntryRow } from '@/services/entryService';
+import { useState } from 'react';
 import { FlatList, Pressable, ScrollView, Text, View } from 'react-native';
 import type { EdgeInsets } from 'react-native-safe-area-context';
 
@@ -11,19 +12,30 @@ interface Props {
   insets: EdgeInsets;
   reviewAvailable: boolean;
   onStartReview: () => void;
+  onSnoozeReview: (minutes: number) => void;
   onOpenAdd: () => void;
   onOpenEdit: (entry: EntryRow) => void;
   onDeleteEntry: (entry: EntryRow) => void;
   onSelectReservation: (r: ReservationRow) => void;
 }
 
+const ALL_SNOOZE_OPTIONS = [
+  { label: 'In 30 min', minutes: 30 },
+  { label: 'In 1 hour', minutes: 60 },
+] as const;
+
 export function NormalState({
   cycleData, entries, cycleTotalSpent,
   navPillOffset, insets,
-  reviewAvailable, onStartReview,
+  reviewAvailable, onStartReview, onSnoozeReview,
   onOpenAdd, onOpenEdit, onDeleteEntry,
   onSelectReservation,
 }: Props) {
+  const [showSnoozePicker, setShowSnoozePicker] = useState(false);
+  const midnight = new Date(); midnight.setHours(24, 0, 0, 0);
+  const snoozeOptions = ALL_SNOOZE_OPTIONS.filter(
+    ({ minutes }) => Date.now() + minutes * 60 * 1000 < midnight.getTime()
+  );
   const totalSpent = entries.reduce((s, e) => s + e.amount, 0);
   const leftToday = cycleData.dailyBudget - totalSpent;
   const overspentBy = totalSpent > cycleData.dailyBudget ? totalSpent - cycleData.dailyBudget : 0;
@@ -202,13 +214,34 @@ export function NormalState({
 
       {/* Review banner */}
       {reviewAvailable && (
-        <Pressable
-          onPress={onStartReview}
-          style={{ position: 'absolute', bottom: navPillOffset + 10, left: 16, right: 16, backgroundColor: '#F59E0B', borderRadius: 16, paddingVertical: 15, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, shadowColor: '#F59E0B', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 6 }}
-        >
-          <Text style={{ fontSize: 16 }}>⏰</Text>
-          <Text style={{ fontSize: 15, color: '#fff', fontFamily: 'PlusJakartaSans_700Bold' }}>Time to review your day</Text>
-        </Pressable>
+        <View style={{ position: 'absolute', bottom: navPillOffset + 10, left: 16, right: 16 }}>
+          <Pressable
+            onPress={onStartReview}
+            style={{ backgroundColor: '#F59E0B', borderRadius: 16, paddingVertical: 15, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, shadowColor: '#F59E0B', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 6 }}
+          >
+            <Text style={{ fontSize: 16 }}>⏰</Text>
+            <Text style={{ fontSize: 15, color: '#fff', fontFamily: 'PlusJakartaSans_700Bold' }}>Time to review your day</Text>
+          </Pressable>
+          {snoozeOptions.length > 0 && (
+            !showSnoozePicker ? (
+              <Pressable onPress={() => setShowSnoozePicker(true)} style={{ alignItems: 'center', paddingTop: 8 }}>
+                <Text style={{ fontSize: 12, color: '#9CA3AF', fontFamily: 'PlusJakartaSans_500Medium' }}>Remind me later</Text>
+              </Pressable>
+            ) : (
+              <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+                {snoozeOptions.map(({ label, minutes }) => (
+                  <Pressable
+                    key={label}
+                    onPress={() => { onSnoozeReview(minutes); setShowSnoozePicker(false); }}
+                    style={{ flex: 1, paddingVertical: 9, borderRadius: 12, backgroundColor: '#fff', alignItems: 'center', borderWidth: 1, borderColor: '#E5E7EB' }}
+                  >
+                    <Text style={{ fontSize: 12, color: '#6B7280', fontFamily: 'PlusJakartaSans_500Medium' }}>{label}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            )
+          )}
+        </View>
       )}
     </View>
   );

@@ -23,7 +23,7 @@ import {
   updateEntry,
   type EntryRow,
 } from '@/services/entryService';
-import { scheduleReviewNotifications } from '@/services/notificationService';
+import { scheduleReviewNotifications, scheduleSnoozeNotification } from '@/services/notificationService';
 import {
   confirmCatchUpReview,
   confirmReview,
@@ -34,7 +34,7 @@ import {
 import { getSettings } from '@/services/settingsService';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ErrorToast } from '@/components/ui/ErrorToast';
 import { ActivityIndicator, AppState, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -116,6 +116,10 @@ export default function HomeScreen() {
   // Pay delayed
   const [isPayDelayed, setIsPayDelayed] = useState(false);
 
+  // Review snooze
+  const [reviewSnoozedUntil, setReviewSnoozedUntil] = useState<Date | null>(null);
+  const reviewSnoozedUntilRef = useRef<Date | null>(null);
+
   // Error toast
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [deletingEntry, setDeletingEntry] = useState(false);
@@ -134,7 +138,8 @@ export default function HomeScreen() {
     ]);
     const missedEntries = await getMissedEntries(db, missedDays.map(d => d.id));
     const todayReviewed = !!(todayDay?.reviewed_at);
-    if (settings.notifications_enabled === 1) {
+    const snooze = reviewSnoozedUntilRef.current;
+    if (settings.notifications_enabled === 1 && (!snooze || new Date() >= snooze)) {
       scheduleReviewNotifications(settings.review_time).catch(() => {});
     }
     setData({ name: settings.name, reviewTime: settings.review_time, cycleData, entries, cycleTotalSpent, todayReviewed, missedDays, missedEntries });
@@ -204,6 +209,14 @@ export default function HomeScreen() {
     } finally {
       setDeletingEntry(false);
     }
+  }
+
+  // ── Snooze handler ──────────────────────────────────────────────────────────
+  function handleSnoozeReview(minutes: number) {
+    const until = new Date(Date.now() + minutes * 60 * 1000);
+    reviewSnoozedUntilRef.current = until;
+    setReviewSnoozedUntil(until);
+    if (data) scheduleSnoozeNotification(until, data.reviewTime).catch(() => {});
   }
 
   // ── Review handlers ─────────────────────────────────────────────────────────
@@ -333,7 +346,8 @@ export default function HomeScreen() {
   const { cycleData, entries, todayReviewed, missedDays, missedEntries, cycleTotalSpent } = data;
   const navPillOffset = Math.max(insets.bottom, 16) + 76;
   const homeState = getHomeState(cycleData, todayReviewed, isReviewMode, missedDays.length > 0, devState);
-  const reviewAvailable = new Date().getHours() >= data.reviewTime && !todayReviewed && homeState === 'normal';
+  const snoozed = reviewSnoozedUntil !== null && new Date() < reviewSnoozedUntil;
+  const reviewAvailable = new Date().getHours() >= data.reviewTime && !todayReviewed && homeState === 'normal' && !snoozed;
 
   const totalSpent = entries.reduce((s, e) => s + e.amount, 0);
   const remainingPool = cycleData.leftInCycle - totalSpent;
@@ -578,6 +592,7 @@ export default function HomeScreen() {
           insets={insets}
           reviewAvailable={reviewAvailable}
           onStartReview={() => setIsReviewMode(true)}
+          onSnoozeReview={handleSnoozeReview}
           onOpenAdd={openAdd}
           onOpenEdit={openEdit}
           onDeleteEntry={setConfirmDeleteEntry}

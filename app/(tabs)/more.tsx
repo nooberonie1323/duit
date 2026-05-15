@@ -1,5 +1,6 @@
-import { getSettings, updateSettings, type Settings } from '@/services/settingsService';
+import { getSettings, resetAppData, updateSettings, type Settings } from '@/services/settingsService';
 import { cancelReviewNotifications, requestNotificationPermission, scheduleReviewNotifications } from '@/services/notificationService';
+import { router } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useState } from 'react';
 import {
@@ -27,6 +28,7 @@ const THEMES = [
   { label: 'System', value: 'system' },
 ];
 
+
 export default function MoreScreen() {
   const insets = useSafeAreaInsets();
   const db = useSQLiteContext();
@@ -34,6 +36,8 @@ export default function MoreScreen() {
   const [loading, setLoading] = useState(true);
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState('');
+  const [confirmReset, setConfirmReset] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   const load = useCallback(async () => {
     const s = await getSettings(db);
@@ -75,6 +79,19 @@ export default function MoreScreen() {
     if (!settings) return;
     setNameInput(settings.name);
     setEditingName(true);
+  }
+
+  async function handleReset() {
+    if (resetting) return;
+    setResetting(true);
+    try {
+      await cancelReviewNotifications();
+      await resetAppData(db);
+      router.replace('/');
+    } catch {
+      setResetting(false);
+      setConfirmReset(false);
+    }
   }
 
   async function handleSaveName() {
@@ -220,10 +237,59 @@ export default function MoreScreen() {
           </View>
         </View>
 
+        {/* Danger zone */}
+        <Text style={[styles.sectionLabel, { color: '#EF4444' }]}>Danger zone</Text>
+        <View style={styles.card}>
+          <Pressable
+            onPress={() => setConfirmReset(true)}
+            style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16 }}
+          >
+            <Text style={{ flex: 1, fontSize: 14, fontFamily: 'PlusJakartaSans_500Medium', color: '#EF4444' }}>Reset all data</Text>
+          </Pressable>
+        </View>
+
         <Text style={{ fontSize: 12, color: '#D1D5DB', fontFamily: 'PlusJakartaSans_400Regular', textAlign: 'center', marginTop: 28 }}>
           Duit · v0.1.0
         </Text>
       </ScrollView>
+
+      {/* Reset confirmation modal */}
+      <Modal visible={confirmReset} transparent animationType="fade" onRequestClose={() => setConfirmReset(false)}>
+        <Pressable
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center', padding: 24 }}
+          onPress={() => !resetting && setConfirmReset(false)}
+        >
+          <Pressable onPress={() => {}} style={{ width: '100%' }}>
+            <View style={{ backgroundColor: '#fff', borderRadius: 20, paddingHorizontal: 24, paddingTop: 24, paddingBottom: 20 }}>
+              <Text style={{ fontSize: 17, fontFamily: 'PlusJakartaSans_700Bold', color: '#111827', marginBottom: 8 }}>
+                Reset all data?
+              </Text>
+              <Text style={{ fontSize: 14, color: '#6B7280', fontFamily: 'PlusJakartaSans_400Regular', lineHeight: 20, marginBottom: 24 }}>
+                This will permanently delete all cycles, spending history, and settings. The app will restart from scratch.
+              </Text>
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <Pressable
+                  onPress={() => setConfirmReset(false)}
+                  disabled={resetting}
+                  style={{ flex: 1, paddingVertical: 14, alignItems: 'center', borderRadius: 14, borderWidth: 1.5, borderColor: '#E5E7EB' }}
+                >
+                  <Text style={{ fontSize: 15, color: '#6B7280', fontFamily: 'PlusJakartaSans_600SemiBold' }}>Cancel</Text>
+                </Pressable>
+                <Pressable
+                  onPress={handleReset}
+                  disabled={resetting}
+                  style={{ flex: 1, paddingVertical: 14, alignItems: 'center', borderRadius: 14, backgroundColor: '#EF4444' }}
+                >
+                  {resetting
+                    ? <ActivityIndicator color="#fff" />
+                    : <Text style={{ fontSize: 15, color: '#fff', fontFamily: 'PlusJakartaSans_600SemiBold' }}>Reset</Text>
+                  }
+                </Pressable>
+              </View>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       {/* Name edit modal */}
       <Modal visible={editingName} transparent animationType="fade" onRequestClose={() => setEditingName(false)}>

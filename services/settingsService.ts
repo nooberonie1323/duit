@@ -24,6 +24,19 @@ export async function getSettings(db: SQLiteDatabase): Promise<Settings | null> 
   return db.getFirstAsync<Settings>('SELECT * FROM settings WHERE id = 1');
 }
 
+export async function resetAppData(db: SQLiteDatabase): Promise<void> {
+  await db.execAsync('BEGIN');
+  try {
+    await db.execAsync('DELETE FROM cycles');
+    await db.execAsync('DELETE FROM settings');
+    await db.execAsync('DELETE FROM onboarding_state');
+    await db.execAsync('COMMIT');
+  } catch (e) {
+    await db.execAsync('ROLLBACK');
+    throw e;
+  }
+}
+
 export async function updateSettings(
   db: SQLiteDatabase,
   patch: Partial<Omit<Settings, 'id'>>
