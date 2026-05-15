@@ -1,13 +1,14 @@
 import type { EntryRow } from '@/services/entryService';
-import { Modal, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, Text, View } from 'react-native';
 
 interface Props {
   entry: EntryRow | null;
   onConfirm: () => void;
   onCancel: () => void;
+  deleting?: boolean;
 }
 
-export function DeleteConfirmModal({ entry, onConfirm, onCancel }: Props) {
+export function DeleteConfirmModal({ entry, onConfirm, onCancel, deleting = false }: Props) {
   return (
     <Modal visible={!!entry} transparent animationType="fade" onRequestClose={onCancel}>
       <Pressable
@@ -31,9 +32,13 @@ export function DeleteConfirmModal({ entry, onConfirm, onCancel }: Props) {
               </Pressable>
               <Pressable
                 onPress={onConfirm}
+                disabled={deleting}
                 style={{ flex: 1, paddingVertical: 14, alignItems: 'center', borderRadius: 14, backgroundColor: '#EF4444' }}
               >
-                <Text style={{ fontSize: 15, color: '#fff', fontFamily: 'PlusJakartaSans_600SemiBold' }}>Delete</Text>
+                {deleting
+                  ? <ActivityIndicator color="#fff" />
+                  : <Text style={{ fontSize: 15, color: '#fff', fontFamily: 'PlusJakartaSans_600SemiBold' }}>Delete</Text>
+                }
               </Pressable>
             </View>
           </View>

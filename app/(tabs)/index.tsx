@@ -35,6 +35,7 @@ import { getSettings } from '@/services/settingsService';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useState } from 'react';
+import { ErrorToast } from '@/components/ui/ErrorToast';
 import { ActivityIndicator, AppState, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -115,6 +116,10 @@ export default function HomeScreen() {
   // Pay delayed
   const [isPayDelayed, setIsPayDelayed] = useState(false);
 
+  // Error toast
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [deletingEntry, setDeletingEntry] = useState(false);
+
   const load = useCallback(async () => {
     const [settings, cycleData] = await Promise.all([getSettings(db), getActiveCycle(db)]);
     if (!settings || !cycleData) { setData(null); setLoading(false); return; }
@@ -162,8 +167,12 @@ export default function HomeScreen() {
     setShowModal(false); setEditingEntry(null); setModalNote(''); setModalAmount('');
   }
 
+  function showError(msg: string) {
+    setErrorMsg(msg);
+  }
+
   async function handleSave() {
-    if (!canSave || !data) return;
+    if (!canSave || !data || modalSaving) return;
     setModalSaving(true);
     try {
       if (editingEntry) {
@@ -176,19 +185,24 @@ export default function HomeScreen() {
       await load();
     } catch (e) {
       console.error('[spend save error]', e);
+      showError('Failed to save entry. Please try again.');
     } finally {
       setModalSaving(false);
     }
   }
 
   async function handleDeleteEntry() {
-    if (!confirmDeleteEntry) return;
+    if (!confirmDeleteEntry || deletingEntry) return;
+    setDeletingEntry(true);
     try {
       await deleteEntry(db, confirmDeleteEntry.id);
       setConfirmDeleteEntry(null);
       await load();
     } catch (e) {
       console.error('[spend delete error]', e);
+      showError('Failed to delete entry. Please try again.');
+    } finally {
+      setDeletingEntry(false);
     }
   }
 
@@ -203,19 +217,27 @@ export default function HomeScreen() {
       await load();
     } catch (e) {
       console.error('[confirm review error]', e);
+      showError('Failed to confirm review. Please try again.');
     } finally {
       setConfirmingReview(false);
     }
   }
 
   async function handleConfirmCatchUp() {
-    if (!data) return;
+    if (!data || confirmingCatchUp) return;
     const total = parseFloat(catchUpAmount) || 0;
     setConfirmingCatchUp(true);
-    await confirmCatchUpReview(db, data.missedDays, total, data.cycleData.leftInCycle, catchUpNote);
-    setCatchUpAmount(''); setCatchUpNote('');
-    await load();
-    setConfirmingCatchUp(false);
+    try {
+      await confirmCatchUpReview(db, data.missedDays, total, data.cycleData.leftInCycle, catchUpNote);
+      setCatchUpAmount('');
+      setCatchUpNote('');
+      await load();
+    } catch (e) {
+      console.error('[catch up review error]', e);
+      showError('Failed to save catch-up review. Please try again.');
+    } finally {
+      setConfirmingCatchUp(false);
+    }
   }
 
   // ── Reservation handlers ────────────────────────────────────────────────────
@@ -228,31 +250,64 @@ export default function HomeScreen() {
   }
 
   async function handleResMarkUsed() {
-    if (!selectedReservation) return;
+    if (!selectedReservation || markingRes) return;
     setMarkingRes(true);
-    await markReservationPaid(db, selectedReservation.id, resNote);
-    await load(); setMarkingRes(false); closeReservation();
+    try {
+      await markReservationPaid(db, selectedReservation.id, resNote);
+      await load();
+      closeReservation();
+    } catch (e) {
+      console.error('[reservation mark used error]', e);
+      showError('Failed to update reservation.');
+    } finally {
+      setMarkingRes(false);
+    }
   }
 
   async function handleResMarkUnused() {
-    if (!selectedReservation) return;
+    if (!selectedReservation || markingRes) return;
     setMarkingRes(true);
-    await markReservationUnpaid(db, selectedReservation.id);
-    await load(); setMarkingRes(false); closeReservation();
+    try {
+      await markReservationUnpaid(db, selectedReservation.id);
+      await load();
+      closeReservation();
+    } catch (e) {
+      console.error('[reservation mark unused error]', e);
+      showError('Failed to update reservation.');
+    } finally {
+      setMarkingRes(false);
+    }
   }
 
   async function handleResSaveEdit() {
-    if (!selectedReservation || !resEditName.trim() || !(parseFloat(resEditAmount) > 0)) return;
+    if (!selectedReservation || !resEditName.trim() || !(parseFloat(resEditAmount) > 0) || markingRes) return;
     setMarkingRes(true);
-    await updateReservation(db, selectedReservation.id, resEditName.trim(), parseFloat(resEditAmount));
-    await load(); setMarkingRes(false); setResEditMode(false); closeReservation();
+    try {
+      await updateReservation(db, selectedReservation.id, resEditName.trim(), parseFloat(resEditAmount));
+      await load();
+      setResEditMode(false);
+      closeReservation();
+    } catch (e) {
+      console.error('[reservation edit error]', e);
+      showError('Failed to save changes.');
+    } finally {
+      setMarkingRes(false);
+    }
   }
 
   async function handleResDelete() {
-    if (!selectedReservation) return;
+    if (!selectedReservation || markingRes) return;
     setMarkingRes(true);
-    await deleteReservation(db, selectedReservation.id);
-    await load(); setMarkingRes(false); closeReservation();
+    try {
+      await deleteReservation(db, selectedReservation.id);
+      await load();
+      closeReservation();
+    } catch (e) {
+      console.error('[reservation delete error]', e);
+      showError('Failed to delete reservation.');
+    } finally {
+      setMarkingRes(false);
+    }
   }
 
   // ── Loading / no data ───────────────────────────────────────────────────────
@@ -551,6 +606,7 @@ export default function HomeScreen() {
         entry={confirmDeleteEntry}
         onConfirm={handleDeleteEntry}
         onCancel={() => setConfirmDeleteEntry(null)}
+        deleting={deletingEntry}
       />
 
       <ReservationModal
@@ -569,6 +625,11 @@ export default function HomeScreen() {
         onMarkUnused={handleResMarkUnused}
         onSaveEdit={handleResSaveEdit}
         onDelete={handleResDelete}
+      />
+      <ErrorToast
+        message={errorMsg}
+        onDismiss={() => setErrorMsg(null)}
+        bottomOffset={navPillOffset + 16}
       />
     </View>
   );

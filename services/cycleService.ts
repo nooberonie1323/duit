@@ -99,30 +99,35 @@ export async function archiveLeftoverAsSavings(
 }
 
 export async function createCycle(db: SQLiteDatabase, input: CreateCycleInput): Promise<number> {
-  const result = await db.runAsync(
-    `INSERT INTO cycles (start_date, end_date, income, already_spent, savings, budget_alert, start_from_today, pool_leftover)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      toDateStr(input.startDate),
-      toDateStr(input.endDate),
-      input.income,
-      input.alreadySpent,
-      input.savings,
-      input.budgetAlert,
-      input.startFromToday ? 1 : 0,
-      input.poolLeftover,
-    ]
-  );
-
-  const cycleId = result.lastInsertRowId;
-
-  for (const r of input.reservations) {
-    await db.runAsync(
-      'INSERT INTO reservations (cycle_id, name, amount) VALUES (?, ?, ?)',
-      [cycleId, r.name, r.amount]
+  let cycleId = 0;
+  await db.execAsync('BEGIN');
+  try {
+    const result = await db.runAsync(
+      `INSERT INTO cycles (start_date, end_date, income, already_spent, savings, budget_alert, start_from_today, pool_leftover)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        toDateStr(input.startDate),
+        toDateStr(input.endDate),
+        input.income,
+        input.alreadySpent,
+        input.savings,
+        input.budgetAlert,
+        input.startFromToday ? 1 : 0,
+        input.poolLeftover,
+      ]
     );
+    cycleId = result.lastInsertRowId;
+    for (const r of input.reservations) {
+      await db.runAsync(
+        'INSERT INTO reservations (cycle_id, name, amount) VALUES (?, ?, ?)',
+        [cycleId, r.name, r.amount]
+      );
+    }
+    await db.execAsync('COMMIT');
+  } catch (e) {
+    await db.execAsync('ROLLBACK');
+    throw e;
   }
-
   return cycleId;
 }
 
