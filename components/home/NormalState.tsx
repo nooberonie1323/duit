@@ -108,8 +108,8 @@ export function NormalState({
             <View style={{ width: 1, backgroundColor: '#F3F4F6', marginVertical: 4 }} />
             <View style={{ flex: 1, alignItems: 'center' }}>
               <Text style={{ fontSize: 19, fontFamily: 'PlusJakartaSans_700Bold', color: '#111827', marginBottom: 4 }}>
-                {cycleData.dayOfCycle > 1
-                  ? `৳${Math.floor(cycleTotalSpent / cycleData.dayOfCycle).toLocaleString()}`
+                {cycleData.activeDays > 0
+                  ? `৳${Math.floor(cycleTotalSpent / cycleData.activeDays).toLocaleString()}`
                   : '—'}
               </Text>
               <Text style={{ fontSize: 11, color: '#9CA3AF', fontFamily: 'PlusJakartaSans_400Regular' }}>Daily avg</Text>

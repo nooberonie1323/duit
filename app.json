@@ -48,6 +48,12 @@
         "projectId": "8138f671-2220-4883-ade6-4584f76bcda4"
       }
     },
-    "owner": "nooberonie1323"
+    "owner": "nooberonie1323",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/8138f671-2220-4883-ade6-4584f76bcda4"
+    }
   }
 }

@@ -27,6 +27,10 @@ export async function getSettings(db: SQLiteDatabase): Promise<Settings | null> 
 export async function resetAppData(db: SQLiteDatabase): Promise<void> {
   await db.execAsync('BEGIN');
   try {
+    await db.execAsync('DELETE FROM entries');
+    await db.execAsync('DELETE FROM days');
+    await db.execAsync('DELETE FROM reservations');
+    await db.execAsync('DELETE FROM archived_savings');
     await db.execAsync('DELETE FROM cycles');
     await db.execAsync('DELETE FROM settings');
     await db.execAsync('DELETE FROM onboarding_state');

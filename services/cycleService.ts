@@ -45,6 +45,7 @@ export interface ActiveCycleData {
   dayOfCycle: number;
   totalDays: number;
   leftInCycle: number;
+  activeDays: number;
 }
 
 export async function updateReservation(
@@ -157,6 +158,12 @@ export async function getActiveCycle(db: SQLiteDatabase): Promise<ActiveCycleDat
   const totalDays = Math.round((endDate.getTime() - startDate.getTime()) / msPerDay);
   const dayOfCycle = Math.round((today.getTime() - startDate.getTime()) / msPerDay) + 1;
 
+  const activeDaysRow = await db.getFirstAsync<{ count: number }>(
+    `SELECT COUNT(DISTINCT d.id) as count FROM days d JOIN entries e ON e.day_id = d.id WHERE d.cycle_id = ?`,
+    [cycle.id]
+  );
+  const activeDays = activeDaysRow?.count ?? 0;
+
   // Check if there's a reviewed day — if so, use pool_after_review for remaining calc
   const lastReview = await db.getFirstAsync<{ pool_after_review: number; date: string }>(
     'SELECT pool_after_review, date FROM days WHERE cycle_id = ? AND reviewed_at IS NOT NULL ORDER BY date DESC LIMIT 1',
@@ -167,7 +174,7 @@ export async function getActiveCycle(db: SQLiteDatabase): Promise<ActiveCycleDat
   let leftInCycle: number;
 
   if (lastReview && lastReview.pool_after_review !== null) {
-    const divisor = daysAfterToday > 0 ? daysAfterToday : 1;
+    const divisor = daysAfterToday + 1 > 0 ? daysAfterToday + 1 : 1;
     dailyBudget = lastReview.pool_after_review / divisor;
     leftInCycle = lastReview.pool_after_review;
   } else {
@@ -183,10 +190,11 @@ export async function getActiveCycle(db: SQLiteDatabase): Promise<ActiveCycleDat
     pool,
     reservationsTotal,
     dailyBudget,
-    daysLeft: daysAfterToday,
+    daysLeft: daysAfterToday + 1,
     dayOfCycle: Math.max(1, dayOfCycle),
     totalDays: totalDays + 1,
     leftInCycle,
+    activeDays,
   };
 }
 
