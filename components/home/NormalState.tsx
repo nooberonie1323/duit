@@ -64,7 +64,7 @@ export function NormalState({
               <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: 13, fontFamily: 'PlusJakartaSans_500Medium' }}>{dateStr}</Text>
               <View style={{ backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5 }}>
                 <Text style={{ color: 'rgba(255,255,255,0.9)', fontSize: 11, fontFamily: 'PlusJakartaSans_600SemiBold' }}>
-                  Day {cycleData.dayOfCycle} of {cycleData.totalDays}
+                  {cycleData.daysLeft} {cycleData.daysLeft === 1 ? 'day' : 'days'} left
                 </Text>
               </View>
             </View>
@@ -84,35 +84,11 @@ export function NormalState({
                 </Text>
               </View>
             )}
-          </View>
-        </View>
-
-        <View style={{ height: 12 }} />
-
-        {/* Cycle overview */}
-        <View style={card}>
-          <View style={{ flexDirection: 'row', paddingVertical: 18 }}>
-            <View style={{ flex: 1, alignItems: 'center' }}>
-              <Text style={{ fontSize: 19, fontFamily: 'PlusJakartaSans_700Bold', color: '#111827', marginBottom: 4 }}>
+            <View style={{ marginTop: 16, paddingTop: 14, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.12)', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12, fontFamily: 'PlusJakartaSans_500Medium' }}>Left in cycle</Text>
+              <Text style={{ color: '#fff', fontSize: 14, fontFamily: 'PlusJakartaSans_700Bold' }}>
                 ৳{Math.floor(Math.max(0, cycleData.leftInCycle - totalSpent)).toLocaleString()}
               </Text>
-              <Text style={{ fontSize: 11, color: '#9CA3AF', fontFamily: 'PlusJakartaSans_400Regular' }}>Left in cycle</Text>
-            </View>
-            <View style={{ width: 1, backgroundColor: '#F3F4F6', marginVertical: 4 }} />
-            <View style={{ flex: 1, alignItems: 'center' }}>
-              <Text style={{ fontSize: 19, fontFamily: 'PlusJakartaSans_700Bold', color: '#111827', marginBottom: 4 }}>
-                {cycleData.daysLeft}
-              </Text>
-              <Text style={{ fontSize: 11, color: '#9CA3AF', fontFamily: 'PlusJakartaSans_400Regular' }}>Days left</Text>
-            </View>
-            <View style={{ width: 1, backgroundColor: '#F3F4F6', marginVertical: 4 }} />
-            <View style={{ flex: 1, alignItems: 'center' }}>
-              <Text style={{ fontSize: 19, fontFamily: 'PlusJakartaSans_700Bold', color: '#111827', marginBottom: 4 }}>
-                {cycleData.activeDays > 0
-                  ? `৳${Math.floor(cycleTotalSpent / cycleData.activeDays).toLocaleString()}`
-                  : '—'}
-              </Text>
-              <Text style={{ fontSize: 11, color: '#9CA3AF', fontFamily: 'PlusJakartaSans_400Regular' }}>Daily avg</Text>
             </View>
           </View>
         </View>

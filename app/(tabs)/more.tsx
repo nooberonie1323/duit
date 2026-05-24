@@ -1,6 +1,7 @@
 import { getSettings, resetAppData, updateSettings, type Settings } from '@/services/settingsService';
 import { cancelReviewNotifications, requestNotificationPermission, scheduleReviewNotifications } from '@/services/notificationService';
 import { router } from 'expo-router';
+import * as Updates from 'expo-updates';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useState } from 'react';
 import {
@@ -38,6 +39,7 @@ export default function MoreScreen() {
   const [nameInput, setNameInput] = useState('');
   const [confirmReset, setConfirmReset] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [updateStatus, setUpdateStatus] = useState<'idle' | 'checking' | 'up-to-date' | 'available' | 'downloading' | 'ready'>('idle');
 
   const load = useCallback(async () => {
     const s = await getSettings(db);
@@ -91,6 +93,32 @@ export default function MoreScreen() {
     } catch {
       setResetting(false);
       setConfirmReset(false);
+    }
+  }
+
+  async function handleCheckUpdate() {
+    if (!Updates.isEnabled || updateStatus === 'checking' || updateStatus === 'downloading') return;
+    setUpdateStatus('checking');
+    try {
+      const result = await Updates.checkForUpdateAsync();
+      if (result.isAvailable) {
+        setUpdateStatus('available');
+      } else {
+        setUpdateStatus('up-to-date');
+        setTimeout(() => setUpdateStatus('idle'), 3000);
+      }
+    } catch {
+      setUpdateStatus('idle');
+    }
+  }
+
+  async function handleDownloadUpdate() {
+    setUpdateStatus('downloading');
+    try {
+      await Updates.fetchUpdateAsync();
+      setUpdateStatus('ready');
+    } catch {
+      setUpdateStatus('idle');
     }
   }
 
@@ -235,6 +263,52 @@ export default function MoreScreen() {
               })}
             </View>
           </View>
+        </View>
+
+        {/* App */}
+        <Text style={styles.sectionLabel}>App</Text>
+        <View style={styles.card}>
+          {/* Check for updates row */}
+          {(updateStatus === 'idle' || updateStatus === 'checking' || updateStatus === 'up-to-date') && (
+            <Pressable
+              onPress={handleCheckUpdate}
+              disabled={updateStatus === 'checking'}
+              style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16 }}
+            >
+              <Text style={{ flex: 1, fontSize: 14, fontFamily: 'PlusJakartaSans_500Medium', color: '#111827' }}>
+                Check for updates
+              </Text>
+              {updateStatus === 'checking' && <ActivityIndicator size="small" color="#16A34A" />}
+              {updateStatus === 'up-to-date' && <Text style={{ fontSize: 13, color: '#16A34A', fontFamily: 'PlusJakartaSans_600SemiBold' }}>Up to date ✓</Text>}
+            </Pressable>
+          )}
+          {/* Download update row */}
+          {updateStatus === 'available' && (
+            <Pressable
+              onPress={handleDownloadUpdate}
+              style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16 }}
+            >
+              <Text style={{ flex: 1, fontSize: 14, fontFamily: 'PlusJakartaSans_500Medium', color: '#111827' }}>Update available</Text>
+              <Text style={{ fontSize: 13, color: '#16A34A', fontFamily: 'PlusJakartaSans_700Bold' }}>Download →</Text>
+            </Pressable>
+          )}
+          {/* Downloading row */}
+          {updateStatus === 'downloading' && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16 }}>
+              <Text style={{ flex: 1, fontSize: 14, fontFamily: 'PlusJakartaSans_500Medium', color: '#111827' }}>Downloading...</Text>
+              <ActivityIndicator size="small" color="#16A34A" />
+            </View>
+          )}
+          {/* Restart row */}
+          {updateStatus === 'ready' && (
+            <Pressable
+              onPress={() => Updates.reloadAsync()}
+              style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16 }}
+            >
+              <Text style={{ flex: 1, fontSize: 14, fontFamily: 'PlusJakartaSans_500Medium', color: '#111827' }}>Update downloaded</Text>
+              <Text style={{ fontSize: 13, color: '#16A34A', fontFamily: 'PlusJakartaSans_700Bold' }}>Restart →</Text>
+            </Pressable>
+          )}
         </View>
 
         {/* Danger zone */}
