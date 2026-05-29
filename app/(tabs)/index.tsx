@@ -148,6 +148,13 @@ export default function HomeScreen() {
 
   useEffect(() => { load(); }, [load]);
 
+  // Pre-fill catch-up amount with staged entries total so user doesn't have to retype what they already logged
+  useEffect(() => {
+    if (!data || data.missedEntries.length === 0 || catchUpAmount !== '') return;
+    const staged = Math.floor(data.missedEntries.reduce((s, e) => s + e.amount, 0));
+    if (staged > 0) setCatchUpAmount(String(staged));
+  }, [data]);
+
   useEffect(() => {
     const sub = AppState.addEventListener('change', state => { if (state === 'active') load(); });
     const now = new Date();
@@ -238,7 +245,8 @@ export default function HomeScreen() {
 
   async function handleConfirmCatchUp() {
     if (!data || confirmingCatchUp) return;
-    const total = parseFloat(catchUpAmount) || 0;
+    const stagedTotal = data.missedEntries.reduce((s, e) => s + e.amount, 0);
+    const total = parseFloat(catchUpAmount) || stagedTotal;
     setConfirmingCatchUp(true);
     try {
       await confirmCatchUpReview(db, data.missedDays, total, data.cycleData.leftInCycle, catchUpNote);
