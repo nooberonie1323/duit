@@ -5,25 +5,45 @@
 
 import { Platform } from 'react-native';
 
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
+export type ThemeMode = 'light' | 'dark';
 
-export const Colors = {
+export interface ColorTokens {
+  background: string;
+  card: string;
+  border: string;
+  textPrimary: string;
+  textSecondary: string;
+  primary: string;
+  primaryLight: string;
+  error: string;
+  warning: string;
+  success: string;
+}
+
+export const Colors: Record<ThemeMode, ColorTokens> = {
   light: {
-    text: '#11181C',
-    background: '#fff',
-    tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
+    background: '#F9FAFB',
+    card: '#FFFFFF',
+    border: '#E5E7EB',
+    textPrimary: '#111827',
+    textSecondary: '#6B7280',
+    primary: '#16A34A',
+    primaryLight: '#F0FDF4',
+    error: '#EF4444',
+    warning: '#F59E0B',
+    success: '#10B981',
   },
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
-    tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
+    background: '#111827',
+    card: '#1F2937',
+    border: '#374151',
+    textPrimary: '#F9FAFB',
+    textSecondary: '#9CA3AF',
+    primary: '#22C55E',
+    primaryLight: '#14532D',
+    error: '#EF4444',
+    warning: '#F59E0B',
+    success: '#10B981',
   },
 };
 
