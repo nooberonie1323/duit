@@ -1,3 +1,4 @@
+import { useThemeColors } from '@/contexts/theme';
 import type { ReservationRow } from '@/services/cycleService';
 import { ActivityIndicator, Modal, Pressable, Text, TextInput, View } from 'react-native';
 
@@ -27,6 +28,7 @@ export function ReservationModal({
   editAmount, onChangeEditAmount,
   onMarkUsed, onMarkUnused, onSaveEdit, onDelete,
 }: Props) {
+  const colors = useThemeColors();
   if (!reservation) return null;
 
   const paid = !!reservation.paid_at;
@@ -41,44 +43,44 @@ export function ReservationModal({
         onPress={onClose}
       >
         <Pressable onPress={() => {}} style={{ width: '100%' }}>
-          <View style={{ backgroundColor: '#fff', borderRadius: 20, paddingHorizontal: 24, paddingTop: 24, paddingBottom: 20 }}>
+          <View style={{ backgroundColor: colors.card, borderRadius: 20, paddingHorizontal: 24, paddingTop: 24, paddingBottom: 20 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
               <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 17, fontFamily: 'PlusJakartaSans_700Bold', color: '#111827' }}>
+                <Text style={{ fontSize: 17, fontFamily: 'PlusJakartaSans_700Bold', color: colors.textPrimary }}>
                   {reservation.name}
                 </Text>
-                <Text style={{ fontSize: 13, color: '#9CA3AF', fontFamily: 'PlusJakartaSans_400Regular', marginTop: 2 }}>
+                <Text style={{ fontSize: 13, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular', marginTop: 2 }}>
                   ৳{Math.floor(reservation.amount).toLocaleString()} reserved
                 </Text>
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
                 <Pressable onPress={onStartEdit} hitSlop={8}>
-                  <Text style={{ fontSize: 13, color: '#6B7280', fontFamily: 'PlusJakartaSans_500Medium' }}>Edit</Text>
+                  <Text style={{ fontSize: 13, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_500Medium' }}>Edit</Text>
                 </Pressable>
                 <Pressable onPress={onClose} hitSlop={8}>
-                  <Text style={{ fontSize: 22, color: '#9CA3AF', lineHeight: 24, includeFontPadding: false }}>×</Text>
+                  <Text style={{ fontSize: 22, color: colors.textSecondary, lineHeight: 24, includeFontPadding: false }}>×</Text>
                 </Pressable>
               </View>
             </View>
 
             {editMode && (
-              <View style={{ backgroundColor: '#F9FAFB', borderRadius: 14, padding: 14, marginBottom: 16 }}>
+              <View style={{ backgroundColor: colors.background, borderRadius: 14, padding: 14, marginBottom: 16 }}>
                 <TextInput
                   value={editName}
                   onChangeText={onChangeEditName}
                   placeholder="Name"
-                  placeholderTextColor="#D1D5DB"
-                  style={{ borderWidth: 1.5, borderColor: '#E5E7EB', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: '#111827', marginBottom: 8 }}
+                  placeholderTextColor={colors.textSecondary}
+                  style={{ borderWidth: 1.5, borderColor: colors.border, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: colors.textPrimary, marginBottom: 8 }}
                 />
-                <View style={{ flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderColor: '#E5E7EB', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 12 }}>
-                  <Text style={{ fontSize: 14, color: '#9CA3AF', marginRight: 6, fontFamily: 'PlusJakartaSans_400Regular' }}>৳</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderColor: colors.border, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 12 }}>
+                  <Text style={{ fontSize: 14, color: colors.textSecondary, marginRight: 6, fontFamily: 'PlusJakartaSans_400Regular' }}>৳</Text>
                   <TextInput
                     value={editAmount}
                     onChangeText={onChangeEditAmount}
                     keyboardType="numeric"
                     placeholder="0"
-                    placeholderTextColor="#D1D5DB"
-                    style={{ flex: 1, fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: '#111827' }}
+                    placeholderTextColor={colors.textSecondary}
+                    style={{ flex: 1, fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: colors.textPrimary }}
                   />
                 </View>
                 <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -86,12 +88,12 @@ export function ReservationModal({
                     onPress={onDelete}
                     style={{ flex: 1, paddingVertical: 11, alignItems: 'center', borderRadius: 12, backgroundColor: '#FEF2F2' }}
                   >
-                    <Text style={{ fontSize: 13, color: '#EF4444', fontFamily: 'PlusJakartaSans_600SemiBold' }}>Delete</Text>
+                    <Text style={{ fontSize: 13, color: colors.error, fontFamily: 'PlusJakartaSans_600SemiBold' }}>Delete</Text>
                   </Pressable>
                   <Pressable
                     onPress={onSaveEdit}
                     disabled={marking}
-                    style={{ flex: 2, paddingVertical: 11, alignItems: 'center', borderRadius: 12, backgroundColor: '#16A34A' }}
+                    style={{ flex: 2, paddingVertical: 11, alignItems: 'center', borderRadius: 12, backgroundColor: colors.primary }}
                   >
                     <Text style={{ fontSize: 13, color: '#fff', fontFamily: 'PlusJakartaSans_600SemiBold' }}>Save changes</Text>
                   </Pressable>
@@ -101,12 +103,12 @@ export function ReservationModal({
 
             {paid ? (
               <>
-                <View style={{ backgroundColor: '#F0FDF4', borderRadius: 12, padding: 14, marginBottom: 16 }}>
-                  <Text style={{ fontSize: 13, color: '#16A34A', fontFamily: 'PlusJakartaSans_600SemiBold', marginBottom: 2 }}>
+                <View style={{ backgroundColor: colors.primaryLight, borderRadius: 12, padding: 14, marginBottom: 16 }}>
+                  <Text style={{ fontSize: 13, color: colors.primary, fontFamily: 'PlusJakartaSans_600SemiBold', marginBottom: 2 }}>
                     ✓ Used on {paidDate}
                   </Text>
                   {reservation.paid_note ? (
-                    <Text style={{ fontSize: 13, color: '#16A34A', fontFamily: 'PlusJakartaSans_400Regular' }}>
+                    <Text style={{ fontSize: 13, color: colors.primary, fontFamily: 'PlusJakartaSans_400Regular' }}>
                       {reservation.paid_note}
                     </Text>
                   ) : null}
@@ -114,37 +116,37 @@ export function ReservationModal({
                 <Pressable
                   onPress={onMarkUnused}
                   disabled={marking}
-                  style={{ paddingVertical: 14, alignItems: 'center', borderRadius: 14, borderWidth: 1.5, borderColor: '#E5E7EB' }}
+                  style={{ paddingVertical: 14, alignItems: 'center', borderRadius: 14, borderWidth: 1.5, borderColor: colors.border }}
                 >
-                  <Text style={{ fontSize: 15, color: '#6B7280', fontFamily: 'PlusJakartaSans_600SemiBold' }}>Mark as unused</Text>
+                  <Text style={{ fontSize: 15, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_600SemiBold' }}>Mark as unused</Text>
                 </Pressable>
               </>
             ) : (
               <>
-                <Text style={{ fontSize: 11, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#9CA3AF', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 6 }}>
+                <Text style={{ fontSize: 11, fontFamily: 'PlusJakartaSans_600SemiBold', color: colors.textSecondary, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 6 }}>
                   Note (optional)
                 </Text>
-                <View style={{ backgroundColor: '#F9FAFB', borderRadius: 12, borderWidth: 1.5, borderColor: '#E5E7EB', paddingHorizontal: 14, paddingVertical: 12, marginBottom: 16 }}>
+                <View style={{ backgroundColor: colors.background, borderRadius: 12, borderWidth: 1.5, borderColor: colors.border, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 16 }}>
                   <TextInput
                     value={note}
                     onChangeText={onChangeNote}
                     placeholder="e.g. paid via bKash"
-                    placeholderTextColor="#D1D5DB"
-                    style={{ fontSize: 15, color: '#111827', fontFamily: 'PlusJakartaSans_400Regular' }}
+                    placeholderTextColor={colors.textSecondary}
+                    style={{ fontSize: 15, color: colors.textPrimary, fontFamily: 'PlusJakartaSans_400Regular' }}
                     maxLength={60}
                   />
                 </View>
                 <View style={{ flexDirection: 'row', gap: 10 }}>
                   <Pressable
                     onPress={onClose}
-                    style={{ flex: 1, paddingVertical: 14, alignItems: 'center', borderRadius: 14, borderWidth: 1.5, borderColor: '#E5E7EB' }}
+                    style={{ flex: 1, paddingVertical: 14, alignItems: 'center', borderRadius: 14, borderWidth: 1.5, borderColor: colors.border }}
                   >
-                    <Text style={{ fontSize: 15, color: '#6B7280', fontFamily: 'PlusJakartaSans_600SemiBold' }}>Cancel</Text>
+                    <Text style={{ fontSize: 15, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_600SemiBold' }}>Cancel</Text>
                   </Pressable>
                   <Pressable
                     onPress={onMarkUsed}
                     disabled={marking}
-                    style={{ flex: 1, paddingVertical: 14, alignItems: 'center', borderRadius: 14, backgroundColor: '#16A34A' }}
+                    style={{ flex: 1, paddingVertical: 14, alignItems: 'center', borderRadius: 14, backgroundColor: colors.primary }}
                   >
                     {marking
                       ? <ActivityIndicator color="#fff" />

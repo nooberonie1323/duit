@@ -1,3 +1,4 @@
+import { useThemeColors } from '@/contexts/theme';
 import { ActivityIndicator, Modal, Pressable, Text, TextInput, View } from 'react-native';
 
 interface Props {
@@ -22,6 +23,7 @@ export function SpendModal({
   saving, onSave, canSave, poolExhausted,
   hardCapError, thresholdWarning,
 }: Props) {
+  const colors = useThemeColors();
   const amountNum = parseFloat(amount) || 0;
 
   return (
@@ -31,26 +33,26 @@ export function SpendModal({
         onPress={onClose}
       >
         <Pressable onPress={() => {}} style={{ width: '100%' }}>
-          <View style={{ backgroundColor: '#fff', borderRadius: 20, paddingHorizontal: 24, paddingTop: 24, paddingBottom: 20 }}>
+          <View style={{ backgroundColor: colors.card, borderRadius: 20, paddingHorizontal: 24, paddingTop: 24, paddingBottom: 20 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <Text style={{ fontSize: 17, fontFamily: 'PlusJakartaSans_700Bold', color: '#111827' }}>
+              <Text style={{ fontSize: 17, fontFamily: 'PlusJakartaSans_700Bold', color: colors.textPrimary }}>
                 {editingEntry ? 'Edit spend' : 'Add spend'}
               </Text>
               <Pressable onPress={onClose} hitSlop={8}>
-                <Text style={{ fontSize: 22, color: '#9CA3AF', lineHeight: 24, includeFontPadding: false }}>×</Text>
+                <Text style={{ fontSize: 22, color: colors.textSecondary, lineHeight: 24, includeFontPadding: false }}>×</Text>
               </Pressable>
             </View>
 
-            <Text style={{ fontSize: 11, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#9CA3AF', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 6 }}>
+            <Text style={{ fontSize: 11, fontFamily: 'PlusJakartaSans_600SemiBold', color: colors.textSecondary, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 6 }}>
               Note (optional)
             </Text>
-            <View style={{ backgroundColor: '#F9FAFB', borderRadius: 12, borderWidth: 1.5, borderColor: '#E5E7EB', paddingHorizontal: 14, paddingVertical: 12, marginBottom: 14 }}>
+            <View style={{ backgroundColor: colors.background, borderRadius: 12, borderWidth: 1.5, borderColor: colors.border, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 14 }}>
               <TextInput
                 value={note}
                 onChangeText={onChangeNote}
                 placeholder="What did you spend on?"
-                placeholderTextColor="#D1D5DB"
-                style={{ fontSize: 15, color: '#111827', fontFamily: 'PlusJakartaSans_400Regular' }}
+                placeholderTextColor={colors.textSecondary}
+                style={{ fontSize: 15, color: colors.textPrimary, fontFamily: 'PlusJakartaSans_400Regular' }}
                 maxLength={60}
                 returnKeyType="next"
               />
@@ -58,36 +60,36 @@ export function SpendModal({
 
             {poolExhausted && (
               <View style={{ backgroundColor: '#FEF2F2', borderRadius: 10, padding: 10, marginBottom: 12 }}>
-                <Text style={{ fontSize: 13, color: '#EF4444', fontFamily: 'PlusJakartaSans_500Medium' }}>
+                <Text style={{ fontSize: 13, color: colors.error, fontFamily: 'PlusJakartaSans_500Medium' }}>
                   Your pool is empty — no budget remaining this cycle.
                 </Text>
               </View>
             )}
 
-            <Text style={{ fontSize: 11, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#9CA3AF', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 6 }}>
+            <Text style={{ fontSize: 11, fontFamily: 'PlusJakartaSans_600SemiBold', color: colors.textSecondary, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 6 }}>
               Amount
             </Text>
             <View style={{
-              backgroundColor: '#F9FAFB', borderRadius: 12, borderWidth: 1.5,
-              borderColor: hardCapError ? '#EF4444' : amountNum > 0 ? '#16A34A' : '#E5E7EB',
+              backgroundColor: colors.background, borderRadius: 12, borderWidth: 1.5,
+              borderColor: hardCapError ? colors.error : amountNum > 0 ? colors.primary : colors.border,
               paddingHorizontal: 14, paddingVertical: 12, flexDirection: 'row', alignItems: 'center',
               marginBottom: hardCapError || thresholdWarning ? 8 : 20,
             }}>
-              <Text style={{ fontSize: 18, color: amount ? '#111827' : '#D1D5DB', fontFamily: 'PlusJakartaSans_700Bold', marginRight: 4 }}>৳</Text>
+              <Text style={{ fontSize: 18, color: amount ? colors.textPrimary : colors.textSecondary, fontFamily: 'PlusJakartaSans_700Bold', marginRight: 4 }}>৳</Text>
               <TextInput
                 value={amount}
                 onChangeText={onChangeAmount}
                 placeholder="0"
-                placeholderTextColor="#D1D5DB"
+                placeholderTextColor={colors.textSecondary}
                 keyboardType="decimal-pad"
                 editable={!poolExhausted}
-                style={{ flex: 1, fontSize: 22, color: '#111827', fontFamily: 'PlusJakartaSans_700Bold' }}
+                style={{ flex: 1, fontSize: 22, color: colors.textPrimary, fontFamily: 'PlusJakartaSans_700Bold' }}
               />
             </View>
 
             {hardCapError && (
               <View style={{ backgroundColor: '#FEF2F2', borderRadius: 10, padding: 10, marginBottom: 12 }}>
-                <Text style={{ fontSize: 13, color: '#EF4444', fontFamily: 'PlusJakartaSans_500Medium' }}>{hardCapError}</Text>
+                <Text style={{ fontSize: 13, color: colors.error, fontFamily: 'PlusJakartaSans_500Medium' }}>{hardCapError}</Text>
               </View>
             )}
 
@@ -100,18 +102,18 @@ export function SpendModal({
             <View style={{ flexDirection: 'row', gap: 10, marginTop: hardCapError || thresholdWarning ? 8 : 0 }}>
               <Pressable
                 onPress={onClose}
-                style={{ flex: 1, paddingVertical: 14, alignItems: 'center', borderRadius: 14, borderWidth: 1.5, borderColor: '#E5E7EB' }}
+                style={{ flex: 1, paddingVertical: 14, alignItems: 'center', borderRadius: 14, borderWidth: 1.5, borderColor: colors.border }}
               >
-                <Text style={{ fontSize: 15, color: '#6B7280', fontFamily: 'PlusJakartaSans_600SemiBold' }}>Cancel</Text>
+                <Text style={{ fontSize: 15, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_600SemiBold' }}>Cancel</Text>
               </Pressable>
               <Pressable
                 onPress={onSave}
                 disabled={!canSave || saving}
-                style={{ flex: 1, paddingVertical: 14, alignItems: 'center', borderRadius: 14, backgroundColor: canSave ? '#16A34A' : '#E5E7EB' }}
+                style={{ flex: 1, paddingVertical: 14, alignItems: 'center', borderRadius: 14, backgroundColor: canSave ? colors.primary : colors.border }}
               >
                 {saving
                   ? <ActivityIndicator color="#fff" />
-                  : <Text style={{ fontSize: 15, color: canSave ? '#fff' : '#9CA3AF', fontFamily: 'PlusJakartaSans_600SemiBold' }}>
+                  : <Text style={{ fontSize: 15, color: canSave ? '#fff' : colors.textSecondary, fontFamily: 'PlusJakartaSans_600SemiBold' }}>
                       {editingEntry ? 'Save' : 'Add'}
                     </Text>
                 }

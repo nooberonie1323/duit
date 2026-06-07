@@ -1,3 +1,4 @@
+import { useThemeColors } from '@/contexts/theme';
 import type { ActiveCycleData, ReservationRow } from '@/services/cycleService';
 import type { EntryRow } from '@/services/entryService';
 import { useState } from 'react';
@@ -31,6 +32,7 @@ export function NormalState({
   onOpenAdd, onOpenEdit, onDeleteEntry,
   onSelectReservation,
 }: Props) {
+  const colors = useThemeColors();
   const [showSnoozePicker, setShowSnoozePicker] = useState(false);
   const midnight = new Date(); midnight.setHours(24, 0, 0, 0);
   const snoozeOptions = ALL_SNOOZE_OPTIONS.filter(
@@ -42,7 +44,7 @@ export function NormalState({
   const dateStr = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 
   const card = {
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     borderRadius: 20,
     marginHorizontal: 16,
     shadowColor: '#000' as const,
@@ -53,11 +55,11 @@ export function NormalState({
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <View style={{ paddingTop: insets.top + 16 }}>
         {/* Hero */}
         <View style={{ marginHorizontal: 16, borderRadius: 20, shadowColor: '#16A34A', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 20, elevation: 8 }}>
-          <View style={{ backgroundColor: '#16A34A', borderRadius: 20, padding: 22, overflow: 'hidden' }}>
+          <View style={{ backgroundColor: colors.primary, borderRadius: 20, padding: 22, overflow: 'hidden' }}>
             <View style={{ position: 'absolute', top: -35, right: -35, width: 150, height: 150, borderRadius: 75, backgroundColor: 'rgba(255,255,255,0.07)' }} />
             <View style={{ position: 'absolute', bottom: -55, left: -25, width: 200, height: 200, borderRadius: 100, backgroundColor: 'rgba(255,255,255,0.05)' }} />
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
@@ -104,9 +106,9 @@ export function NormalState({
             style={{ marginBottom: 12 }}
           >
             {cycleData.cycle.savings > 0 && (
-              <View style={{ backgroundColor: '#F0FDF4', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Text style={{ fontSize: 11, color: '#16A34A', fontFamily: 'PlusJakartaSans_600SemiBold' }}>Savings</Text>
-                <Text style={{ fontSize: 11, color: '#16A34A', fontFamily: 'PlusJakartaSans_700Bold' }}>৳{Math.floor(cycleData.cycle.savings).toLocaleString()}</Text>
+              <View style={{ backgroundColor: colors.primaryLight, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={{ fontSize: 11, color: colors.primary, fontFamily: 'PlusJakartaSans_600SemiBold' }}>Savings</Text>
+                <Text style={{ fontSize: 11, color: colors.primary, fontFamily: 'PlusJakartaSans_700Bold' }}>৳{Math.floor(cycleData.cycle.savings).toLocaleString()}</Text>
               </View>
             )}
             {cycleData.reservations.map(r => {
@@ -118,13 +120,13 @@ export function NormalState({
                   style={{
                     borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8,
                     flexDirection: 'row', alignItems: 'center', gap: 6,
-                    backgroundColor: paid ? '#F0FDF4' : '#F9FAFB',
-                    borderWidth: 1, borderColor: paid ? '#86EFAC' : '#E5E7EB',
+                    backgroundColor: paid ? colors.primaryLight : colors.background,
+                    borderWidth: 1, borderColor: paid ? '#86EFAC' : colors.border,
                   }}
                 >
-                  {paid && <Text style={{ fontSize: 11, color: '#16A34A' }}>✓</Text>}
-                  <Text style={{ fontSize: 11, color: paid ? '#16A34A' : '#6B7280', fontFamily: 'PlusJakartaSans_500Medium' }}>{r.name}</Text>
-                  <Text style={{ fontSize: 11, color: paid ? '#16A34A' : '#111827', fontFamily: 'PlusJakartaSans_700Bold' }}>৳{Math.floor(r.amount).toLocaleString()}</Text>
+                  {paid && <Text style={{ fontSize: 11, color: colors.primary }}>✓</Text>}
+                  <Text style={{ fontSize: 11, color: paid ? colors.primary : colors.textSecondary, fontFamily: 'PlusJakartaSans_500Medium' }}>{r.name}</Text>
+                  <Text style={{ fontSize: 11, color: paid ? colors.primary : colors.textPrimary, fontFamily: 'PlusJakartaSans_700Bold' }}>৳{Math.floor(r.amount).toLocaleString()}</Text>
                 </Pressable>
               );
             })}
@@ -133,15 +135,15 @@ export function NormalState({
 
         {/* Spending card */}
         <View style={card}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}>
-            <Text style={{ fontSize: 14, fontFamily: 'PlusJakartaSans_700Bold', color: '#111827' }}>Spending</Text>
-            <Text style={{ fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: totalSpent > 0 ? '#111827' : '#D1D5DB' }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+            <Text style={{ fontSize: 14, fontFamily: 'PlusJakartaSans_700Bold', color: colors.textPrimary }}>Spending</Text>
+            <Text style={{ fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: totalSpent > 0 ? colors.textPrimary : colors.textSecondary }}>
               ৳{totalSpent.toLocaleString()}
             </Text>
           </View>
           <Pressable onPress={onOpenAdd} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 14, gap: 6 }}>
-            <Text style={{ fontSize: 20, color: '#16A34A', lineHeight: 22, includeFontPadding: false }}>+</Text>
-            <Text style={{ fontSize: 14, color: '#16A34A', fontFamily: 'PlusJakartaSans_600SemiBold' }}>Add spend</Text>
+            <Text style={{ fontSize: 20, color: colors.primary, lineHeight: 22, includeFontPadding: false }}>+</Text>
+            <Text style={{ fontSize: 14, color: colors.primary, fontFamily: 'PlusJakartaSans_600SemiBold' }}>Add spend</Text>
           </Pressable>
         </View>
       </View>
@@ -149,10 +151,10 @@ export function NormalState({
       {/* Log card */}
       {entries.length > 0 && (
         <View style={{ flex: 1, marginTop: 12, marginHorizontal: 16, paddingBottom: navPillOffset }}>
-          <View style={{ flex: 1, backgroundColor: '#fff', borderRadius: 20, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}>
-              <Text style={{ fontSize: 13, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#6B7280' }}>Today's log</Text>
-              <Text style={{ fontSize: 12, color: '#9CA3AF', fontFamily: 'PlusJakartaSans_400Regular' }}>
+          <View style={{ flex: 1, backgroundColor: colors.card, borderRadius: 20, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+              <Text style={{ fontSize: 13, fontFamily: 'PlusJakartaSans_600SemiBold', color: colors.textSecondary }}>Today's log</Text>
+              <Text style={{ fontSize: 12, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular' }}>
                 {entries.length} {entries.length === 1 ? 'item' : 'items'}
               </Text>
             </View>
@@ -161,26 +163,26 @@ export function NormalState({
               keyExtractor={item => String(item.id)}
               showsVerticalScrollIndicator
               renderItem={({ item: entry, index: i }) => (
-                <View style={{ flexDirection: 'row', alignItems: 'center', borderBottomWidth: i < entries.length - 1 ? 1 : 0, borderBottomColor: '#F3F4F6' }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', borderBottomWidth: i < entries.length - 1 ? 1 : 0, borderBottomColor: colors.border }}>
                   <Pressable
                     onPress={() => onOpenEdit(entry)}
                     style={{ flex: 1, flexDirection: 'row', alignItems: 'center', paddingVertical: 13, paddingLeft: 16, paddingRight: 8 }}
                   >
-                    <Text style={{ flex: 1, fontSize: 14, color: '#374151', fontFamily: 'PlusJakartaSans_400Regular' }} numberOfLines={1}>
+                    <Text style={{ flex: 1, fontSize: 14, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular' }} numberOfLines={1}>
                       {entry.note || 'general spending'}
                     </Text>
-                    <Text style={{ fontSize: 14, color: '#111827', fontFamily: 'PlusJakartaSans_600SemiBold', marginRight: 4 }}>
+                    <Text style={{ fontSize: 14, color: colors.textPrimary, fontFamily: 'PlusJakartaSans_600SemiBold', marginRight: 4 }}>
                       ৳{entry.amount.toLocaleString()}
                     </Text>
                   </Pressable>
                   <Pressable onPress={() => onDeleteEntry(entry)} hitSlop={8} style={{ paddingVertical: 13, paddingRight: 16, paddingLeft: 8 }}>
-                    <Text style={{ fontSize: 18, color: '#EF4444', lineHeight: 20, includeFontPadding: false }}>×</Text>
+                    <Text style={{ fontSize: 18, color: colors.error, lineHeight: 20, includeFontPadding: false }}>×</Text>
                   </Pressable>
                 </View>
               )}
               ListFooterComponent={entries.length > 4 ? (
-                <View style={{ paddingVertical: 10, alignItems: 'center', borderTopWidth: 1, borderTopColor: '#F3F4F6' }}>
-                  <Text style={{ fontSize: 11, color: '#D1D5DB', fontFamily: 'PlusJakartaSans_400Regular', letterSpacing: 0.5 }}>scroll for more  ↕</Text>
+                <View style={{ paddingVertical: 10, alignItems: 'center', borderTopWidth: 1, borderTopColor: colors.border }}>
+                  <Text style={{ fontSize: 11, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular', letterSpacing: 0.5 }}>scroll for more  ↕</Text>
                 </View>
               ) : null}
             />
@@ -193,7 +195,7 @@ export function NormalState({
         <View style={{ position: 'absolute', bottom: navPillOffset + 10, left: 16, right: 16 }}>
           <Pressable
             onPress={onStartReview}
-            style={{ backgroundColor: '#F59E0B', borderRadius: 16, paddingVertical: 15, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, shadowColor: '#F59E0B', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 6 }}
+            style={{ backgroundColor: colors.warning, borderRadius: 16, paddingVertical: 15, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, shadowColor: '#F59E0B', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 6 }}
           >
             <Text style={{ fontSize: 16 }}>⏰</Text>
             <Text style={{ fontSize: 15, color: '#fff', fontFamily: 'PlusJakartaSans_700Bold' }}>Time to review your day</Text>
@@ -201,7 +203,7 @@ export function NormalState({
           {snoozeOptions.length > 0 && (
             !showSnoozePicker ? (
               <Pressable onPress={() => setShowSnoozePicker(true)} style={{ alignItems: 'center', paddingTop: 8 }}>
-                <Text style={{ fontSize: 12, color: '#9CA3AF', fontFamily: 'PlusJakartaSans_500Medium' }}>Remind me later</Text>
+                <Text style={{ fontSize: 12, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_500Medium' }}>Remind me later</Text>
               </Pressable>
             ) : (
               <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
@@ -209,9 +211,9 @@ export function NormalState({
                   <Pressable
                     key={label}
                     onPress={() => { onSnoozeReview(minutes); setShowSnoozePicker(false); }}
-                    style={{ flex: 1, paddingVertical: 9, borderRadius: 12, backgroundColor: '#fff', alignItems: 'center', borderWidth: 1, borderColor: '#E5E7EB' }}
+                    style={{ flex: 1, paddingVertical: 9, borderRadius: 12, backgroundColor: colors.card, alignItems: 'center', borderWidth: 1, borderColor: colors.border }}
                   >
-                    <Text style={{ fontSize: 12, color: '#6B7280', fontFamily: 'PlusJakartaSans_500Medium' }}>{label}</Text>
+                    <Text style={{ fontSize: 12, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_500Medium' }}>{label}</Text>
                   </Pressable>
                 ))}
               </View>

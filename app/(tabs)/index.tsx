@@ -1,3 +1,4 @@
+import { useThemeColors } from '@/contexts/theme';
 import { fromDateStr, toDateStr } from '@/lib/db';
 import { DeleteConfirmModal } from '@/components/home/DeleteConfirmModal';
 import { MissedReviewState } from '@/components/home/MissedReviewState';
@@ -82,6 +83,7 @@ function getHomeState(
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
   const db = useSQLiteContext();
   const { devState } = useLocalSearchParams<{ devState?: string }>();
   const [data, setData] = useState<HomeData | null>(null);
@@ -334,16 +336,16 @@ export default function HomeScreen() {
   // ── Loading / no data ───────────────────────────────────────────────────────
   if (loading) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#F9FAFB', alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator color="#16A34A" />
+      <View style={{ flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator color={colors.primary} />
       </View>
     );
   }
 
   if (!data) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#F9FAFB', alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ color: '#9CA3AF', fontFamily: 'PlusJakartaSans_400Regular', fontSize: 14 }}>
+      <View style={{ flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' }}>
+        <Text style={{ color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular', fontSize: 14 }}>
           No active cycle found.
         </Text>
       </View>
@@ -375,17 +377,17 @@ export default function HomeScreen() {
   const canSave = amountValid && !hardCapError && !poolExhausted;
 
   // ── Inline state helpers ────────────────────────────────────────────────────
-  function statRow(label: string, value: string, valueColor = '#111827') {
+  function statRow(label: string, value: string, valueColor: string = colors.textPrimary) {
     return (
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 11 }}>
-        <Text style={{ fontSize: 14, color: '#6B7280', fontFamily: 'PlusJakartaSans_400Regular' }}>{label}</Text>
+        <Text style={{ fontSize: 14, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular' }}>{label}</Text>
         <Text style={{ fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: valueColor }}>{value}</Text>
       </View>
     );
   }
 
   const cardShadow = {
-    backgroundColor: '#fff' as const,
+    backgroundColor: colors.card,
     borderRadius: 20,
     paddingHorizontal: 16,
     marginBottom: 12,
@@ -398,21 +400,21 @@ export default function HomeScreen() {
 
   // ── Single return ───────────────────────────────────────────────────────────
   return (
-    <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
 
       {/* Pay delayed */}
       {homeState === 'ended' && isPayDelayed && (
         <View style={{ flex: 1, paddingTop: insets.top, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 }}>
           <Text style={{ fontSize: 40, marginBottom: 16 }}>⏳</Text>
-          <Text style={{ fontSize: 26, fontFamily: 'PlusJakartaSans_800ExtraBold', color: '#111827', textAlign: 'center', letterSpacing: -0.5, marginBottom: 12 }}>
+          <Text style={{ fontSize: 26, fontFamily: 'PlusJakartaSans_800ExtraBold', color: colors.textPrimary, textAlign: 'center', letterSpacing: -0.5, marginBottom: 12 }}>
             Waiting for pay.
           </Text>
-          <Text style={{ fontSize: 14, color: '#9CA3AF', fontFamily: 'PlusJakartaSans_400Regular', textAlign: 'center', lineHeight: 22, marginBottom: 40 }}>
+          <Text style={{ fontSize: 14, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular', textAlign: 'center', lineHeight: 22, marginBottom: 40 }}>
             Come back when your pay arrives to start a new cycle.
           </Text>
           <Pressable
             onPress={() => router.push({ pathname: '/new-cycle', params: { leftover: String(Math.floor(cycleData.leftInCycle)), prevCycleId: String(cycleData.cycle.id) } })}
-            style={{ backgroundColor: '#16A34A', borderRadius: 16, paddingVertical: 16, paddingHorizontal: 40, alignItems: 'center' }}
+            style={{ backgroundColor: colors.primary, borderRadius: 16, paddingVertical: 16, paddingHorizontal: 40, alignItems: 'center' }}
           >
             <Text style={{ color: '#fff', fontSize: 16, fontFamily: 'PlusJakartaSans_700Bold' }}>Pay arrived — start new cycle</Text>
           </Pressable>
@@ -430,34 +432,34 @@ export default function HomeScreen() {
         const hasProtected = cycleData.cycle.savings > 0 || cycleData.reservations.length > 0;
         return (
           <ScrollView contentContainerStyle={{ paddingTop: insets.top + 24, paddingBottom: Math.max(insets.bottom, 32), paddingHorizontal: 20 }} showsVerticalScrollIndicator={false}>
-            <Text style={{ fontSize: 11, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#9CA3AF', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6, marginLeft: 4 }}>
+            <Text style={{ fontSize: 11, fontFamily: 'PlusJakartaSans_600SemiBold', color: colors.textSecondary, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6, marginLeft: 4 }}>
               {startFmt} – {endFmt}
             </Text>
-            <Text style={{ fontSize: 34, fontFamily: 'PlusJakartaSans_800ExtraBold', color: '#111827', letterSpacing: -1, marginBottom: 4, marginLeft: 4 }}>
+            <Text style={{ fontSize: 34, fontFamily: 'PlusJakartaSans_800ExtraBold', color: colors.textPrimary, letterSpacing: -1, marginBottom: 4, marginLeft: 4 }}>
               That's a wrap.
             </Text>
-            <Text style={{ fontSize: 14, color: '#9CA3AF', fontFamily: 'PlusJakartaSans_400Regular', marginBottom: 24, marginLeft: 4 }}>
+            <Text style={{ fontSize: 14, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular', marginBottom: 24, marginLeft: 4 }}>
               Your cycle has ended. Start a new one to continue.
             </Text>
             <View style={cardShadow}>
               {statRow('Total spent', `৳${Math.floor(cycleTotalSpent).toLocaleString()}`)}
-              <View style={{ height: 1, backgroundColor: '#F3F4F6' }} />
+              <View style={{ height: 1, backgroundColor: colors.border }} />
               {statRow('Daily average', `৳${Math.floor(avgPerDay).toLocaleString()}`)}
-              <View style={{ height: 1, backgroundColor: '#F3F4F6' }} />
-              {statRow(didSave ? 'Underspent' : 'Overspent', `৳${Math.floor(Math.abs(netAmount)).toLocaleString()}`, didSave ? '#16A34A' : '#EF4444')}
+              <View style={{ height: 1, backgroundColor: colors.border }} />
+              {statRow(didSave ? 'Underspent' : 'Overspent', `৳${Math.floor(Math.abs(netAmount)).toLocaleString()}`, didSave ? colors.primary : colors.error)}
             </View>
             {hasProtected && (
               <View style={cardShadow}>
                 {cycleData.cycle.savings > 0 && (
                   <>
-                    {statRow('Savings (untouched)', `৳${Math.floor(cycleData.cycle.savings).toLocaleString()}`, '#16A34A')}
-                    {cycleData.reservations.length > 0 && <View style={{ height: 1, backgroundColor: '#F3F4F6' }} />}
+                    {statRow('Savings (untouched)', `৳${Math.floor(cycleData.cycle.savings).toLocaleString()}`, colors.primary)}
+                    {cycleData.reservations.length > 0 && <View style={{ height: 1, backgroundColor: colors.border }} />}
                   </>
                 )}
                 {cycleData.reservations.map((r, i) => (
                   <View key={r.id}>
-                    {statRow(`${r.name} (reserved)`, `৳${Math.floor(r.amount).toLocaleString()}`, '#6B7280')}
-                    {i < cycleData.reservations.length - 1 && <View style={{ height: 1, backgroundColor: '#F3F4F6' }} />}
+                    {statRow(`${r.name} (reserved)`, `৳${Math.floor(r.amount).toLocaleString()}`, colors.textSecondary)}
+                    {i < cycleData.reservations.length - 1 && <View style={{ height: 1, backgroundColor: colors.border }} />}
                   </View>
                 ))}
               </View>
@@ -469,15 +471,15 @@ export default function HomeScreen() {
             )}
             <Pressable
               onPress={() => router.push({ pathname: '/new-cycle', params: { leftover: String(cycleData.leftInCycle > 0 ? Math.floor(cycleData.leftInCycle) : 0), prevCycleId: String(cycleData.cycle.id) } })}
-              style={{ backgroundColor: '#16A34A', borderRadius: 16, paddingVertical: 16, alignItems: 'center', marginBottom: 12 }}
+              style={{ backgroundColor: colors.primary, borderRadius: 16, paddingVertical: 16, alignItems: 'center', marginBottom: 12 }}
             >
               <Text style={{ color: '#fff', fontSize: 16, fontFamily: 'PlusJakartaSans_700Bold' }}>Start new cycle</Text>
             </Pressable>
             <Pressable
               onPress={() => setIsPayDelayed(true)}
-              style={{ borderRadius: 16, paddingVertical: 16, alignItems: 'center', borderWidth: 1.5, borderColor: '#E5E7EB' }}
+              style={{ borderRadius: 16, paddingVertical: 16, alignItems: 'center', borderWidth: 1.5, borderColor: colors.border }}
             >
-              <Text style={{ color: '#6B7280', fontSize: 16, fontFamily: 'PlusJakartaSans_600SemiBold' }}>Wait — pay was delayed</Text>
+              <Text style={{ color: colors.textSecondary, fontSize: 16, fontFamily: 'PlusJakartaSans_600SemiBold' }}>Wait — pay was delayed</Text>
             </Pressable>
           </ScrollView>
         );
@@ -492,18 +494,18 @@ export default function HomeScreen() {
         return (
           <View style={{ flex: 1, paddingTop: insets.top, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 }}>
             <Text style={{ fontSize: 40, marginBottom: 16 }}>⏳</Text>
-            <Text style={{ fontSize: 26, fontFamily: 'PlusJakartaSans_800ExtraBold', color: '#111827', textAlign: 'center', letterSpacing: -0.5, marginBottom: 12 }}>
+            <Text style={{ fontSize: 26, fontFamily: 'PlusJakartaSans_800ExtraBold', color: colors.textPrimary, textAlign: 'center', letterSpacing: -0.5, marginBottom: 12 }}>
               Waiting patiently.
             </Text>
-            <Text style={{ fontSize: 14, color: '#9CA3AF', fontFamily: 'PlusJakartaSans_400Regular', textAlign: 'center', lineHeight: 22, marginBottom: 8 }}>
+            <Text style={{ fontSize: 14, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular', textAlign: 'center', lineHeight: 22, marginBottom: 8 }}>
               Unlike your friends that leave when you're broke, we're still here.
             </Text>
-            <Text style={{ fontSize: 13, color: '#16A34A', fontFamily: 'PlusJakartaSans_600SemiBold', textAlign: 'center', marginBottom: 40 }}>
+            <Text style={{ fontSize: 13, color: colors.primary, fontFamily: 'PlusJakartaSans_600SemiBold', textAlign: 'center', marginBottom: 40 }}>
               Cycle starts {startFmt} · {daysUntil} {daysUntil === 1 ? 'day' : 'days'} away
             </Text>
             <Pressable
               onPress={() => router.push({ pathname: '/new-cycle', params: { leftover: '0', prevCycleId: String(cycleData.cycle.id) } })}
-              style={{ backgroundColor: '#16A34A', borderRadius: 16, paddingVertical: 16, paddingHorizontal: 40, alignItems: 'center' }}
+              style={{ backgroundColor: colors.primary, borderRadius: 16, paddingVertical: 16, paddingHorizontal: 40, alignItems: 'center' }}
             >
               <Text style={{ color: '#fff', fontSize: 16, fontFamily: 'PlusJakartaSans_700Bold' }}>Start new cycle</Text>
             </Pressable>
@@ -558,33 +560,33 @@ export default function HomeScreen() {
           <View style={{ flex: 1, paddingTop: insets.top }}>
             <ScrollView contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 40, paddingBottom: Math.max(insets.bottom, 32) }} showsVerticalScrollIndicator={false}>
               <Text style={{ fontSize: 36, marginBottom: 16 }}>✅</Text>
-              <Text style={{ fontSize: 30, fontFamily: 'PlusJakartaSans_800ExtraBold', color: '#111827', letterSpacing: -0.5, marginBottom: 8 }}>
+              <Text style={{ fontSize: 30, fontFamily: 'PlusJakartaSans_800ExtraBold', color: colors.textPrimary, letterSpacing: -0.5, marginBottom: 8 }}>
                 You're done for today.
               </Text>
-              <Text style={{ fontSize: 15, color: '#9CA3AF', fontFamily: 'PlusJakartaSans_400Regular', marginBottom: 32 }}>
+              <Text style={{ fontSize: 15, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular', marginBottom: 32 }}>
                 See you tomorrow.
               </Text>
-              <View style={{ backgroundColor: '#fff', borderRadius: 20, paddingHorizontal: 16, marginBottom: 16, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 }}>
+              <View style={{ backgroundColor: colors.card, borderRadius: 20, paddingHorizontal: 16, marginBottom: 16, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 13 }}>
-                  <Text style={{ fontSize: 14, color: '#6B7280', fontFamily: 'PlusJakartaSans_400Regular' }}>Spent today</Text>
-                  <Text style={{ fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#111827' }}>৳{Math.floor(todayTotalSpent).toLocaleString()}</Text>
+                  <Text style={{ fontSize: 14, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular' }}>Spent today</Text>
+                  <Text style={{ fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: colors.textPrimary }}>৳{Math.floor(todayTotalSpent).toLocaleString()}</Text>
                 </View>
                 {todaySaved > 0 && (
                   <>
-                    <View style={{ height: 1, backgroundColor: '#F3F4F6' }} />
+                    <View style={{ height: 1, backgroundColor: colors.border }} />
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 13 }}>
-                      <Text style={{ fontSize: 14, color: '#6B7280', fontFamily: 'PlusJakartaSans_400Regular' }}>Saved today</Text>
-                      <Text style={{ fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#16A34A' }}>৳{Math.floor(todaySaved).toLocaleString()}</Text>
+                      <Text style={{ fontSize: 14, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular' }}>Saved today</Text>
+                      <Text style={{ fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: colors.primary }}>৳{Math.floor(todaySaved).toLocaleString()}</Text>
                     </View>
                   </>
                 )}
-                <View style={{ height: 1, backgroundColor: '#F3F4F6' }} />
+                <View style={{ height: 1, backgroundColor: colors.border }} />
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 13 }}>
-                  <Text style={{ fontSize: 14, color: '#6B7280', fontFamily: 'PlusJakartaSans_400Regular' }}>New daily budget</Text>
-                  <Text style={{ fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#111827' }}>৳{Math.floor(cycleData.dailyBudget).toLocaleString()}</Text>
+                  <Text style={{ fontSize: 14, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular' }}>New daily budget</Text>
+                  <Text style={{ fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: colors.textPrimary }}>৳{Math.floor(cycleData.dailyBudget).toLocaleString()}</Text>
                 </View>
               </View>
-              <Text style={{ fontSize: 12, color: '#D1D5DB', fontFamily: 'PlusJakartaSans_400Regular', textAlign: 'center' }}>{countdown}</Text>
+              <Text style={{ fontSize: 12, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular', textAlign: 'center' }}>{countdown}</Text>
             </ScrollView>
           </View>
         );
