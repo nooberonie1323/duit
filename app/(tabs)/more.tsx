@@ -1,3 +1,4 @@
+import { useTheme } from '@/contexts/theme';
 import { getSettings, resetAppData, updateSettings, type Settings } from '@/services/settingsService';
 import { cancelReviewNotifications, requestNotificationPermission, scheduleReviewNotifications } from '@/services/notificationService';
 import { router } from 'expo-router';
@@ -26,13 +27,13 @@ const REVIEW_TIMES = [
 const THEMES = [
   { label: 'Light', value: 'light' },
   { label: 'Dark', value: 'dark' },
-  { label: 'System', value: 'system' },
-];
+] as const;
 
 
 export default function MoreScreen() {
   const insets = useSafeAreaInsets();
   const db = useSQLiteContext();
+  const { setTheme } = useTheme();
   const [settings, setSettings] = useState<Settings | null>(null);
   const [loading, setLoading] = useState(true);
   const [editingName, setEditingName] = useState(false);
@@ -71,9 +72,9 @@ export default function MoreScreen() {
     setSettings({ ...settings, notifications_enabled: value ? 1 : 0 });
   }
 
-  async function handleTheme(value: string) {
+  async function handleTheme(value: 'light' | 'dark') {
     if (!settings) return;
-    await updateSettings(db, { theme: value });
+    await setTheme(value);
     setSettings({ ...settings, theme: value });
   }
 
