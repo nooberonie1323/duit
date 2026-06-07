@@ -1,3 +1,4 @@
+import { useThemeColors } from '@/contexts/theme';
 import { fromDateStr } from '@/lib/db';
 import { getAllReviewedDays, getDayEntries, type EntryRow, type ReviewedDayWithCycle } from '@/services/entryService';
 import { useSQLiteContext } from 'expo-sqlite';
@@ -29,6 +30,7 @@ interface DayDetail {
 
 export default function LogScreen() {
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
   const db = useSQLiteContext();
   const [groups, setGroups] = useState<CycleGroup[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,8 +62,8 @@ export default function LogScreen() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#F9FAFB', alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator color="#16A34A" />
+      <View style={{ flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator color={colors.primary} />
       </View>
     );
   }
@@ -69,9 +71,9 @@ export default function LogScreen() {
   const hasAny = groups.some(g => g.days.length > 0);
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <View style={{ paddingTop: insets.top + 16, paddingHorizontal: 20, paddingBottom: 16 }}>
-        <Text style={{ fontSize: 26, fontFamily: 'PlusJakartaSans_800ExtraBold', color: '#111827', letterSpacing: -0.5 }}>
+        <Text style={{ fontSize: 26, fontFamily: 'PlusJakartaSans_800ExtraBold', color: colors.textPrimary, letterSpacing: -0.5 }}>
           Log
         </Text>
       </View>
@@ -79,10 +81,10 @@ export default function LogScreen() {
       {!hasAny ? (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 80 }}>
           <Text style={{ fontSize: 32, marginBottom: 12 }}>📭</Text>
-          <Text style={{ fontSize: 15, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#111827', marginBottom: 6 }}>
+          <Text style={{ fontSize: 15, fontFamily: 'PlusJakartaSans_600SemiBold', color: colors.textPrimary, marginBottom: 6 }}>
             Nothing here yet
           </Text>
-          <Text style={{ fontSize: 13, color: '#9CA3AF', fontFamily: 'PlusJakartaSans_400Regular', textAlign: 'center', paddingHorizontal: 40 }}>
+          <Text style={{ fontSize: 13, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular', textAlign: 'center', paddingHorizontal: 40 }}>
             Reviewed days will appear here after you confirm your daily review.
           </Text>
         </View>
@@ -90,10 +92,10 @@ export default function LogScreen() {
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 120 }}>
           {groups.map((group, gi) => (
             <View key={group.cycleId} style={{ marginBottom: 24 }}>
-              <Text style={{ fontSize: 11, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#9CA3AF', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8, marginLeft: 4 }}>
+              <Text style={{ fontSize: 11, fontFamily: 'PlusJakartaSans_600SemiBold', color: colors.textSecondary, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8, marginLeft: 4 }}>
                 {fmtCycleRange(group.cycleStart, group.cycleEnd)}
               </Text>
-              <View style={{ backgroundColor: '#fff', borderRadius: 20, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 }}>
+              <View style={{ backgroundColor: colors.card, borderRadius: 20, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 }}>
                 {group.days.map((day, i) => {
                   const saved = day.daily_budget - day.total_spent;
                   const didSave = saved >= 0;
@@ -107,26 +109,26 @@ export default function LogScreen() {
                         paddingVertical: 14,
                         paddingHorizontal: 16,
                         borderBottomWidth: i < group.days.length - 1 ? 1 : 0,
-                        borderBottomColor: '#F3F4F6',
+                        borderBottomColor: colors.border,
                       }}
                     >
                       <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#111827', marginBottom: 3 }}>
+                        <Text style={{ fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: colors.textPrimary, marginBottom: 3 }}>
                           {fmtDay(day.date)}
                         </Text>
-                        <Text style={{ fontSize: 12, color: '#9CA3AF', fontFamily: 'PlusJakartaSans_400Regular' }}>
+                        <Text style={{ fontSize: 12, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular' }}>
                           spent ৳{Math.floor(day.total_spent).toLocaleString()}
                         </Text>
                       </View>
                       <View style={{ alignItems: 'flex-end', marginRight: 10 }}>
-                        <Text style={{ fontSize: 13, fontFamily: 'PlusJakartaSans_600SemiBold', color: didSave ? '#16A34A' : '#EF4444' }}>
+                        <Text style={{ fontSize: 13, fontFamily: 'PlusJakartaSans_600SemiBold', color: didSave ? colors.primary : colors.error }}>
                           {didSave ? `+৳${Math.floor(saved).toLocaleString()}` : `-৳${Math.floor(Math.abs(saved)).toLocaleString()}`}
                         </Text>
-                        <Text style={{ fontSize: 11, color: didSave ? '#16A34A' : '#EF4444', fontFamily: 'PlusJakartaSans_400Regular', marginTop: 1 }}>
+                        <Text style={{ fontSize: 11, color: didSave ? colors.primary : colors.error, fontFamily: 'PlusJakartaSans_400Regular', marginTop: 1 }}>
                           {didSave ? 'saved' : 'overspent'}
                         </Text>
                       </View>
-                      <Text style={{ fontSize: 16, color: '#D1D5DB' }}>›</Text>
+                      <Text style={{ fontSize: 16, color: colors.textSecondary }}>›</Text>
                     </Pressable>
                   );
                 })}
@@ -143,30 +145,30 @@ export default function LogScreen() {
           onPress={() => setDetail(null)}
         >
           <Pressable onPress={() => {}} style={{ width: '100%' }}>
-            <View style={{ backgroundColor: '#fff', borderRadius: 20, paddingTop: 22, paddingBottom: 8, maxHeight: '80%' }}>
+            <View style={{ backgroundColor: colors.card, borderRadius: 20, paddingTop: 22, paddingBottom: 8, maxHeight: '80%' }}>
               {loadingDetail || !detail ? (
                 <View style={{ padding: 40, alignItems: 'center' }}>
-                  <ActivityIndicator color="#16A34A" />
+                  <ActivityIndicator color={colors.primary} />
                 </View>
               ) : (
                 <>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', paddingHorizontal: 20, marginBottom: 16 }}>
                     <View>
-                      <Text style={{ fontSize: 16, fontFamily: 'PlusJakartaSans_700Bold', color: '#111827' }}>
+                      <Text style={{ fontSize: 16, fontFamily: 'PlusJakartaSans_700Bold', color: colors.textPrimary }}>
                         {fmtDay(detail.day.date)}
                       </Text>
-                      <Text style={{ fontSize: 12, color: '#9CA3AF', fontFamily: 'PlusJakartaSans_400Regular', marginTop: 2 }}>
+                      <Text style={{ fontSize: 12, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular', marginTop: 2 }}>
                         ৳{Math.floor(detail.day.total_spent).toLocaleString()} spent · budget ৳{Math.floor(detail.day.daily_budget).toLocaleString()}
                       </Text>
                     </View>
                     <Pressable onPress={() => setDetail(null)} hitSlop={8}>
-                      <Text style={{ fontSize: 22, color: '#9CA3AF', lineHeight: 24, includeFontPadding: false }}>×</Text>
+                      <Text style={{ fontSize: 22, color: colors.textSecondary, lineHeight: 24, includeFontPadding: false }}>×</Text>
                     </Pressable>
                   </View>
 
                   <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 320 }}>
                     {detail.entries.length === 0 ? (
-                      <Text style={{ fontSize: 13, color: '#9CA3AF', fontFamily: 'PlusJakartaSans_400Regular', textAlign: 'center', paddingVertical: 24 }}>
+                      <Text style={{ fontSize: 13, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular', textAlign: 'center', paddingVertical: 24 }}>
                         No entries for this day.
                       </Text>
                     ) : (
@@ -180,13 +182,13 @@ export default function LogScreen() {
                             paddingHorizontal: 20,
                             borderTopWidth: i === 0 ? 1 : 0,
                             borderBottomWidth: 1,
-                            borderColor: '#F3F4F6',
+                            borderColor: colors.border,
                           }}
                         >
-                          <Text style={{ flex: 1, fontSize: 14, color: '#374151', fontFamily: 'PlusJakartaSans_400Regular' }} numberOfLines={1}>
+                          <Text style={{ flex: 1, fontSize: 14, color: colors.textPrimary, fontFamily: 'PlusJakartaSans_400Regular' }} numberOfLines={1}>
                             {entry.note || 'general spending'}
                           </Text>
-                          <Text style={{ fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#111827' }}>
+                          <Text style={{ fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: colors.textPrimary }}>
                             ৳{entry.amount.toLocaleString()}
                           </Text>
                         </View>
@@ -195,9 +197,9 @@ export default function LogScreen() {
                   </ScrollView>
 
                   {detail.day.notes ? (
-                    <View style={{ marginHorizontal: 20, marginTop: 12, backgroundColor: '#F9FAFB', borderRadius: 12, padding: 12 }}>
-                      <Text style={{ fontSize: 11, color: '#9CA3AF', fontFamily: 'PlusJakartaSans_600SemiBold', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 4 }}>Note</Text>
-                      <Text style={{ fontSize: 13, color: '#374151', fontFamily: 'PlusJakartaSans_400Regular' }}>{detail.day.notes}</Text>
+                    <View style={{ marginHorizontal: 20, marginTop: 12, backgroundColor: colors.background, borderRadius: 12, padding: 12 }}>
+                      <Text style={{ fontSize: 11, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_600SemiBold', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 4 }}>Note</Text>
+                      <Text style={{ fontSize: 13, color: colors.textPrimary, fontFamily: 'PlusJakartaSans_400Regular' }}>{detail.day.notes}</Text>
                     </View>
                   ) : null}
 
@@ -206,10 +208,10 @@ export default function LogScreen() {
                     const didSave = saved >= 0;
                     return (
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14 }}>
-                        <Text style={{ fontSize: 13, color: '#9CA3AF', fontFamily: 'PlusJakartaSans_400Regular' }}>
+                        <Text style={{ fontSize: 13, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular' }}>
                           {didSave ? 'Saved' : 'Overspent'}
                         </Text>
-                        <Text style={{ fontSize: 13, fontFamily: 'PlusJakartaSans_700Bold', color: didSave ? '#16A34A' : '#EF4444' }}>
+                        <Text style={{ fontSize: 13, fontFamily: 'PlusJakartaSans_700Bold', color: didSave ? colors.primary : colors.error }}>
                           ৳{Math.floor(Math.abs(saved)).toLocaleString()}
                         </Text>
                       </View>

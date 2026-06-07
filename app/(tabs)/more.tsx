@@ -1,4 +1,4 @@
-import { useTheme } from '@/contexts/theme';
+import { useTheme, useThemeColors } from '@/contexts/theme';
 import { getSettings, resetAppData, updateSettings, type Settings } from '@/services/settingsService';
 import { cancelReviewNotifications, requestNotificationPermission, scheduleReviewNotifications } from '@/services/notificationService';
 import { router } from 'expo-router';
@@ -32,6 +32,7 @@ const THEMES = [
 
 export default function MoreScreen() {
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
   const db = useSQLiteContext();
   const { setTheme } = useTheme();
   const [settings, setSettings] = useState<Settings | null>(null);
@@ -132,16 +133,16 @@ export default function MoreScreen() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#F9FAFB', alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator color="#16A34A" />
+      <View style={{ flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator color={colors.primary} />
       </View>
     );
   }
 
   if (!settings) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#F9FAFB', alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ color: '#9CA3AF', fontFamily: 'PlusJakartaSans_400Regular' }}>No settings found.</Text>
+      <View style={{ flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' }}>
+        <Text style={{ color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular' }}>No settings found.</Text>
       </View>
     );
   }
@@ -149,9 +150,9 @@ export default function MoreScreen() {
   const navPillOffset = Math.max(insets.bottom, 16) + 76;
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <View style={{ paddingTop: insets.top + 16, paddingHorizontal: 20, paddingBottom: 16 }}>
-        <Text style={{ fontSize: 26, fontFamily: 'PlusJakartaSans_800ExtraBold', color: '#111827', letterSpacing: -0.5 }}>
+        <Text style={{ fontSize: 26, fontFamily: 'PlusJakartaSans_800ExtraBold', color: colors.textPrimary, letterSpacing: -0.5 }}>
           More
         </Text>
       </View>
@@ -161,25 +162,25 @@ export default function MoreScreen() {
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: navPillOffset + 16 }}
       >
         {/* Profile */}
-        <Text style={styles.sectionLabel}>Profile</Text>
-        <View style={styles.card}>
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Profile</Text>
+        <View style={[styles.card, { backgroundColor: colors.card }]}>
           <Pressable
             onPress={openNameEdit}
             style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16 }}
           >
-            <Text style={{ flex: 1, fontSize: 14, fontFamily: 'PlusJakartaSans_500Medium', color: '#111827' }}>Name</Text>
-            <Text style={{ fontSize: 14, color: '#6B7280', fontFamily: 'PlusJakartaSans_400Regular', marginRight: 8 }}>
+            <Text style={{ flex: 1, fontSize: 14, fontFamily: 'PlusJakartaSans_500Medium', color: colors.textPrimary }}>Name</Text>
+            <Text style={{ fontSize: 14, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular', marginRight: 8 }}>
               {settings.name}
             </Text>
-            <Text style={{ fontSize: 16, color: '#D1D5DB' }}>›</Text>
+            <Text style={{ fontSize: 16, color: colors.textSecondary }}>›</Text>
           </Pressable>
         </View>
 
         {/* Daily review */}
-        <Text style={styles.sectionLabel}>Daily review</Text>
-        <View style={styles.card}>
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Daily review</Text>
+        <View style={[styles.card, { backgroundColor: colors.card }]}>
           <View style={{ paddingVertical: 14, paddingHorizontal: 16 }}>
-            <Text style={{ fontSize: 14, fontFamily: 'PlusJakartaSans_500Medium', color: '#111827', marginBottom: 12 }}>
+            <Text style={{ fontSize: 14, fontFamily: 'PlusJakartaSans_500Medium', color: colors.textPrimary, marginBottom: 12 }}>
               Review time
             </Text>
             <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -193,14 +194,14 @@ export default function MoreScreen() {
                       flex: 1,
                       paddingVertical: 9,
                       borderRadius: 20,
-                      backgroundColor: active ? '#16A34A' : '#F3F4F6',
+                      backgroundColor: active ? colors.primary : colors.background,
                       alignItems: 'center',
                     }}
                   >
                     <Text style={{
                       fontSize: 12,
                       fontFamily: active ? 'PlusJakartaSans_600SemiBold' : 'PlusJakartaSans_400Regular',
-                      color: active ? '#fff' : '#6B7280',
+                      color: active ? '#fff' : colors.textSecondary,
                     }}>
                       {rt.label}
                     </Text>
@@ -210,31 +211,31 @@ export default function MoreScreen() {
             </View>
           </View>
 
-          <View style={{ height: 1, backgroundColor: '#F3F4F6', marginHorizontal: 16 }} />
+          <View style={{ height: 1, backgroundColor: colors.border, marginHorizontal: 16 }} />
 
           <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16 }}>
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 14, fontFamily: 'PlusJakartaSans_500Medium', color: '#111827' }}>
+              <Text style={{ fontSize: 14, fontFamily: 'PlusJakartaSans_500Medium', color: colors.textPrimary }}>
                 Notifications
               </Text>
-              <Text style={{ fontSize: 12, color: '#9CA3AF', fontFamily: 'PlusJakartaSans_400Regular', marginTop: 2 }}>
+              <Text style={{ fontSize: 12, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular', marginTop: 2 }}>
                 Remind me at review time
               </Text>
             </View>
             <Switch
               value={settings.notifications_enabled === 1}
               onValueChange={handleNotifications}
-              trackColor={{ false: '#E5E7EB', true: '#86EFAC' }}
-              thumbColor={settings.notifications_enabled === 1 ? '#16A34A' : '#fff'}
+              trackColor={{ false: colors.border, true: '#86EFAC' }}
+              thumbColor={settings.notifications_enabled === 1 ? colors.primary : '#fff'}
             />
           </View>
         </View>
 
         {/* Appearance */}
-        <Text style={styles.sectionLabel}>Appearance</Text>
-        <View style={styles.card}>
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Appearance</Text>
+        <View style={[styles.card, { backgroundColor: colors.card }]}>
           <View style={{ paddingVertical: 14, paddingHorizontal: 16 }}>
-            <Text style={{ fontSize: 14, fontFamily: 'PlusJakartaSans_500Medium', color: '#111827', marginBottom: 12 }}>
+            <Text style={{ fontSize: 14, fontFamily: 'PlusJakartaSans_500Medium', color: colors.textPrimary, marginBottom: 12 }}>
               Theme
             </Text>
             <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -248,14 +249,14 @@ export default function MoreScreen() {
                       flex: 1,
                       paddingVertical: 9,
                       borderRadius: 20,
-                      backgroundColor: active ? '#16A34A' : '#F3F4F6',
+                      backgroundColor: active ? colors.primary : colors.background,
                       alignItems: 'center',
                     }}
                   >
                     <Text style={{
                       fontSize: 12,
                       fontFamily: active ? 'PlusJakartaSans_600SemiBold' : 'PlusJakartaSans_400Regular',
-                      color: active ? '#fff' : '#6B7280',
+                      color: active ? '#fff' : colors.textSecondary,
                     }}>
                       {t.label}
                     </Text>
@@ -267,8 +268,8 @@ export default function MoreScreen() {
         </View>
 
         {/* App */}
-        <Text style={styles.sectionLabel}>App</Text>
-        <View style={styles.card}>
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>App</Text>
+        <View style={[styles.card, { backgroundColor: colors.card }]}>
           {/* Check for updates row */}
           {(updateStatus === 'idle' || updateStatus === 'checking' || updateStatus === 'up-to-date') && (
             <Pressable
@@ -276,11 +277,11 @@ export default function MoreScreen() {
               disabled={updateStatus === 'checking'}
               style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16 }}
             >
-              <Text style={{ flex: 1, fontSize: 14, fontFamily: 'PlusJakartaSans_500Medium', color: '#111827' }}>
+              <Text style={{ flex: 1, fontSize: 14, fontFamily: 'PlusJakartaSans_500Medium', color: colors.textPrimary }}>
                 Check for updates
               </Text>
-              {updateStatus === 'checking' && <ActivityIndicator size="small" color="#16A34A" />}
-              {updateStatus === 'up-to-date' && <Text style={{ fontSize: 13, color: '#16A34A', fontFamily: 'PlusJakartaSans_600SemiBold' }}>Up to date ✓</Text>}
+              {updateStatus === 'checking' && <ActivityIndicator size="small" color={colors.primary} />}
+              {updateStatus === 'up-to-date' && <Text style={{ fontSize: 13, color: colors.primary, fontFamily: 'PlusJakartaSans_600SemiBold' }}>Up to date ✓</Text>}
             </Pressable>
           )}
           {/* Download update row */}
@@ -289,15 +290,15 @@ export default function MoreScreen() {
               onPress={handleDownloadUpdate}
               style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16 }}
             >
-              <Text style={{ flex: 1, fontSize: 14, fontFamily: 'PlusJakartaSans_500Medium', color: '#111827' }}>Update available</Text>
-              <Text style={{ fontSize: 13, color: '#16A34A', fontFamily: 'PlusJakartaSans_700Bold' }}>Download →</Text>
+              <Text style={{ flex: 1, fontSize: 14, fontFamily: 'PlusJakartaSans_500Medium', color: colors.textPrimary }}>Update available</Text>
+              <Text style={{ fontSize: 13, color: colors.primary, fontFamily: 'PlusJakartaSans_700Bold' }}>Download →</Text>
             </Pressable>
           )}
           {/* Downloading row */}
           {updateStatus === 'downloading' && (
             <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16 }}>
-              <Text style={{ flex: 1, fontSize: 14, fontFamily: 'PlusJakartaSans_500Medium', color: '#111827' }}>Downloading...</Text>
-              <ActivityIndicator size="small" color="#16A34A" />
+              <Text style={{ flex: 1, fontSize: 14, fontFamily: 'PlusJakartaSans_500Medium', color: colors.textPrimary }}>Downloading...</Text>
+              <ActivityIndicator size="small" color={colors.primary} />
             </View>
           )}
           {/* Restart row */}
@@ -306,24 +307,24 @@ export default function MoreScreen() {
               onPress={() => Updates.reloadAsync()}
               style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16 }}
             >
-              <Text style={{ flex: 1, fontSize: 14, fontFamily: 'PlusJakartaSans_500Medium', color: '#111827' }}>Update downloaded</Text>
-              <Text style={{ fontSize: 13, color: '#16A34A', fontFamily: 'PlusJakartaSans_700Bold' }}>Restart →</Text>
+              <Text style={{ flex: 1, fontSize: 14, fontFamily: 'PlusJakartaSans_500Medium', color: colors.textPrimary }}>Update downloaded</Text>
+              <Text style={{ fontSize: 13, color: colors.primary, fontFamily: 'PlusJakartaSans_700Bold' }}>Restart →</Text>
             </Pressable>
           )}
         </View>
 
         {/* Danger zone */}
-        <Text style={[styles.sectionLabel, { color: '#EF4444' }]}>Danger zone</Text>
-        <View style={styles.card}>
+        <Text style={[styles.sectionLabel, { color: colors.error }]}>Danger zone</Text>
+        <View style={[styles.card, { backgroundColor: colors.card }]}>
           <Pressable
             onPress={() => setConfirmReset(true)}
             style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16 }}
           >
-            <Text style={{ flex: 1, fontSize: 14, fontFamily: 'PlusJakartaSans_500Medium', color: '#EF4444' }}>Reset all data</Text>
+            <Text style={{ flex: 1, fontSize: 14, fontFamily: 'PlusJakartaSans_500Medium', color: colors.error }}>Reset all data</Text>
           </Pressable>
         </View>
 
-        <Text style={{ fontSize: 12, color: '#D1D5DB', fontFamily: 'PlusJakartaSans_400Regular', textAlign: 'center', marginTop: 28 }}>
+        <Text style={{ fontSize: 12, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular', textAlign: 'center', marginTop: 28 }}>
           Duit · v0.1.0
         </Text>
       </ScrollView>
@@ -335,25 +336,25 @@ export default function MoreScreen() {
           onPress={() => !resetting && setConfirmReset(false)}
         >
           <Pressable onPress={() => {}} style={{ width: '100%' }}>
-            <View style={{ backgroundColor: '#fff', borderRadius: 20, paddingHorizontal: 24, paddingTop: 24, paddingBottom: 20 }}>
-              <Text style={{ fontSize: 17, fontFamily: 'PlusJakartaSans_700Bold', color: '#111827', marginBottom: 8 }}>
+            <View style={{ backgroundColor: colors.card, borderRadius: 20, paddingHorizontal: 24, paddingTop: 24, paddingBottom: 20 }}>
+              <Text style={{ fontSize: 17, fontFamily: 'PlusJakartaSans_700Bold', color: colors.textPrimary, marginBottom: 8 }}>
                 Reset all data?
               </Text>
-              <Text style={{ fontSize: 14, color: '#6B7280', fontFamily: 'PlusJakartaSans_400Regular', lineHeight: 20, marginBottom: 24 }}>
+              <Text style={{ fontSize: 14, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular', lineHeight: 20, marginBottom: 24 }}>
                 This will permanently delete all cycles, spending history, and settings. The app will restart from scratch.
               </Text>
               <View style={{ flexDirection: 'row', gap: 10 }}>
                 <Pressable
                   onPress={() => setConfirmReset(false)}
                   disabled={resetting}
-                  style={{ flex: 1, paddingVertical: 14, alignItems: 'center', borderRadius: 14, borderWidth: 1.5, borderColor: '#E5E7EB' }}
+                  style={{ flex: 1, paddingVertical: 14, alignItems: 'center', borderRadius: 14, borderWidth: 1.5, borderColor: colors.border }}
                 >
-                  <Text style={{ fontSize: 15, color: '#6B7280', fontFamily: 'PlusJakartaSans_600SemiBold' }}>Cancel</Text>
+                  <Text style={{ fontSize: 15, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_600SemiBold' }}>Cancel</Text>
                 </Pressable>
                 <Pressable
                   onPress={handleReset}
                   disabled={resetting}
-                  style={{ flex: 1, paddingVertical: 14, alignItems: 'center', borderRadius: 14, backgroundColor: '#EF4444' }}
+                  style={{ flex: 1, paddingVertical: 14, alignItems: 'center', borderRadius: 14, backgroundColor: colors.error }}
                 >
                   {resetting
                     ? <ActivityIndicator color="#fff" />
@@ -373,8 +374,8 @@ export default function MoreScreen() {
           onPress={() => setEditingName(false)}
         >
           <Pressable onPress={() => {}} style={{ width: '100%' }}>
-            <View style={{ backgroundColor: '#fff', borderRadius: 20, padding: 24 }}>
-              <Text style={{ fontSize: 16, fontFamily: 'PlusJakartaSans_700Bold', color: '#111827', marginBottom: 16 }}>
+            <View style={{ backgroundColor: colors.card, borderRadius: 20, padding: 24 }}>
+              <Text style={{ fontSize: 16, fontFamily: 'PlusJakartaSans_700Bold', color: colors.textPrimary, marginBottom: 16 }}>
                 Edit name
               </Text>
               <TextInput
@@ -385,19 +386,19 @@ export default function MoreScreen() {
                 onSubmitEditing={handleSaveName}
                 style={{
                   borderWidth: 1.5,
-                  borderColor: '#E5E7EB',
+                  borderColor: colors.border,
                   borderRadius: 12,
                   paddingHorizontal: 14,
                   paddingVertical: 12,
                   fontSize: 15,
                   fontFamily: 'PlusJakartaSans_400Regular',
-                  color: '#111827',
+                  color: colors.textPrimary,
                   marginBottom: 16,
                 }}
               />
               <Pressable
                 onPress={handleSaveName}
-                style={{ backgroundColor: '#16A34A', borderRadius: 14, paddingVertical: 14, alignItems: 'center' }}
+                style={{ backgroundColor: colors.primary, borderRadius: 14, paddingVertical: 14, alignItems: 'center' }}
               >
                 <Text style={{ fontSize: 15, fontFamily: 'PlusJakartaSans_700Bold', color: '#fff' }}>Save</Text>
               </Pressable>
@@ -413,7 +414,6 @@ const styles = {
   sectionLabel: {
     fontSize: 11,
     fontFamily: 'PlusJakartaSans_600SemiBold' as const,
-    color: '#9CA3AF',
     letterSpacing: 0.5,
     textTransform: 'uppercase' as const,
     marginBottom: 8,
@@ -421,7 +421,6 @@ const styles = {
     marginLeft: 4,
   },
   card: {
-    backgroundColor: '#fff',
     borderRadius: 20,
     overflow: 'hidden' as const,
     shadowColor: '#000',
