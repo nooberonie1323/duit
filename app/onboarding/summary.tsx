@@ -1,4 +1,6 @@
 import { useOnboarding } from '@/contexts/onboarding';
+import { useThemeColors } from '@/contexts/theme';
+import { type ColorTokens } from '@/constants/theme';
 import { saveSettings } from '@/services/settingsService';
 import { createCycle } from '@/services/cycleService';
 import { router } from 'expo-router';
@@ -14,16 +16,17 @@ function fmtFull(d: Date) {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-const SectionLabel = ({ children }: { children: string }) => (
-  <Text style={{ fontSize: 10, fontFamily: 'PlusJakartaSans_700Bold', color: '#9CA3AF', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8, marginLeft: 2 }}>
+const SectionLabel = ({ children, colors }: { children: string; colors: ColorTokens }) => (
+  <Text style={{ fontSize: 10, fontFamily: 'PlusJakartaSans_700Bold', color: colors.textSecondary, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8, marginLeft: 2 }}>
     {children}
   </Text>
 );
 
-const Divider = () => <View style={{ height: 1, backgroundColor: '#F3F4F6' }} />;
+const Divider = ({ colors }: { colors: ColorTokens }) => <View style={{ height: 1, backgroundColor: colors.border }} />;
 
 export default function SummaryScreen() {
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
   const db = useSQLiteContext();
   const { data } = useOnboarding();
   const [saving, setSaving] = useState(false);
@@ -55,31 +58,31 @@ export default function SummaryScreen() {
   const hasProtect = savings > 0 || data.reservations.length > 0;
 
   const rowStyle = { flexDirection: 'row' as const, justifyContent: 'space-between' as const, alignItems: 'center' as const, paddingVertical: 13, paddingHorizontal: 16 };
-  const labelStyle = { fontSize: 13, color: '#9CA3AF', fontFamily: 'PlusJakartaSans_400Regular' };
-  const valueStyle = { fontSize: 13, color: '#111827', fontFamily: 'PlusJakartaSans_600SemiBold' };
+  const labelStyle = { fontSize: 13, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular' };
+  const valueStyle = { fontSize: 13, color: colors.textPrimary, fontFamily: 'PlusJakartaSans_600SemiBold' };
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       {/* Header */}
-      <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 24, paddingBottom: 14, backgroundColor: '#F9FAFB' }}>
+      <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 24, paddingBottom: 14, backgroundColor: colors.background }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 18 }}>
           <Pressable
             onPress={() => router.back()}
-            style={{ marginRight: 16, backgroundColor: '#111827', borderRadius: 20, width: 36, height: 36, alignItems: 'center', justifyContent: 'center' }}
+            style={{ marginRight: 16, backgroundColor: colors.textPrimary, borderRadius: 20, width: 36, height: 36, alignItems: 'center', justifyContent: 'center' }}
           >
-            <Text style={{ fontSize: 16, color: '#fff', fontFamily: 'PlusJakartaSans_700Bold', includeFontPadding: false, lineHeight: 16 }}>←</Text>
+            <Text style={{ fontSize: 16, color: colors.card, fontFamily: 'PlusJakartaSans_700Bold', includeFontPadding: false, lineHeight: 16 }}>←</Text>
           </Pressable>
-          <View style={{ flex: 1, height: 3, backgroundColor: '#E5E7EB', borderRadius: 2 }}>
-            <View style={{ width: '100%', height: 3, backgroundColor: '#16A34A', borderRadius: 2 }} />
+          <View style={{ flex: 1, height: 3, backgroundColor: colors.border, borderRadius: 2 }}>
+            <View style={{ width: '100%', height: 3, backgroundColor: colors.primary, borderRadius: 2 }} />
           </View>
-          <Text style={{ marginLeft: 12, fontSize: 11, color: '#9CA3AF', fontFamily: 'PlusJakartaSans_600SemiBold', letterSpacing: 0.5 }}>
+          <Text style={{ marginLeft: 12, fontSize: 11, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_600SemiBold', letterSpacing: 0.5 }}>
             4 / 4
           </Text>
         </View>
-        <Text style={{ fontSize: 28, fontFamily: 'PlusJakartaSans_800ExtraBold', color: '#111827', letterSpacing: -0.5 }}>
+        <Text style={{ fontSize: 28, fontFamily: 'PlusJakartaSans_800ExtraBold', color: colors.textPrimary, letterSpacing: -0.5 }}>
           Looks good?
         </Text>
-        <Text style={{ fontSize: 14, color: '#9CA3AF', fontFamily: 'PlusJakartaSans_400Regular', marginTop: 3 }}>
+        <Text style={{ fontSize: 14, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular', marginTop: 3 }}>
           Review everything before we begin.
         </Text>
       </View>
@@ -90,7 +93,7 @@ export default function SummaryScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* ── Hero ── */}
-        <View style={{ backgroundColor: '#16A34A', borderRadius: 20, padding: 24, marginBottom: 20, alignItems: 'center' }}>
+        <View style={{ backgroundColor: colors.primary, borderRadius: 20, padding: 24, marginBottom: 20, alignItems: 'center' }}>
           <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', fontFamily: 'PlusJakartaSans_600SemiBold', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 }}>
             Your daily budget
           </Text>
@@ -111,7 +114,7 @@ export default function SummaryScreen() {
         {poolWouldHitZero && (
           <View style={{ backgroundColor: '#FEF2F2', borderRadius: 12, padding: 12, marginBottom: 12, flexDirection: 'row', gap: 8 }}>
             <Text style={{ fontSize: 16 }}>⚠️</Text>
-            <Text style={{ fontSize: 13, color: '#EF4444', fontFamily: 'PlusJakartaSans_500Medium', flex: 1 }}>
+            <Text style={{ fontSize: 13, color: colors.error, fontFamily: 'PlusJakartaSans_500Medium', flex: 1 }}>
               Savings + reservations exceed your pool. Go back and adjust.
             </Text>
           </View>
@@ -126,13 +129,13 @@ export default function SummaryScreen() {
         )}
 
         {/* ── The basics ── */}
-        <SectionLabel>The basics</SectionLabel>
-        <View style={{ backgroundColor: '#fff', borderRadius: 16, borderWidth: 1.5, borderColor: '#E5E7EB', marginBottom: 14, overflow: 'hidden' }}>
+        <SectionLabel colors={colors}>The basics</SectionLabel>
+        <View style={{ backgroundColor: colors.card, borderRadius: 16, borderWidth: 1.5, borderColor: colors.border, marginBottom: 14, overflow: 'hidden' }}>
           <View style={rowStyle}>
             <Text style={labelStyle}>Name</Text>
             <Text style={valueStyle}>{data.name}</Text>
           </View>
-          <Divider />
+          <Divider colors={colors} />
           <View style={rowStyle}>
             <Text style={labelStyle}>Cycle</Text>
             <Text style={valueStyle}>
@@ -141,12 +144,12 @@ export default function SummaryScreen() {
                 : '—'}
             </Text>
           </View>
-          <Divider />
+          <Divider colors={colors} />
           <View style={rowStyle}>
             <Text style={labelStyle}>Income</Text>
             <Text style={valueStyle}>৳{income.toLocaleString()}</Text>
           </View>
-          <Divider />
+          <Divider colors={colors} />
           <View style={rowStyle}>
             <Text style={labelStyle}>Budget alert</Text>
             <Text style={valueStyle}>{budgetAlert > 0 ? `৳${budgetAlert.toLocaleString()}` : 'Off'}</Text>
@@ -156,8 +159,8 @@ export default function SummaryScreen() {
         {/* ── Starting position ── */}
         {(hasPosition || !startInFuture) && (
           <>
-            <SectionLabel>Starting position</SectionLabel>
-            <View style={{ backgroundColor: '#fff', borderRadius: 16, borderWidth: 1.5, borderColor: '#E5E7EB', marginBottom: 14, overflow: 'hidden' }}>
+            <SectionLabel colors={colors}>Starting position</SectionLabel>
+            <View style={{ backgroundColor: colors.card, borderRadius: 16, borderWidth: 1.5, borderColor: colors.border, marginBottom: 14, overflow: 'hidden' }}>
               {hasPosition && (
                 <>
                   <View style={rowStyle}>
@@ -168,7 +171,7 @@ export default function SummaryScreen() {
                         : parseFloat(data.stillHave)).toLocaleString()}
                     </Text>
                   </View>
-                  {!startInFuture && <Divider />}
+                  {!startInFuture && <Divider colors={colors} />}
                 </>
               )}
               {!startInFuture && (
@@ -184,15 +187,15 @@ export default function SummaryScreen() {
         {/* ── Protected money ── */}
         {hasProtect && (
           <>
-            <SectionLabel>Protected money</SectionLabel>
-            <View style={{ backgroundColor: '#fff', borderRadius: 16, borderWidth: 1.5, borderColor: '#E5E7EB', marginBottom: 14, overflow: 'hidden' }}>
+            <SectionLabel colors={colors}>Protected money</SectionLabel>
+            <View style={{ backgroundColor: colors.card, borderRadius: 16, borderWidth: 1.5, borderColor: colors.border, marginBottom: 14, overflow: 'hidden' }}>
               {savings > 0 && (
                 <>
                   <View style={rowStyle}>
                     <Text style={labelStyle}>Savings</Text>
                     <Text style={valueStyle}>৳{savings.toLocaleString()}</Text>
                   </View>
-                  {data.reservations.length > 0 && <Divider />}
+                  {data.reservations.length > 0 && <Divider colors={colors} />}
                 </>
               )}
               {data.reservations.map((r, i) => (
@@ -201,7 +204,7 @@ export default function SummaryScreen() {
                     <Text style={labelStyle}>{r.name}</Text>
                     <Text style={valueStyle}>৳{parseFloat(r.amount).toLocaleString()}</Text>
                   </View>
-                  {i < data.reservations.length - 1 && <Divider />}
+                  {i < data.reservations.length - 1 && <Divider colors={colors} />}
                 </View>
               ))}
             </View>
@@ -210,7 +213,7 @@ export default function SummaryScreen() {
       </ScrollView>
 
       {/* Footer */}
-      <View style={{ backgroundColor: '#F9FAFB', borderTopWidth: 1, borderTopColor: '#F3F4F6', paddingHorizontal: 20, paddingTop: 14, paddingBottom: Math.max(insets.bottom, 24) }}>
+      <View style={{ backgroundColor: colors.background, borderTopWidth: 1, borderTopColor: colors.border, paddingHorizontal: 20, paddingTop: 14, paddingBottom: Math.max(insets.bottom, 24) }}>
         <Pressable
           onPress={async () => {
             if (!canConfirm || saving) return;
@@ -246,11 +249,11 @@ export default function SummaryScreen() {
               setSaving(false);
             }
           }}
-          style={{ backgroundColor: canConfirm ? '#16A34A' : '#E5E7EB', borderRadius: 16, paddingVertical: 16, alignItems: 'center' }}
+          style={{ backgroundColor: canConfirm ? colors.primary : colors.border, borderRadius: 16, paddingVertical: 16, alignItems: 'center' }}
         >
           {saving
             ? <ActivityIndicator color="#fff" />
-            : <Text style={{ color: canConfirm ? '#fff' : '#9CA3AF', fontSize: 16, fontFamily: 'PlusJakartaSans_700Bold', letterSpacing: 0.2 }}>Finalize</Text>
+            : <Text style={{ color: canConfirm ? '#fff' : colors.textSecondary, fontSize: 16, fontFamily: 'PlusJakartaSans_700Bold', letterSpacing: 0.2 }}>Finalize</Text>
           }
         </Pressable>
       </View>

@@ -1,5 +1,6 @@
 import { useOnboarding } from '@/contexts/onboarding';
 import type { Reservation } from '@/contexts/onboarding';
+import { useThemeColors } from '@/contexts/theme';
 import { router } from 'expo-router';
 import { useRef, useState } from 'react';
 import { InteractionManager, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
@@ -7,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function ProtectScreen() {
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
   const { data, update } = useOnboarding();
   const [addingReservation, setAddingReservation] = useState(false);
   const [newResName, setNewResName] = useState('');
@@ -41,20 +43,20 @@ export default function ProtectScreen() {
   }
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: '#fff' }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.background }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       {/* Header */}
       <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 24, paddingBottom: 16 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
           <Pressable onPress={() => router.back()} style={{ padding: 4, marginRight: 16 }}>
-            <Text style={{ fontSize: 22, color: '#111827' }}>←</Text>
+            <Text style={{ fontSize: 22, color: colors.textPrimary }}>←</Text>
           </Pressable>
-          <View style={{ flex: 1, height: 4, backgroundColor: '#F0FDF4', borderRadius: 2 }}>
-            <View style={{ width: '75%', height: 4, backgroundColor: '#16A34A', borderRadius: 2 }} />
+          <View style={{ flex: 1, height: 4, backgroundColor: colors.primaryLight, borderRadius: 2 }}>
+            <View style={{ width: '75%', height: 4, backgroundColor: colors.primary, borderRadius: 2 }} />
           </View>
-          <Text style={{ marginLeft: 12, fontSize: 12, color: '#9CA3AF', fontFamily: 'PlusJakartaSans_500Medium' }}>3 of 4</Text>
+          <Text style={{ marginLeft: 12, fontSize: 12, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_500Medium' }}>3 of 4</Text>
         </View>
-        <Text style={{ fontSize: 26, fontFamily: 'PlusJakartaSans_700Bold', color: '#111827' }}>Protect your money</Text>
-        <Text style={{ fontSize: 14, color: '#9CA3AF', fontFamily: 'PlusJakartaSans_400Regular', marginTop: 4 }}>
+        <Text style={{ fontSize: 26, fontFamily: 'PlusJakartaSans_700Bold', color: colors.textPrimary }}>Protect your money</Text>
+        <Text style={{ fontSize: 14, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular', marginTop: 4 }}>
           Set aside savings or reserve money for specific things.
         </Text>
       </View>
@@ -68,17 +70,17 @@ export default function ProtectScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Live daily budget */}
-        <View style={{ backgroundColor: '#F0FDF4', borderRadius: 16, padding: 16, marginBottom: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Text style={{ fontSize: 13, color: '#16A34A', fontFamily: 'PlusJakartaSans_500Medium' }}>Your daily budget</Text>
-          <Text style={{ fontSize: 22, color: '#16A34A', fontFamily: 'PlusJakartaSans_700Bold' }}>
+        <View style={{ backgroundColor: colors.primaryLight, borderRadius: 16, padding: 16, marginBottom: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Text style={{ fontSize: 13, color: colors.primary, fontFamily: 'PlusJakartaSans_500Medium' }}>Your daily budget</Text>
+          <Text style={{ fontSize: 22, color: colors.primary, fontFamily: 'PlusJakartaSans_700Bold' }}>
             ৳{dailyBudget > 0 ? Math.floor(dailyBudget).toLocaleString() : '—'}
           </Text>
         </View>
 
         {poolWouldHitZero && (
           <View style={{ backgroundColor: '#FEF2F2', borderRadius: 10, padding: 12, marginBottom: 12 }}>
-            <Text style={{ fontSize: 13, color: '#EF4444', fontFamily: 'PlusJakartaSans_500Medium' }}>
-              Savings + reservations can't exceed your available pool of ৳{Math.round(pool).toLocaleString()}.
+            <Text style={{ fontSize: 13, color: colors.error, fontFamily: 'PlusJakartaSans_500Medium' }}>
+              Savings + reservations can&apos;t exceed your available pool of ৳{Math.round(pool).toLocaleString()}.
             </Text>
           </View>
         )}
@@ -91,44 +93,44 @@ export default function ProtectScreen() {
         )}
 
         {/* Savings */}
-        <Text style={{ fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#111827', marginBottom: 4 }}>Savings</Text>
-        <Text style={{ fontSize: 13, color: '#9CA3AF', fontFamily: 'PlusJakartaSans_400Regular', marginBottom: 8 }}>
+        <Text style={{ fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: colors.textPrimary, marginBottom: 4 }}>Savings</Text>
+        <Text style={{ fontSize: 13, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular', marginBottom: 8 }}>
           Protected from spending. Never touched unless you pull from it.
         </Text>
-        <View style={{ backgroundColor: '#fff', borderRadius: 14, borderWidth: 1.5, borderColor: focused === 'savings' ? '#111827' : '#E5E7EB', paddingHorizontal: 16, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', marginBottom: 24 }}>
-          <Text style={{ fontSize: 16, color: '#111827', fontFamily: 'PlusJakartaSans_600SemiBold', marginRight: 4 }}>৳</Text>
+        <View style={{ backgroundColor: colors.card, borderRadius: 14, borderWidth: 1.5, borderColor: focused === 'savings' ? colors.textPrimary : colors.border, paddingHorizontal: 16, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', marginBottom: 24 }}>
+          <Text style={{ fontSize: 16, color: colors.textPrimary, fontFamily: 'PlusJakartaSans_600SemiBold', marginRight: 4 }}>৳</Text>
           <TextInput
             value={data.savings}
             onChangeText={v => update({ savings: v.replace(/[^0-9.]/g, '') })}
             onFocus={() => setFocused('savings')}
             onBlur={() => setFocused(null)}
             placeholder="0"
-            placeholderTextColor="#D1D5DB"
+            placeholderTextColor={colors.textSecondary}
             keyboardType="decimal-pad"
-            style={{ flex: 1, fontSize: 16, color: '#111827', fontFamily: 'PlusJakartaSans_400Regular' }}
+            style={{ flex: 1, fontSize: 16, color: colors.textPrimary, fontFamily: 'PlusJakartaSans_400Regular' }}
           />
         </View>
 
         {/* Reservations */}
-        <Text style={{ fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#111827', marginBottom: 4 }}>Reservations</Text>
-        <Text style={{ fontSize: 13, color: '#9CA3AF', fontFamily: 'PlusJakartaSans_400Regular', marginBottom: 12 }}>
+        <Text style={{ fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: colors.textPrimary, marginBottom: 4 }}>Reservations</Text>
+        <Text style={{ fontSize: 13, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular', marginBottom: 12 }}>
           Money set aside for specific planned expenses.
         </Text>
 
         {data.reservations.map(r => (
-          <View key={r.id} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 14, borderWidth: 1.5, borderColor: '#E5E7EB', paddingHorizontal: 16, paddingVertical: 14, marginBottom: 8 }}>
-            <Text style={{ flex: 1, fontSize: 15, color: '#111827', fontFamily: 'PlusJakartaSans_500Medium' }}>{r.name}</Text>
-            <Text style={{ fontSize: 15, color: '#16A34A', fontFamily: 'PlusJakartaSans_600SemiBold', marginRight: 12 }}>
+          <View key={r.id} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: 14, borderWidth: 1.5, borderColor: colors.border, paddingHorizontal: 16, paddingVertical: 14, marginBottom: 8 }}>
+            <Text style={{ flex: 1, fontSize: 15, color: colors.textPrimary, fontFamily: 'PlusJakartaSans_500Medium' }}>{r.name}</Text>
+            <Text style={{ fontSize: 15, color: colors.primary, fontFamily: 'PlusJakartaSans_600SemiBold', marginRight: 12 }}>
               ৳{parseFloat(r.amount).toLocaleString()}
             </Text>
             <Pressable onPress={() => removeReservation(r.id)} hitSlop={8}>
-              <Text style={{ fontSize: 20, color: '#D1D5DB' }}>×</Text>
+              <Text style={{ fontSize: 20, color: colors.textSecondary }}>×</Text>
             </Pressable>
           </View>
         ))}
 
         {addingReservation ? (
-          <View style={{ backgroundColor: '#F9FAFB', borderRadius: 14, borderWidth: 1.5, borderColor: '#E5E7EB', padding: 16, marginBottom: 8 }}>
+          <View style={{ backgroundColor: colors.background, borderRadius: 14, borderWidth: 1.5, borderColor: colors.border, padding: 16, marginBottom: 8 }}>
             <TextInput
               value={newResName}
               onChangeText={v => setNewResName(v.slice(0, 30))}
@@ -138,28 +140,28 @@ export default function ProtectScreen() {
               }}
               onBlur={() => setFocused(null)}
               placeholder="Name (e.g. Groceries, Gym)"
-              placeholderTextColor="#D1D5DB"
-              style={{ fontSize: 15, color: '#111827', fontFamily: 'PlusJakartaSans_400Regular', marginBottom: 12, borderBottomWidth: 1.5, borderBottomColor: focused === 'resName' ? '#111827' : '#E5E7EB', paddingBottom: 10 }}
+              placeholderTextColor={colors.textSecondary}
+              style={{ fontSize: 15, color: colors.textPrimary, fontFamily: 'PlusJakartaSans_400Regular', marginBottom: 12, borderBottomWidth: 1.5, borderBottomColor: focused === 'resName' ? colors.textPrimary : colors.border, paddingBottom: 10 }}
               autoFocus
             />
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, borderBottomWidth: 1.5, borderBottomColor: focused === 'resAmount' ? '#111827' : '#E5E7EB', paddingBottom: 10 }}>
-              <Text style={{ fontSize: 16, color: '#111827', fontFamily: 'PlusJakartaSans_600SemiBold', marginRight: 4 }}>৳</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, borderBottomWidth: 1.5, borderBottomColor: focused === 'resAmount' ? colors.textPrimary : colors.border, paddingBottom: 10 }}>
+              <Text style={{ fontSize: 16, color: colors.textPrimary, fontFamily: 'PlusJakartaSans_600SemiBold', marginRight: 4 }}>৳</Text>
               <TextInput
                 value={newResAmount}
                 onChangeText={v => setNewResAmount(v.replace(/[^0-9.]/g, ''))}
                 onFocus={() => setFocused('resAmount')}
                 onBlur={() => setFocused(null)}
                 placeholder="Amount"
-                placeholderTextColor="#D1D5DB"
+                placeholderTextColor={colors.textSecondary}
                 keyboardType="decimal-pad"
-                style={{ flex: 1, fontSize: 15, color: '#111827', fontFamily: 'PlusJakartaSans_400Regular' }}
+                style={{ flex: 1, fontSize: 15, color: colors.textPrimary, fontFamily: 'PlusJakartaSans_400Regular' }}
               />
             </View>
             <View style={{ flexDirection: 'row', gap: 8 }}>
-              <Pressable onPress={() => { setAddingReservation(false); setNewResName(''); setNewResAmount(''); }} style={{ flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10, borderWidth: 1, borderColor: '#E5E7EB' }}>
-                <Text style={{ fontSize: 14, color: '#6B7280', fontFamily: 'PlusJakartaSans_500Medium' }}>Cancel</Text>
+              <Pressable onPress={() => { setAddingReservation(false); setNewResName(''); setNewResAmount(''); }} style={{ flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10, borderWidth: 1, borderColor: colors.border }}>
+                <Text style={{ fontSize: 14, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_500Medium' }}>Cancel</Text>
               </Pressable>
-              <Pressable onPress={addReservation} style={{ flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10, backgroundColor: newResName.trim() && newResAmount ? '#16A34A' : '#E5E7EB' }}>
+              <Pressable onPress={addReservation} style={{ flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10, backgroundColor: newResName.trim() && newResAmount ? colors.primary : colors.border }}>
                 <Text style={{ fontSize: 14, color: '#fff', fontFamily: 'PlusJakartaSans_600SemiBold' }}>Add</Text>
               </Pressable>
             </View>
@@ -167,21 +169,21 @@ export default function ProtectScreen() {
         ) : (
           <Pressable
             onPress={() => setAddingReservation(true)}
-            style={{ flexDirection: 'row', alignItems: 'center', borderRadius: 14, borderWidth: 1.5, borderColor: '#E5E7EB', borderStyle: 'dashed', paddingVertical: 14, paddingHorizontal: 16, marginBottom: 8 }}
+            style={{ flexDirection: 'row', alignItems: 'center', borderRadius: 14, borderWidth: 1.5, borderColor: colors.border, borderStyle: 'dashed', paddingVertical: 14, paddingHorizontal: 16, marginBottom: 8 }}
           >
-            <Text style={{ fontSize: 20, color: '#D1D5DB', marginRight: 8 }}>+</Text>
-            <Text style={{ fontSize: 15, color: '#9CA3AF', fontFamily: 'PlusJakartaSans_400Regular' }}>Add reservation</Text>
+            <Text style={{ fontSize: 20, color: colors.textSecondary, marginRight: 8 }}>+</Text>
+            <Text style={{ fontSize: 15, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular' }}>Add reservation</Text>
           </Pressable>
         )}
       </ScrollView>
 
       {/* Footer */}
-      <View style={{ backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#F3F4F6', paddingHorizontal: 24, paddingTop: 16, paddingBottom: Math.max(insets.bottom, 24) }}>
+      <View style={{ backgroundColor: colors.background, borderTopWidth: 1, borderTopColor: colors.border, paddingHorizontal: 24, paddingTop: 16, paddingBottom: Math.max(insets.bottom, 24) }}>
         <Pressable
           onPress={() => { if (!poolWouldHitZero) { Keyboard.dismiss(); InteractionManager.runAfterInteractions(() => router.push('/onboarding/summary')); } }}
-          style={{ backgroundColor: poolWouldHitZero ? '#E5E7EB' : '#16A34A', borderRadius: 16, paddingVertical: 16, alignItems: 'center' }}
+          style={{ backgroundColor: poolWouldHitZero ? colors.border : colors.primary, borderRadius: 16, paddingVertical: 16, alignItems: 'center' }}
         >
-          <Text style={{ color: poolWouldHitZero ? '#9CA3AF' : '#fff', fontSize: 16, fontFamily: 'PlusJakartaSans_600SemiBold' }}>
+          <Text style={{ color: poolWouldHitZero ? colors.textSecondary : '#fff', fontSize: 16, fontFamily: 'PlusJakartaSans_600SemiBold' }}>
             {isEmpty ? 'Skip' : 'Next'}
           </Text>
         </Pressable>

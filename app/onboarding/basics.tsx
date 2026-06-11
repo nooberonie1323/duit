@@ -1,5 +1,6 @@
 import { CalendarModal } from '@/components/ui/CalendarModal';
 import { useOnboarding } from '@/contexts/onboarding';
+import { useThemeColors } from '@/contexts/theme';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { InteractionManager, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
@@ -14,6 +15,7 @@ function addDays(d: Date, n: number) {
 
 export default function BasicsScreen() {
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
   const { data, update } = useOnboarding();
   const [showStartCal, setShowStartCal] = useState(false);
   const [showEndCal, setShowEndCal] = useState(false);
@@ -36,28 +38,28 @@ export default function BasicsScreen() {
   const showAlertZeroMsg = data.budgetAlert === '0';
   const showAlertHighWarning = budgetAlert !== null && budgetAlert > 0 && estimatedDaily > 0 && budgetAlert > estimatedDaily;
 
-  const bc = (field: string) => focused === field ? '#111827' : '#E5E7EB';
+  const bc = (field: string) => focused === field ? colors.textPrimary : colors.border;
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: '#F9FAFB' }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.background }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       {/* Header */}
-      <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 24, paddingBottom: 16, backgroundColor: '#F9FAFB' }}>
+      <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 24, paddingBottom: 16, backgroundColor: colors.background }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
           <Pressable onPress={() => router.back()} style={{ padding: 4, marginRight: 16 }}>
-            <Text style={{ fontSize: 22, color: '#111827' }}>←</Text>
+            <Text style={{ fontSize: 22, color: colors.textPrimary }}>←</Text>
           </Pressable>
-          <View style={{ flex: 1, height: 3, backgroundColor: '#E5E7EB', borderRadius: 2 }}>
-            <View style={{ width: '25%', height: 3, backgroundColor: '#16A34A', borderRadius: 2 }} />
+          <View style={{ flex: 1, height: 3, backgroundColor: colors.border, borderRadius: 2 }}>
+            <View style={{ width: '25%', height: 3, backgroundColor: colors.primary, borderRadius: 2 }} />
           </View>
-          <Text style={{ marginLeft: 12, fontSize: 11, color: '#9CA3AF', fontFamily: 'PlusJakartaSans_600SemiBold', letterSpacing: 0.5 }}>
+          <Text style={{ marginLeft: 12, fontSize: 11, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_600SemiBold', letterSpacing: 0.5 }}>
             1 / 4
           </Text>
         </View>
-        <Text style={{ fontSize: 28, fontFamily: 'PlusJakartaSans_800ExtraBold', color: '#111827', letterSpacing: -0.5 }}>
+        <Text style={{ fontSize: 28, fontFamily: 'PlusJakartaSans_800ExtraBold', color: colors.textPrimary, letterSpacing: -0.5 }}>
           The basics
         </Text>
-        <Text style={{ fontSize: 14, color: '#9CA3AF', fontFamily: 'PlusJakartaSans_400Regular', marginTop: 3 }}>
-          Let's set up your first pay cycle.
+        <Text style={{ fontSize: 14, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular', marginTop: 3 }}>
+          Let&apos;s set up your first pay cycle.
         </Text>
       </View>
 
@@ -71,10 +73,10 @@ export default function BasicsScreen() {
         {/* ── Name ── */}
         <View style={{ marginBottom: 12 }}>
           <View style={{
-            backgroundColor: '#fff', borderRadius: 16, borderWidth: 1.5,
+            backgroundColor: colors.card, borderRadius: 16, borderWidth: 1.5,
             borderColor: bc('name'), paddingHorizontal: 16, paddingTop: 14, paddingBottom: 12,
           }}>
-            <Text style={{ fontSize: 10, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#9CA3AF', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 6 }}>
+            <Text style={{ fontSize: 10, fontFamily: 'PlusJakartaSans_600SemiBold', color: colors.textSecondary, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 6 }}>
               Your name
             </Text>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -84,12 +86,12 @@ export default function BasicsScreen() {
                 onFocus={() => setFocused('name')}
                 onBlur={() => setFocused(null)}
                 placeholder="What should we call you?"
-                placeholderTextColor="#D1D5DB"
-                style={{ flex: 1, fontSize: 17, color: '#111827', fontFamily: 'PlusJakartaSans_500Medium' }}
+                placeholderTextColor={colors.textSecondary}
+                style={{ flex: 1, fontSize: 17, color: colors.textPrimary, fontFamily: 'PlusJakartaSans_500Medium' }}
                 maxLength={20}
                 autoCapitalize="words"
               />
-              <Text style={{ fontSize: 11, color: '#D1D5DB', fontFamily: 'PlusJakartaSans_400Regular' }}>
+              <Text style={{ fontSize: 11, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular' }}>
                 {data.name.length}/20
               </Text>
             </View>
@@ -98,29 +100,29 @@ export default function BasicsScreen() {
 
         {/* ── Pay cycle ── */}
         <View style={{ marginBottom: 4 }}>
-          <Text style={{ fontSize: 11, fontFamily: 'PlusJakartaSans_700Bold', color: '#6B7280', letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 8, marginLeft: 2 }}>
+          <Text style={{ fontSize: 11, fontFamily: 'PlusJakartaSans_700Bold', color: colors.textSecondary, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 8, marginLeft: 2 }}>
             Pay cycle
           </Text>
-          <View style={{ backgroundColor: '#fff', borderRadius: 16, borderWidth: 1.5, borderColor: '#E5E7EB', overflow: 'hidden' }}>
+          <View style={{ backgroundColor: colors.card, borderRadius: 16, borderWidth: 1.5, borderColor: colors.border, overflow: 'hidden' }}>
             {/* Date range row */}
             <View style={{ flexDirection: 'row' }}>
               <Pressable
                 onPress={() => setShowStartCal(true)}
                 style={{ flex: 1, paddingHorizontal: 16, paddingVertical: 14 }}
               >
-                <Text style={{ fontSize: 10, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#9CA3AF', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 5 }}>
+                <Text style={{ fontSize: 10, fontFamily: 'PlusJakartaSans_600SemiBold', color: colors.textSecondary, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 5 }}>
                   Start
                 </Text>
-                <Text style={{ fontSize: 15, fontFamily: 'PlusJakartaSans_600SemiBold', color: data.cycleStartDate ? '#111827' : '#D1D5DB' }}>
+                <Text style={{ fontSize: 15, fontFamily: 'PlusJakartaSans_600SemiBold', color: data.cycleStartDate ? colors.textPrimary : colors.textSecondary }}>
                   {data.cycleStartDate ? fmt(data.cycleStartDate) : 'Pick date'}
                 </Text>
               </Pressable>
 
               {/* Divider with arrow */}
               <View style={{ width: 36, alignItems: 'center', justifyContent: 'center' }}>
-                <View style={{ width: 1, backgroundColor: '#F3F4F6', position: 'absolute', top: 0, bottom: 0 }} />
-                <View style={{ backgroundColor: '#F0FDF4', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 5, zIndex: 1 }}>
-                  <Text style={{ fontSize: 13, color: '#16A34A', fontFamily: 'PlusJakartaSans_600SemiBold' }}>→</Text>
+                <View style={{ width: 1, backgroundColor: colors.border, position: 'absolute', top: 0, bottom: 0 }} />
+                <View style={{ backgroundColor: colors.primaryLight, borderRadius: 12, paddingHorizontal: 8, paddingVertical: 5, zIndex: 1 }}>
+                  <Text style={{ fontSize: 13, color: colors.primary, fontFamily: 'PlusJakartaSans_600SemiBold' }}>→</Text>
                 </View>
               </View>
 
@@ -128,10 +130,10 @@ export default function BasicsScreen() {
                 onPress={() => setShowEndCal(true)}
                 style={{ flex: 1, paddingHorizontal: 16, paddingVertical: 14 }}
               >
-                <Text style={{ fontSize: 10, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#9CA3AF', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 5 }}>
+                <Text style={{ fontSize: 10, fontFamily: 'PlusJakartaSans_600SemiBold', color: colors.textSecondary, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 5 }}>
                   End
                 </Text>
-                <Text style={{ fontSize: 15, fontFamily: 'PlusJakartaSans_600SemiBold', color: data.cycleEndDate ? '#111827' : '#D1D5DB' }}>
+                <Text style={{ fontSize: 15, fontFamily: 'PlusJakartaSans_600SemiBold', color: data.cycleEndDate ? colors.textPrimary : colors.textSecondary }}>
                   {data.cycleEndDate ? fmt(data.cycleEndDate) : 'Pick date'}
                 </Text>
               </Pressable>
@@ -141,11 +143,11 @@ export default function BasicsScreen() {
             {(daysInCycle >= 2 || showEndDateError) && (
               <View style={{
                 paddingHorizontal: 16, paddingVertical: 10,
-                borderTopWidth: 1, borderTopColor: '#F3F4F6',
-                backgroundColor: showEndDateError ? '#FEF2F2' : '#F0FDF4',
+                borderTopWidth: 1, borderTopColor: colors.border,
+                backgroundColor: showEndDateError ? '#FEF2F2' : colors.primaryLight,
                 flexDirection: 'row', alignItems: 'center', gap: 6,
               }}>
-                <Text style={{ fontSize: 13, fontFamily: 'PlusJakartaSans_500Medium', color: showEndDateError ? '#EF4444' : '#16A34A' }}>
+                <Text style={{ fontSize: 13, fontFamily: 'PlusJakartaSans_500Medium', color: showEndDateError ? colors.error : colors.primary }}>
                   {showEndDateError
                     ? '⚠ End date must be at least 2 days after start'
                     : `✓  ${daysInCycle}-day cycle`}
@@ -158,30 +160,30 @@ export default function BasicsScreen() {
         <View style={{ height: 16 }} />
 
         {/* ── Finances card ── */}
-        <Text style={{ fontSize: 11, fontFamily: 'PlusJakartaSans_700Bold', color: '#6B7280', letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 8, marginLeft: 2 }}>
+        <Text style={{ fontSize: 11, fontFamily: 'PlusJakartaSans_700Bold', color: colors.textSecondary, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 8, marginLeft: 2 }}>
           Finances
         </Text>
-        <View style={{ backgroundColor: '#fff', borderRadius: 16, borderWidth: 1.5, borderColor: '#E5E7EB', overflow: 'hidden' }}>
+        <View style={{ backgroundColor: colors.card, borderRadius: 16, borderWidth: 1.5, borderColor: colors.border, overflow: 'hidden' }}>
           {/* Income */}
-          <View style={{ paddingHorizontal: 16, paddingTop: 14, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}>
-            <Text style={{ fontSize: 10, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#9CA3AF', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 8 }}>
+          <View style={{ paddingHorizontal: 16, paddingTop: 14, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+            <Text style={{ fontSize: 10, fontFamily: 'PlusJakartaSans_600SemiBold', color: colors.textSecondary, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 8 }}>
               Income this cycle
             </Text>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Text style={{ fontSize: 22, color: data.income ? '#111827' : '#D1D5DB', fontFamily: 'PlusJakartaSans_700Bold', marginRight: 3, lineHeight: 30 }}>৳</Text>
+              <Text style={{ fontSize: 22, color: data.income ? colors.textPrimary : colors.textSecondary, fontFamily: 'PlusJakartaSans_700Bold', marginRight: 3, lineHeight: 30 }}>৳</Text>
               <TextInput
                 value={data.income}
                 onChangeText={v => update({ income: v.replace(/[^0-9.]/g, '') })}
                 onFocus={() => setFocused('income')}
                 onBlur={() => setFocused(null)}
                 placeholder="0"
-                placeholderTextColor="#D1D5DB"
+                placeholderTextColor={colors.textSecondary}
                 keyboardType="decimal-pad"
-                style={{ flex: 1, fontSize: 28, color: '#111827', fontFamily: 'PlusJakartaSans_700Bold', lineHeight: 34 }}
+                style={{ flex: 1, fontSize: 28, color: colors.textPrimary, fontFamily: 'PlusJakartaSans_700Bold', lineHeight: 34 }}
               />
             </View>
             {showIncomeError && (
-              <Text style={{ fontSize: 12, color: '#EF4444', fontFamily: 'PlusJakartaSans_400Regular', marginTop: 4 }}>
+              <Text style={{ fontSize: 12, color: colors.error, fontFamily: 'PlusJakartaSans_400Regular', marginTop: 4 }}>
                 Income must be at least ৳1.
               </Text>
             )}
@@ -190,33 +192,33 @@ export default function BasicsScreen() {
           {/* Budget alert */}
           <View style={{ paddingHorizontal: 16, paddingTop: 14, paddingBottom: 14 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-              <Text style={{ fontSize: 10, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#9CA3AF', letterSpacing: 0.8, textTransform: 'uppercase' }}>
+              <Text style={{ fontSize: 10, fontFamily: 'PlusJakartaSans_600SemiBold', color: colors.textSecondary, letterSpacing: 0.8, textTransform: 'uppercase' }}>
                 Budget alert
               </Text>
-              <Text style={{ fontSize: 11, color: '#9CA3AF', fontFamily: 'PlusJakartaSans_400Regular', flex: 1, textAlign: 'right', marginLeft: 8 }}>
+              <Text style={{ fontSize: 11, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular', flex: 1, textAlign: 'right', marginLeft: 8 }}>
                 Warn when daily budget drops below
               </Text>
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Text style={{ fontSize: 16, color: data.budgetAlert ? '#111827' : '#D1D5DB', fontFamily: 'PlusJakartaSans_600SemiBold', marginRight: 3 }}>৳</Text>
+              <Text style={{ fontSize: 16, color: data.budgetAlert ? colors.textPrimary : colors.textSecondary, fontFamily: 'PlusJakartaSans_600SemiBold', marginRight: 3 }}>৳</Text>
               <TextInput
                 value={data.budgetAlert}
                 onChangeText={v => update({ budgetAlert: v.replace(/[^0-9.]/g, '') })}
                 onFocus={() => setFocused('alert')}
                 onBlur={() => setFocused(null)}
                 placeholder="0 — no warnings"
-                placeholderTextColor="#D1D5DB"
+                placeholderTextColor={colors.textSecondary}
                 keyboardType="decimal-pad"
-                style={{ flex: 1, fontSize: 18, color: '#111827', fontFamily: 'PlusJakartaSans_600SemiBold' }}
+                style={{ flex: 1, fontSize: 18, color: colors.textPrimary, fontFamily: 'PlusJakartaSans_600SemiBold' }}
               />
             </View>
           </View>
 
           {/* Inline messages */}
           {showAlertZeroMsg && (
-            <View style={{ marginHorizontal: 12, marginBottom: 12, backgroundColor: '#F0FDF4', borderRadius: 10, padding: 12 }}>
-              <Text style={{ fontSize: 12, color: '#16A34A', fontFamily: 'PlusJakartaSans_400Regular' }}>
-                No warnings — the app won't flag low daily budgets.
+            <View style={{ marginHorizontal: 12, marginBottom: 12, backgroundColor: colors.primaryLight, borderRadius: 10, padding: 12 }}>
+              <Text style={{ fontSize: 12, color: colors.primary, fontFamily: 'PlusJakartaSans_400Regular' }}>
+                No warnings — the app won&apos;t flag low daily budgets.
               </Text>
             </View>
           )}
@@ -231,12 +233,12 @@ export default function BasicsScreen() {
       </ScrollView>
 
       {/* Footer */}
-      <View style={{ backgroundColor: '#F9FAFB', borderTopWidth: 1, borderTopColor: '#F3F4F6', paddingHorizontal: 20, paddingTop: 14, paddingBottom: Math.max(insets.bottom, 24) }}>
+      <View style={{ backgroundColor: colors.background, borderTopWidth: 1, borderTopColor: colors.border, paddingHorizontal: 20, paddingTop: 14, paddingBottom: Math.max(insets.bottom, 24) }}>
         <Pressable
           onPress={() => { if (canNext) { Keyboard.dismiss(); InteractionManager.runAfterInteractions(() => router.push('/onboarding/position')); } }}
-          style={{ backgroundColor: canNext ? '#16A34A' : '#E5E7EB', borderRadius: 16, paddingVertical: 16, alignItems: 'center' }}
+          style={{ backgroundColor: canNext ? colors.primary : colors.border, borderRadius: 16, paddingVertical: 16, alignItems: 'center' }}
         >
-          <Text style={{ color: canNext ? '#fff' : '#9CA3AF', fontSize: 16, fontFamily: 'PlusJakartaSans_700Bold', letterSpacing: 0.2 }}>
+          <Text style={{ color: canNext ? '#fff' : colors.textSecondary, fontSize: 16, fontFamily: 'PlusJakartaSans_700Bold', letterSpacing: 0.2 }}>
             Next
           </Text>
         </Pressable>

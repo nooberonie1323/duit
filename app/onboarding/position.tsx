@@ -1,4 +1,5 @@
 import { useOnboarding } from '@/contexts/onboarding';
+import { useThemeColors } from '@/contexts/theme';
 import { router } from 'expo-router';
 import { InteractionManager, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -6,6 +7,7 @@ import { useState } from 'react';
 
 export default function PositionScreen() {
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
   const { data, update } = useOnboarding();
   const [focused, setFocused] = useState(false);
 
@@ -48,24 +50,24 @@ export default function PositionScreen() {
   }
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: '#F9FAFB' }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.background }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       {/* Header */}
-      <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 24, paddingBottom: 16, backgroundColor: '#F9FAFB' }}>
+      <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 24, paddingBottom: 16, backgroundColor: colors.background }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
           <Pressable onPress={() => router.back()} style={{ padding: 4, marginRight: 16 }}>
-            <Text style={{ fontSize: 22, color: '#111827' }}>←</Text>
+            <Text style={{ fontSize: 22, color: colors.textPrimary }}>←</Text>
           </Pressable>
-          <View style={{ flex: 1, height: 3, backgroundColor: '#E5E7EB', borderRadius: 2 }}>
-            <View style={{ width: '50%', height: 3, backgroundColor: '#16A34A', borderRadius: 2 }} />
+          <View style={{ flex: 1, height: 3, backgroundColor: colors.border, borderRadius: 2 }}>
+            <View style={{ width: '50%', height: 3, backgroundColor: colors.primary, borderRadius: 2 }} />
           </View>
-          <Text style={{ marginLeft: 12, fontSize: 11, color: '#9CA3AF', fontFamily: 'PlusJakartaSans_600SemiBold', letterSpacing: 0.5 }}>
+          <Text style={{ marginLeft: 12, fontSize: 11, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_600SemiBold', letterSpacing: 0.5 }}>
             2 / 4
           </Text>
         </View>
-        <Text style={{ fontSize: 28, fontFamily: 'PlusJakartaSans_800ExtraBold', color: '#111827', letterSpacing: -0.5 }}>
+        <Text style={{ fontSize: 28, fontFamily: 'PlusJakartaSans_800ExtraBold', color: colors.textPrimary, letterSpacing: -0.5 }}>
           Where are you now?
         </Text>
-        <Text style={{ fontSize: 14, color: '#9CA3AF', fontFamily: 'PlusJakartaSans_400Regular', marginTop: 3 }}>
+        <Text style={{ fontSize: 14, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular', marginTop: 3 }}>
           Starting mid-cycle? Tell us your current position.
         </Text>
       </View>
@@ -78,7 +80,7 @@ export default function PositionScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* ── Mode selector ── */}
-        <Text style={{ fontSize: 11, fontFamily: 'PlusJakartaSans_700Bold', color: '#6B7280', letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 8, marginLeft: 2 }}>
+        <Text style={{ fontSize: 11, fontFamily: 'PlusJakartaSans_700Bold', color: colors.textSecondary, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 8, marginLeft: 2 }}>
           How do you want to tell us?
         </Text>
         <View style={{ flexDirection: 'row', gap: 10, marginBottom: 14 }}>
@@ -90,10 +92,10 @@ export default function PositionScreen() {
                 onPress={() => handleModeSelect(mode)}
                 style={{
                   flex: 1,
-                  backgroundColor: selected ? '#16A34A' : '#fff',
+                  backgroundColor: selected ? colors.primary : colors.card,
                   borderRadius: 16,
                   borderWidth: 1.5,
-                  borderColor: selected ? '#16A34A' : '#E5E7EB',
+                  borderColor: selected ? colors.primary : colors.border,
                   paddingVertical: 16,
                   paddingHorizontal: 14,
                   alignItems: 'flex-start',
@@ -108,7 +110,7 @@ export default function PositionScreen() {
                 <Text style={{
                   fontSize: 14,
                   fontFamily: 'PlusJakartaSans_700Bold',
-                  color: selected ? '#fff' : '#111827',
+                  color: selected ? '#fff' : colors.textPrimary,
                   marginBottom: 2,
                 }}>
                   {mode === 'spent' ? 'Already spent' : 'Still have'}
@@ -116,7 +118,7 @@ export default function PositionScreen() {
                 <Text style={{
                   fontSize: 11,
                   fontFamily: 'PlusJakartaSans_400Regular',
-                  color: selected ? 'rgba(255,255,255,0.75)' : '#9CA3AF',
+                  color: selected ? 'rgba(255,255,255,0.75)' : colors.textSecondary,
                 }}>
                   {mode === 'spent' ? 'How much you spent' : 'How much is left'}
                 </Text>
@@ -129,40 +131,40 @@ export default function PositionScreen() {
         {data.positionMode && (
           <>
             <View style={{
-              backgroundColor: '#fff', borderRadius: 16, borderWidth: 1.5,
-              borderColor: isHardBlock ? '#EF4444' : focused ? '#111827' : '#E5E7EB',
+              backgroundColor: colors.card, borderRadius: 16, borderWidth: 1.5,
+              borderColor: isHardBlock ? colors.error : focused ? colors.textPrimary : colors.border,
               paddingHorizontal: 16, paddingVertical: 14, marginBottom: 10,
             }}>
-              <Text style={{ fontSize: 10, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#9CA3AF', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 8 }}>
+              <Text style={{ fontSize: 10, fontFamily: 'PlusJakartaSans_600SemiBold', color: colors.textSecondary, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 8 }}>
                 {data.positionMode === 'spent' ? 'Amount spent' : 'Amount remaining'}
               </Text>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Text style={{ fontSize: 22, color: rawAmount ? '#111827' : '#D1D5DB', fontFamily: 'PlusJakartaSans_700Bold', marginRight: 3, lineHeight: 30 }}>৳</Text>
+                <Text style={{ fontSize: 22, color: rawAmount ? colors.textPrimary : colors.textSecondary, fontFamily: 'PlusJakartaSans_700Bold', marginRight: 3, lineHeight: 30 }}>৳</Text>
                 <TextInput
                   value={rawAmount}
                   onChangeText={handleAmountChange}
                   onFocus={() => setFocused(true)}
                   onBlur={() => setFocused(false)}
                   placeholder="0"
-                  placeholderTextColor="#D1D5DB"
+                  placeholderTextColor={colors.textSecondary}
                   keyboardType="decimal-pad"
-                  style={{ flex: 1, fontSize: 28, color: '#111827', fontFamily: 'PlusJakartaSans_700Bold', lineHeight: 34 }}
+                  style={{ flex: 1, fontSize: 28, color: colors.textPrimary, fontFamily: 'PlusJakartaSans_700Bold', lineHeight: 34 }}
                 />
               </View>
             </View>
 
             {isHardBlock && (
               <View style={{ backgroundColor: '#FEF2F2', borderRadius: 12, padding: 12, marginBottom: 10 }}>
-                <Text style={{ fontSize: 13, color: '#EF4444', fontFamily: 'PlusJakartaSans_500Medium' }}>
+                <Text style={{ fontSize: 13, color: colors.error, fontFamily: 'PlusJakartaSans_500Medium' }}>
                   {data.positionMode === 'spent' ? 'Cannot exceed your total income of ৳' + income.toLocaleString() : 'Amount must be more than ৳0.'}
                 </Text>
               </View>
             )}
 
             {!isHardBlock && amount > 0 && (
-              <View style={{ backgroundColor: '#F0FDF4', borderRadius: 12, padding: 12, marginBottom: 10, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <View style={{ backgroundColor: colors.primaryLight, borderRadius: 12, padding: 12, marginBottom: 10, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <Text style={{ fontSize: 16 }}>✓</Text>
-                <Text style={{ fontSize: 13, color: '#16A34A', fontFamily: 'PlusJakartaSans_500Medium', flex: 1 }}>
+                <Text style={{ fontSize: 13, color: colors.primary, fontFamily: 'PlusJakartaSans_500Medium', flex: 1 }}>
                   {data.positionMode === 'spent'
                     ? `৳${(income - amount).toLocaleString()} remaining in your pool`
                     : `৳${(income - amount).toLocaleString()} already spent`}
@@ -184,7 +186,7 @@ export default function PositionScreen() {
         {!startDateInFuture && (
           <>
             <View style={{ height: data.positionMode ? 8 : 0 }} />
-            <Text style={{ fontSize: 11, fontFamily: 'PlusJakartaSans_700Bold', color: '#6B7280', letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 8, marginLeft: 2 }}>
+            <Text style={{ fontSize: 11, fontFamily: 'PlusJakartaSans_700Bold', color: colors.textSecondary, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 8, marginLeft: 2 }}>
               Start budgeting from
             </Text>
             <View style={{ flexDirection: 'row', gap: 10 }}>
@@ -196,10 +198,10 @@ export default function PositionScreen() {
                     onPress={() => update({ startFromToday: val })}
                     style={{
                       flex: 1,
-                      backgroundColor: selected ? '#F0FDF4' : '#fff',
+                      backgroundColor: selected ? colors.primaryLight : colors.card,
                       borderRadius: 16,
                       borderWidth: 1.5,
-                      borderColor: selected ? '#16A34A' : '#E5E7EB',
+                      borderColor: selected ? colors.primary : colors.border,
                       paddingVertical: 16,
                       paddingHorizontal: 14,
                       alignItems: 'flex-start',
@@ -211,7 +213,7 @@ export default function PositionScreen() {
                     <Text style={{
                       fontSize: 15,
                       fontFamily: 'PlusJakartaSans_700Bold',
-                      color: selected ? '#16A34A' : '#111827',
+                      color: selected ? colors.primary : colors.textPrimary,
                       marginBottom: 2,
                     }}>
                       {val ? 'Today' : 'Tomorrow'}
@@ -219,7 +221,7 @@ export default function PositionScreen() {
                     <Text style={{
                       fontSize: 11,
                       fontFamily: 'PlusJakartaSans_400Regular',
-                      color: selected ? '#16A34A' : '#9CA3AF',
+                      color: selected ? colors.primary : colors.textSecondary,
                     }}>
                       {val ? 'Count today as day 1' : 'Skip today'}
                     </Text>
@@ -232,7 +234,7 @@ export default function PositionScreen() {
       </ScrollView>
 
       {/* Footer */}
-      <View style={{ backgroundColor: '#F9FAFB', borderTopWidth: 1, borderTopColor: '#F3F4F6', paddingHorizontal: 20, paddingTop: 14, paddingBottom: Math.max(insets.bottom, 24) }}>
+      <View style={{ backgroundColor: colors.background, borderTopWidth: 1, borderTopColor: colors.border, paddingHorizontal: 20, paddingTop: 14, paddingBottom: Math.max(insets.bottom, 24) }}>
         <Pressable
           onPress={() => {
             if (isEmpty || canNext) {
@@ -240,9 +242,9 @@ export default function PositionScreen() {
               InteractionManager.runAfterInteractions(() => router.push('/onboarding/protect'));
             }
           }}
-          style={{ backgroundColor: (!isEmpty && !canNext) ? '#E5E7EB' : '#16A34A', borderRadius: 16, paddingVertical: 16, alignItems: 'center' }}
+          style={{ backgroundColor: (!isEmpty && !canNext) ? colors.border : colors.primary, borderRadius: 16, paddingVertical: 16, alignItems: 'center' }}
         >
-          <Text style={{ color: (!isEmpty && !canNext) ? '#9CA3AF' : '#fff', fontSize: 16, fontFamily: 'PlusJakartaSans_700Bold', letterSpacing: 0.2 }}>
+          <Text style={{ color: (!isEmpty && !canNext) ? colors.textSecondary : '#fff', fontSize: 16, fontFamily: 'PlusJakartaSans_700Bold', letterSpacing: 0.2 }}>
             {isEmpty ? 'Skip' : 'Next'}
           </Text>
         </Pressable>
