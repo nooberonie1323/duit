@@ -42,7 +42,7 @@ export function ReviewState({
               Daily review
             </Text>
             <Text style={{ fontSize: 28, fontFamily: 'PlusJakartaSans_800ExtraBold', color: colors.textPrimary, letterSpacing: -0.5, marginBottom: 2 }}>
-              How'd today go?
+              How&apos;d today go?
             </Text>
             <Text style={{ fontSize: 13, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular' }}>{dateStr}</Text>
           </View>

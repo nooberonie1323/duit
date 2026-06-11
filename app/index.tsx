@@ -17,7 +17,7 @@ export default function Index() {
         setDestination(query ? `${base}?${query}` : base);
       })
       .catch(() => setDestination('/onboarding'));
-  }, [db]);
+  }, [db, params]);
 
   if (destination === null) {
     return <View style={{ flex: 1, backgroundColor: '#F9FAFB' }} />;

@@ -14,7 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type IconName = ComponentProps<typeof MaterialIcons>['name'];
 
-const TABS: Array<{ name: string; label: string; icon: IconName }> = [
+const TABS: { name: string; label: string; icon: IconName }[] = [
   { name: 'index', label: 'Home', icon: 'home' },
   { name: 'log', label: 'Log', icon: 'receipt' },
   { name: 'more', label: 'More', icon: 'tune' },
@@ -34,7 +34,7 @@ function NavTabItem({
 
   useEffect(() => {
     progress.value = withTiming(focused ? 1 : 0, { duration: 220 });
-  }, [focused]);
+  }, [focused, progress]);
 
   const chipStyle = useAnimatedStyle(() => ({
     backgroundColor: interpolateColor(

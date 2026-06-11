@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Animated, Text } from 'react-native';
 
 interface Props {
@@ -8,7 +8,9 @@ interface Props {
 }
 
 export function ErrorToast({ message, onDismiss, bottomOffset = 100 }: Props) {
-  const opacity = new Animated.Value(0);
+  const opacity = useRef(new Animated.Value(0)).current;
+  const onDismissRef = useRef(onDismiss);
+  onDismissRef.current = onDismiss;
 
   useEffect(() => {
     if (!message) return;
@@ -17,8 +19,8 @@ export function ErrorToast({ message, onDismiss, bottomOffset = 100 }: Props) {
       Animated.timing(opacity, { toValue: 1, duration: 200, useNativeDriver: true }),
       Animated.delay(2600),
       Animated.timing(opacity, { toValue: 0, duration: 200, useNativeDriver: true }),
-    ]).start(() => onDismiss());
-  }, [message]);
+    ]).start(() => onDismissRef.current());
+  }, [message, opacity]);
 
   if (!message) return null;
 

@@ -23,7 +23,7 @@ export function DeleteConfirmModal({ entry, onConfirm, onCancel, deleting = fals
               Delete entry?
             </Text>
             <Text style={{ fontSize: 14, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular', marginBottom: 24 }}>
-              "{entry?.note || 'general spending'}" — ৳{entry?.amount.toLocaleString()} will be removed.
+              &quot;{entry?.note || 'general spending'}&quot; — ৳{entry?.amount.toLocaleString()} will be removed.
             </Text>
             <View style={{ flexDirection: 'row', gap: 10 }}>
               <Pressable
