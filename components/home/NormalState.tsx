@@ -112,7 +112,8 @@ export function NormalState({
               </View>
             )}
             {cycleData.reservations.map(r => {
-              const paid = !!r.paid_at;
+              const remaining = r.amount - r.spent - r.released;
+              const done = remaining <= 0;
               return (
                 <Pressable
                   key={r.id}
@@ -120,13 +121,13 @@ export function NormalState({
                   style={{
                     borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8,
                     flexDirection: 'row', alignItems: 'center', gap: 6,
-                    backgroundColor: paid ? colors.primaryLight : colors.background,
-                    borderWidth: 1, borderColor: paid ? '#86EFAC' : colors.border,
+                    backgroundColor: done ? colors.primaryLight : colors.background,
+                    borderWidth: 1, borderColor: done ? '#86EFAC' : colors.border,
                   }}
                 >
-                  {paid && <Text style={{ fontSize: 11, color: colors.primary }}>✓</Text>}
-                  <Text style={{ fontSize: 11, color: paid ? colors.primary : colors.textSecondary, fontFamily: 'PlusJakartaSans_500Medium' }}>{r.name}</Text>
-                  <Text style={{ fontSize: 11, color: paid ? colors.primary : colors.textPrimary, fontFamily: 'PlusJakartaSans_700Bold' }}>৳{Math.floor(r.amount).toLocaleString()}</Text>
+                  {done && <Text style={{ fontSize: 11, color: colors.primary }}>✓</Text>}
+                  <Text style={{ fontSize: 11, color: done ? colors.primary : colors.textSecondary, fontFamily: 'PlusJakartaSans_500Medium' }}>{r.name}</Text>
+                  <Text style={{ fontSize: 11, color: done ? colors.primary : colors.textPrimary, fontFamily: 'PlusJakartaSans_700Bold' }}>৳{Math.floor(Math.max(0, remaining)).toLocaleString()}</Text>
                 </Pressable>
               );
             })}
@@ -153,7 +154,7 @@ export function NormalState({
         <View style={{ flex: 1, marginTop: 12, marginHorizontal: 16, paddingBottom: navPillOffset }}>
           <View style={{ flex: 1, backgroundColor: colors.card, borderRadius: 20, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-              <Text style={{ fontSize: 13, fontFamily: 'PlusJakartaSans_600SemiBold', color: colors.textSecondary }}>Today's log</Text>
+              <Text style={{ fontSize: 13, fontFamily: 'PlusJakartaSans_600SemiBold', color: colors.textSecondary }}>Today&apos;s log</Text>
               <Text style={{ fontSize: 12, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular' }}>
                 {entries.length} {entries.length === 1 ? 'item' : 'items'}
               </Text>

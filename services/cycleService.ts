@@ -19,8 +19,8 @@ export interface ReservationRow {
   cycle_id: number;
   name: string;
   amount: number;
-  paid_at: string | null;
-  paid_note: string | null;
+  spent: number;
+  released: number;
 }
 
 export interface CreateCycleInput {
@@ -48,44 +48,11 @@ export interface ActiveCycleData {
   activeDays: number;
 }
 
-export async function updateReservation(
-  db: SQLiteDatabase,
-  reservationId: number,
-  name: string,
-  amount: number
-): Promise<void> {
-  await db.runAsync(
-    'UPDATE reservations SET name = ?, amount = ? WHERE id = ?',
-    [name, amount, reservationId]
-  );
-}
-
 export async function deleteReservation(
   db: SQLiteDatabase,
   reservationId: number
 ): Promise<void> {
   await db.runAsync('DELETE FROM reservations WHERE id = ?', [reservationId]);
-}
-
-export async function markReservationPaid(
-  db: SQLiteDatabase,
-  reservationId: number,
-  note: string
-): Promise<void> {
-  await db.runAsync(
-    'UPDATE reservations SET paid_at = ?, paid_note = ? WHERE id = ?',
-    [new Date().toISOString(), note.trim() || null, reservationId]
-  );
-}
-
-export async function markReservationUnpaid(
-  db: SQLiteDatabase,
-  reservationId: number
-): Promise<void> {
-  await db.runAsync(
-    'UPDATE reservations SET paid_at = NULL, paid_note = NULL WHERE id = ?',
-    [reservationId]
-  );
 }
 
 export async function archiveLeftoverAsSavings(
@@ -139,11 +106,17 @@ export async function getActiveCycle(db: SQLiteDatabase): Promise<ActiveCycleDat
   if (!cycle) return null;
 
   const reservations = await db.getAllAsync<ReservationRow>(
-    'SELECT * FROM reservations WHERE cycle_id = ?',
+    `SELECT r.id, r.cycle_id, r.name, r.amount,
+            COALESCE(SUM(CASE WHEN rt.type = 'spend' THEN rt.amount ELSE 0 END), 0) as spent,
+            COALESCE(SUM(CASE WHEN rt.type = 'release' THEN rt.amount ELSE 0 END), 0) as released
+     FROM reservations r
+     LEFT JOIN reservation_transactions rt ON rt.reservation_id = r.id
+     WHERE r.cycle_id = ?
+     GROUP BY r.id`,
     [cycle.id]
   );
 
-  const reservationsTotal = reservations.reduce((s, r) => s + r.amount, 0);
+  const reservationsTotal = reservations.reduce((s, r) => s + (r.amount - r.released), 0);
   const pool = cycle.income - cycle.already_spent + cycle.pool_leftover;
 
   const today = new Date();

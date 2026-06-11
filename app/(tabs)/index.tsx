@@ -10,9 +10,6 @@ import {
   deleteReservation,
   getActiveCycle,
   getCycleTotalSpent,
-  markReservationPaid,
-  markReservationUnpaid,
-  updateReservation,
   type ActiveCycleData,
   type ReservationRow,
 } from '@/services/cycleService';
@@ -32,6 +29,12 @@ import {
   getMissedEntries,
   type MissedDay,
 } from '@/services/reviewService';
+import {
+  addReservationTransaction,
+  deleteLastTransaction,
+  getReservationTransactions,
+  type ReservationTransactionRow,
+} from '@/services/reservationService';
 import { getSettings } from '@/services/settingsService';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
@@ -104,11 +107,11 @@ export default function HomeScreen() {
 
   // Reservation modal
   const [selectedReservation, setSelectedReservation] = useState<ReservationRow | null>(null);
+  const [resTransactions, setResTransactions] = useState<ReservationTransactionRow[]>([]);
+  const [resAmount, setResAmount] = useState('');
   const [resNote, setResNote] = useState('');
-  const [markingRes, setMarkingRes] = useState(false);
-  const [resEditName, setResEditName] = useState('');
-  const [resEditAmount, setResEditAmount] = useState('');
-  const [resEditMode, setResEditMode] = useState(false);
+  const [resSaving, setResSaving] = useState(false);
+  const [resConfirmingRelease, setResConfirmingRelease] = useState(false);
 
   // Catch-up
   const [catchUpAmount, setCatchUpAmount] = useState('');
@@ -155,7 +158,7 @@ export default function HomeScreen() {
     if (!data || data.missedEntries.length === 0 || catchUpAmount !== '') return;
     const staged = Math.floor(data.missedEntries.reduce((s, e) => s + e.amount, 0));
     if (staged > 0) setCatchUpAmount(String(staged));
-  }, [data]);
+  }, [data, catchUpAmount]);
 
   useEffect(() => {
     const sub = AppState.addEventListener('change', state => { if (state === 'active') load(); });
@@ -264,63 +267,59 @@ export default function HomeScreen() {
   }
 
   // ── Reservation handlers ────────────────────────────────────────────────────
-  function openReservation(r: ReservationRow) {
-    setSelectedReservation(r); setResNote(''); setResEditMode(false);
+  async function openReservation(r: ReservationRow) {
+    setSelectedReservation(r);
+    setResAmount(''); setResNote(''); setResConfirmingRelease(false);
+    setResTransactions(await getReservationTransactions(db, r.id));
   }
 
   function closeReservation() {
-    setSelectedReservation(null); setResEditMode(false);
+    setSelectedReservation(null);
+    setResTransactions([]);
+    setResAmount(''); setResNote(''); setResConfirmingRelease(false);
   }
 
-  async function handleResMarkUsed() {
-    if (!selectedReservation || markingRes) return;
-    setMarkingRes(true);
+  async function refreshReservation(reservationId: number) {
+    const [freshCycleData, transactions] = await Promise.all([
+      getActiveCycle(db),
+      getReservationTransactions(db, reservationId),
+    ]);
+    setSelectedReservation(freshCycleData?.reservations.find(r => r.id === reservationId) ?? null);
+    setResTransactions(transactions);
+  }
+
+  async function handleResTransaction(type: 'spend' | 'release') {
+    if (!selectedReservation || !resCanSubmit) return;
+    setResSaving(true);
     try {
-      await markReservationPaid(db, selectedReservation.id, resNote);
-      await load();
-      closeReservation();
+      await addReservationTransaction(db, selectedReservation.cycle_id, selectedReservation.id, type, resAmountNum, resNote);
+      await Promise.all([load(), refreshReservation(selectedReservation.id)]);
+      setResAmount(''); setResNote(''); setResConfirmingRelease(false);
     } catch (e) {
-      console.error('[reservation mark used error]', e);
-      showError('Failed to update reservation.');
+      console.error('[reservation transaction error]', e);
+      showError('Failed to save. Please try again.');
     } finally {
-      setMarkingRes(false);
+      setResSaving(false);
     }
   }
 
-  async function handleResMarkUnused() {
-    if (!selectedReservation || markingRes) return;
-    setMarkingRes(true);
+  async function handleResUndoLast() {
+    if (!selectedReservation || resTransactions.length === 0 || resSaving) return;
+    setResSaving(true);
     try {
-      await markReservationUnpaid(db, selectedReservation.id);
-      await load();
-      closeReservation();
+      await deleteLastTransaction(db, selectedReservation.cycle_id, selectedReservation.id);
+      await Promise.all([load(), refreshReservation(selectedReservation.id)]);
     } catch (e) {
-      console.error('[reservation mark unused error]', e);
-      showError('Failed to update reservation.');
+      console.error('[reservation undo error]', e);
+      showError('Failed to undo. Please try again.');
     } finally {
-      setMarkingRes(false);
-    }
-  }
-
-  async function handleResSaveEdit() {
-    if (!selectedReservation || !resEditName.trim() || !(parseFloat(resEditAmount) > 0) || markingRes) return;
-    setMarkingRes(true);
-    try {
-      await updateReservation(db, selectedReservation.id, resEditName.trim(), parseFloat(resEditAmount));
-      await load();
-      setResEditMode(false);
-      closeReservation();
-    } catch (e) {
-      console.error('[reservation edit error]', e);
-      showError('Failed to save changes.');
-    } finally {
-      setMarkingRes(false);
+      setResSaving(false);
     }
   }
 
   async function handleResDelete() {
-    if (!selectedReservation || markingRes) return;
-    setMarkingRes(true);
+    if (!selectedReservation || resSaving) return;
+    setResSaving(true);
     try {
       await deleteReservation(db, selectedReservation.id);
       await load();
@@ -329,7 +328,7 @@ export default function HomeScreen() {
       console.error('[reservation delete error]', e);
       showError('Failed to delete reservation.');
     } finally {
-      setMarkingRes(false);
+      setResSaving(false);
     }
   }
 
@@ -375,6 +374,16 @@ export default function HomeScreen() {
     ? `Daily budget will drop to ৳${Math.floor(projectedDaily).toLocaleString()}, below your ৳${Math.floor(cycleData.cycle.budget_alert).toLocaleString()} alert`
     : null;
   const canSave = amountValid && !hardCapError && !poolExhausted;
+
+  const resRemaining = selectedReservation
+    ? selectedReservation.amount - selectedReservation.spent - selectedReservation.released
+    : 0;
+  const resAmountNum = parseFloat(resAmount) || 0;
+  const resAmountValid = resAmountNum > 0;
+  const resAmountError = resAmountValid && resAmountNum > resRemaining
+    ? `Exceeds ৳${Math.floor(resRemaining).toLocaleString()} remaining`
+    : null;
+  const resCanSubmit = resAmountValid && !resAmountError && !resSaving;
 
   // ── Inline state helpers ────────────────────────────────────────────────────
   function statRow(label: string, value: string, valueColor: string = colors.textPrimary) {
@@ -436,7 +445,7 @@ export default function HomeScreen() {
               {startFmt} – {endFmt}
             </Text>
             <Text style={{ fontSize: 34, fontFamily: 'PlusJakartaSans_800ExtraBold', color: colors.textPrimary, letterSpacing: -1, marginBottom: 4, marginLeft: 4 }}>
-              That's a wrap.
+              That&apos;s a wrap.
             </Text>
             <Text style={{ fontSize: 14, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular', marginBottom: 24, marginLeft: 4 }}>
               Your cycle has ended. Start a new one to continue.
@@ -458,7 +467,7 @@ export default function HomeScreen() {
                 )}
                 {cycleData.reservations.map((r, i) => (
                   <View key={r.id}>
-                    {statRow(`${r.name} (reserved)`, `৳${Math.floor(r.amount).toLocaleString()}`, colors.textSecondary)}
+                    {statRow(`${r.name} (reserved)`, `৳${Math.floor(r.amount - r.spent - r.released).toLocaleString()}`, colors.textSecondary)}
                     {i < cycleData.reservations.length - 1 && <View style={{ height: 1, backgroundColor: colors.border }} />}
                   </View>
                 ))}
@@ -498,7 +507,7 @@ export default function HomeScreen() {
               Waiting patiently.
             </Text>
             <Text style={{ fontSize: 14, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular', textAlign: 'center', lineHeight: 22, marginBottom: 8 }}>
-              Unlike your friends that leave when you're broke, we're still here.
+              Unlike your friends that leave when you&apos;re broke, we&apos;re still here.
             </Text>
             <Text style={{ fontSize: 13, color: colors.primary, fontFamily: 'PlusJakartaSans_600SemiBold', textAlign: 'center', marginBottom: 40 }}>
               Cycle starts {startFmt} · {daysUntil} {daysUntil === 1 ? 'day' : 'days'} away
@@ -561,7 +570,7 @@ export default function HomeScreen() {
             <ScrollView contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 40, paddingBottom: Math.max(insets.bottom, 32) }} showsVerticalScrollIndicator={false}>
               <Text style={{ fontSize: 36, marginBottom: 16 }}>✅</Text>
               <Text style={{ fontSize: 30, fontFamily: 'PlusJakartaSans_800ExtraBold', color: colors.textPrimary, letterSpacing: -0.5, marginBottom: 8 }}>
-                You're done for today.
+                You&apos;re done for today.
               </Text>
               <Text style={{ fontSize: 15, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular', marginBottom: 32 }}>
                 See you tomorrow.
@@ -636,20 +645,23 @@ export default function HomeScreen() {
 
       <ReservationModal
         reservation={selectedReservation}
+        transactions={resTransactions}
         onClose={closeReservation}
+        amount={resAmount}
+        onChangeAmount={v => setResAmount(v.replace(/[^0-9.]/g, ''))}
         note={resNote}
         onChangeNote={setResNote}
-        marking={markingRes}
-        editMode={resEditMode}
-        onStartEdit={() => { setResEditName(selectedReservation?.name ?? ''); setResEditAmount(String(selectedReservation?.amount ?? '')); setResEditMode(true); }}
-        editName={resEditName}
-        onChangeEditName={setResEditName}
-        editAmount={resEditAmount}
-        onChangeEditAmount={setResEditAmount}
-        onMarkUsed={handleResMarkUsed}
-        onMarkUnused={handleResMarkUnused}
-        onSaveEdit={handleResSaveEdit}
-        onDelete={handleResDelete}
+        amountError={resAmountError}
+        canSubmit={resCanSubmit}
+        saving={resSaving}
+        confirmingRelease={resConfirmingRelease}
+        onSpend={() => handleResTransaction('spend')}
+        onReleasePress={() => setResConfirmingRelease(true)}
+        onConfirmRelease={() => handleResTransaction('release')}
+        onCancelRelease={() => setResConfirmingRelease(false)}
+        onUseFullAmount={() => setResAmount(String(resRemaining))}
+        onUndoLast={handleResUndoLast}
+        onDeleteReservation={handleResDelete}
       />
       <ErrorToast
         message={errorMsg}

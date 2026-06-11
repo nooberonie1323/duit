@@ -33,6 +33,15 @@ export async function migrateDb(db: SQLite.SQLiteDatabase) {
       amount REAL NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS reservation_transactions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      reservation_id INTEGER NOT NULL REFERENCES reservations(id) ON DELETE CASCADE,
+      type TEXT NOT NULL CHECK(type IN ('spend', 'release')),
+      amount REAL NOT NULL,
+      note TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
     CREATE TABLE IF NOT EXISTS days (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       cycle_id INTEGER NOT NULL REFERENCES cycles(id) ON DELETE CASCADE,
@@ -71,6 +80,8 @@ export async function migrateDb(db: SQLite.SQLiteDatabase) {
   await db.execAsync('ALTER TABLE days ADD COLUMN notes TEXT').catch(() => {});
   await db.execAsync('ALTER TABLE reservations ADD COLUMN paid_at TEXT').catch(() => {});
   await db.execAsync('ALTER TABLE reservations ADD COLUMN paid_note TEXT').catch(() => {});
+  await db.execAsync('ALTER TABLE reservations DROP COLUMN paid_at').catch(() => {});
+  await db.execAsync('ALTER TABLE reservations DROP COLUMN paid_note').catch(() => {});
 }
 
 export function toDateStr(d: Date): string {
