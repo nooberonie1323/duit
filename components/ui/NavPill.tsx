@@ -1,5 +1,6 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import { useThemeColors } from '@/contexts/theme';
 import { ComponentProps, useEffect } from 'react';
 import { Pressable, View } from 'react-native';
 import Animated, {
@@ -28,6 +29,7 @@ function NavTabItem({
   focused: boolean;
   onPress: () => void;
 }) {
+  const colors = useThemeColors();
   const progress = useSharedValue(focused ? 1 : 0);
 
   useEffect(() => {
@@ -38,7 +40,7 @@ function NavTabItem({
     backgroundColor: interpolateColor(
       progress.value,
       [0, 1],
-      ['rgba(22,163,74,0)', '#16A34A']
+      ['rgba(22,163,74,0)', colors.primary]
     ),
     paddingHorizontal: interpolate(progress.value, [0, 1], [11, 18]),
   }));
@@ -64,7 +66,7 @@ function NavTabItem({
         <MaterialIcons
           name={tab.icon}
           size={21}
-          color={focused ? '#fff' : '#B0B7C3'}
+          color={focused ? '#fff' : colors.textSecondary}
         />
         <Animated.Text
           numberOfLines={1}
@@ -84,6 +86,7 @@ function NavTabItem({
 
 export function NavPill({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
 
   return (
     <View style={{
@@ -91,13 +94,13 @@ export function NavPill({ state, navigation }: BottomTabBarProps) {
       bottom: Math.max(insets.bottom, 16) + 4,
       left: 24,
       right: 24,
-      backgroundColor: '#fff',
+      backgroundColor: colors.card,
       borderRadius: 40,
       flexDirection: 'row',
       alignItems: 'center',
       paddingVertical: 8,
       paddingHorizontal: 8,
-      shadowColor: '#16A34A',
+      shadowColor: '#000',
       shadowOffset: { width: 0, height: 6 },
       shadowOpacity: 0.10,
       shadowRadius: 24,
