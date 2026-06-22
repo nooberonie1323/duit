@@ -69,6 +69,41 @@ export async function migrateDb(db: SQLite.SQLiteDatabase) {
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
+    CREATE TABLE IF NOT EXISTS loans (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      type TEXT NOT NULL CHECK(type IN ('lent', 'borrowed')),
+      person_name TEXT NOT NULL,
+      original_amount REAL NOT NULL,
+      note TEXT,
+      loaned_at TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'settled')),
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS loan_receipts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      loan_id INTEGER NOT NULL REFERENCES loans(id) ON DELETE CASCADE,
+      amount REAL NOT NULL,
+      action TEXT NOT NULL CHECK(action IN ('pool', 'savings', 'reservation', 'used', 'pending')),
+      cycle_id INTEGER REFERENCES cycles(id) ON DELETE SET NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS loan_repayment_plans (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      loan_id INTEGER NOT NULL UNIQUE REFERENCES loans(id) ON DELETE CASCADE,
+      amount_per_month REAL NOT NULL,
+      total_months INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS loan_repayment_records (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      loan_id INTEGER NOT NULL REFERENCES loans(id) ON DELETE CASCADE,
+      cycle_id INTEGER NOT NULL REFERENCES cycles(id) ON DELETE CASCADE,
+      reservation_id INTEGER REFERENCES reservations(id) ON DELETE SET NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
     CREATE TABLE IF NOT EXISTS savings_withdrawals (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       cycle_id INTEGER NOT NULL REFERENCES cycles(id) ON DELETE CASCADE,
