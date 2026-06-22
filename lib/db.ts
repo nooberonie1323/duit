@@ -69,6 +69,14 @@ export async function migrateDb(db: SQLite.SQLiteDatabase) {
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
+    CREATE TABLE IF NOT EXISTS savings_withdrawals (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      cycle_id INTEGER NOT NULL REFERENCES cycles(id) ON DELETE CASCADE,
+      amount REAL NOT NULL,
+      note TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
     CREATE TABLE IF NOT EXISTS onboarding_state (
       id INTEGER PRIMARY KEY DEFAULT 1,
       current_page INTEGER NOT NULL DEFAULT 1,
