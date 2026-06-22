@@ -1,6 +1,15 @@
 import { useThemeColors } from '@/contexts/theme';
 import { fromDateStr } from '@/lib/db';
-import { getAllReviewedDays, getDayEntries, type EntryRow, type ReviewedDayWithCycle } from '@/services/entryService';
+import {
+  getCycleSummaries,
+  getDayEntries,
+  getReviewedDays,
+  type CycleSummary,
+  type EntryRow,
+  type ReviewedDay,
+} from '@/services/entryService';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, Text, View } from 'react-native';
@@ -16,15 +25,8 @@ function fmtCycleRange(start: string, end: string) {
   return `${s} – ${e}`;
 }
 
-interface CycleGroup {
-  cycleId: number;
-  cycleStart: string;
-  cycleEnd: string;
-  days: ReviewedDayWithCycle[];
-}
-
 interface DayDetail {
-  day: ReviewedDayWithCycle;
+  day: ReviewedDay;
   entries: EntryRow[];
 }
 
@@ -32,32 +34,58 @@ export default function LogScreen() {
   const insets = useSafeAreaInsets();
   const colors = useThemeColors();
   const db = useSQLiteContext();
-  const [groups, setGroups] = useState<CycleGroup[]>([]);
+
+  const [summaries, setSummaries] = useState<CycleSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
+  const [loadedDays, setLoadedDays] = useState<Map<number, ReviewedDay[]>>(new Map());
+  const [loadingCycleId, setLoadingCycleId] = useState<number | null>(null);
+
   const [detail, setDetail] = useState<DayDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
 
   const load = useCallback(async () => {
-    const allDays = await getAllReviewedDays(db);
-    const map = new Map<number, CycleGroup>();
-    for (const day of allDays) {
-      if (!map.has(day.cycle_id)) {
-        map.set(day.cycle_id, { cycleId: day.cycle_id, cycleStart: day.cycle_start, cycleEnd: day.cycle_end, days: [] });
-      }
-      map.get(day.cycle_id)!.days.push(day);
+    const s = await getCycleSummaries(db);
+    setSummaries(s);
+    if (s.length > 0) {
+      const days = await getReviewedDays(db, s[0].cycle_id);
+      setLoadedDays(new Map([[s[0].cycle_id, days]]));
+      setExpandedIds(new Set([s[0].cycle_id]));
     }
-    // newest cycle first
-    setGroups(Array.from(map.values()).sort((a, b) => b.cycleId - a.cycleId));
     setLoading(false);
   }, [db]);
 
   useEffect(() => { load(); }, [load]);
 
-  async function openDay(day: ReviewedDayWithCycle) {
+  async function toggleCycle(cycleId: number) {
+    if (expandedIds.has(cycleId)) {
+      setExpandedIds(prev => { const s = new Set(prev); s.delete(cycleId); return s; });
+      return;
+    }
+    if (!loadedDays.has(cycleId)) {
+      setLoadingCycleId(cycleId);
+      try {
+        const days = await getReviewedDays(db, cycleId);
+        setLoadedDays(prev => new Map(prev).set(cycleId, days));
+      } catch (e) {
+        console.error('[LogScreen toggleCycle]', e);
+      } finally {
+        setLoadingCycleId(null);
+      }
+    }
+    setExpandedIds(prev => new Set(prev).add(cycleId));
+  }
+
+  async function openDay(day: ReviewedDay) {
     setLoadingDetail(true);
-    const entries = await getDayEntries(db, day.id);
-    setDetail({ day, entries });
-    setLoadingDetail(false);
+    try {
+      const entries = await getDayEntries(db, day.id);
+      setDetail({ day, entries });
+    } catch (e) {
+      console.error('[LogScreen openDay]', e);
+    } finally {
+      setLoadingDetail(false);
+    }
   }
 
   if (loading) {
@@ -68,7 +96,7 @@ export default function LogScreen() {
     );
   }
 
-  const hasAny = groups.some(g => g.days.length > 0);
+  const navPillOffset = Math.max(insets.bottom, 16) + 76;
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -78,7 +106,7 @@ export default function LogScreen() {
         </Text>
       </View>
 
-      {!hasAny ? (
+      {summaries.length === 0 ? (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 80 }}>
           <Text style={{ fontSize: 32, marginBottom: 12 }}>📭</Text>
           <Text style={{ fontSize: 15, fontFamily: 'PlusJakartaSans_600SemiBold', color: colors.textPrimary, marginBottom: 6 }}>
@@ -89,54 +117,133 @@ export default function LogScreen() {
           </Text>
         </View>
       ) : (
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 120 }}>
-          {groups.map((group, gi) => (
-            <View key={group.cycleId} style={{ marginBottom: 24 }}>
-              <Text style={{ fontSize: 11, fontFamily: 'PlusJakartaSans_600SemiBold', color: colors.textSecondary, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8, marginLeft: 4 }}>
-                {fmtCycleRange(group.cycleStart, group.cycleEnd)}
-              </Text>
-              <View style={{ backgroundColor: colors.card, borderRadius: 20, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 }}>
-                {group.days.map((day, i) => {
-                  const saved = day.daily_budget - day.total_spent;
-                  const didSave = saved >= 0;
-                  return (
-                    <Pressable
-                      key={day.id}
-                      onPress={() => openDay(day)}
-                      style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        paddingVertical: 14,
-                        paddingHorizontal: 16,
-                        borderBottomWidth: i < group.days.length - 1 ? 1 : 0,
-                        borderBottomColor: colors.border,
-                      }}
-                    >
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: colors.textPrimary, marginBottom: 3 }}>
-                          {fmtDay(day.date)}
-                        </Text>
-                        <Text style={{ fontSize: 12, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular' }}>
-                          spent ৳{Math.floor(day.total_spent).toLocaleString()}
-                        </Text>
-                      </View>
-                      <View style={{ alignItems: 'flex-end', marginRight: 10 }}>
-                        <Text style={{ fontSize: 13, fontFamily: 'PlusJakartaSans_600SemiBold', color: didSave ? colors.primary : colors.error }}>
-                          {didSave ? `+৳${Math.floor(saved).toLocaleString()}` : `-৳${Math.floor(Math.abs(saved)).toLocaleString()}`}
-                        </Text>
-                        <Text style={{ fontSize: 11, color: didSave ? colors.primary : colors.error, fontFamily: 'PlusJakartaSans_400Regular', marginTop: 1 }}>
-                          {didSave ? 'saved' : 'overspent'}
-                        </Text>
-                      </View>
-                      <Text style={{ fontSize: 16, color: colors.textSecondary }}>›</Text>
-                    </Pressable>
-                  );
-                })}
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: navPillOffset + 24 }}
+        >
+          {summaries.map(summary => {
+            const isExpanded = expandedIds.has(summary.cycle_id);
+            const isLoadingThis = loadingCycleId === summary.cycle_id;
+            const days = loadedDays.get(summary.cycle_id) ?? [];
+            const net = summary.total_budget - summary.total_spent;
+            const saved = net >= 0;
+
+            return (
+              <View key={summary.cycle_id} style={{ marginBottom: 16 }}>
+                {/* Cycle header — always visible */}
+                <Pressable
+                  onPress={() => toggleCycle(summary.cycle_id)}
+                  style={{
+                    backgroundColor: colors.card,
+                    borderRadius: isExpanded ? 20 : 16,
+                    borderBottomLeftRadius: isExpanded ? 0 : 16,
+                    borderBottomRightRadius: isExpanded ? 0 : 16,
+                    paddingHorizontal: 16,
+                    paddingVertical: 14,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    shadowColor: '#000',
+                    shadowOpacity: 0.06,
+                    shadowRadius: 8,
+                    shadowOffset: { width: 0, height: 2 },
+                    elevation: 2,
+                  }}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 12, fontFamily: 'PlusJakartaSans_700Bold', color: colors.textPrimary, letterSpacing: 0.3, textTransform: 'uppercase' }}>
+                      {fmtCycleRange(summary.start_date, summary.end_date)}
+                    </Text>
+                    <Text style={{ fontSize: 12, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular', marginTop: 3 }}>
+                      {summary.day_count} {summary.day_count === 1 ? 'day' : 'days'}
+                      {'  ·  '}
+                      <Text style={{ color: colors.textSecondary }}>spent ৳{Math.floor(summary.total_spent).toLocaleString()}</Text>
+                      {'  ·  '}
+                      <Text style={{ color: saved ? colors.primary : colors.error }}>
+                        {saved ? `saved ৳${Math.floor(net).toLocaleString()}` : `over ৳${Math.floor(Math.abs(net)).toLocaleString()}`}
+                      </Text>
+                    </Text>
+                  </View>
+                  {isLoadingThis
+                    ? <ActivityIndicator size="small" color={colors.primary} style={{ marginLeft: 8 }} />
+                    : <MaterialIcons
+                        name={isExpanded ? 'expand-more' : 'chevron-right'}
+                        size={22}
+                        color={colors.textSecondary}
+                        style={{ marginLeft: 4 }}
+                      />
+                  }
+                </Pressable>
+
+                {/* Expanded days list */}
+                {isExpanded && days.length > 0 && (
+                  <View style={{
+                    backgroundColor: colors.card,
+                    borderBottomLeftRadius: 20,
+                    borderBottomRightRadius: 20,
+                    overflow: 'hidden',
+                    shadowColor: '#000',
+                    shadowOpacity: 0.06,
+                    shadowRadius: 8,
+                    shadowOffset: { width: 0, height: 2 },
+                    elevation: 2,
+                  }}>
+                    <View style={{ height: 1, backgroundColor: colors.border, marginHorizontal: 16 }} />
+                    {days.map((day, i) => {
+                      const daySaved = day.daily_budget - day.total_spent;
+                      const didSave = daySaved >= 0;
+                      return (
+                        <Pressable
+                          key={day.id}
+                          onPress={() => openDay(day)}
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            paddingVertical: 14,
+                            paddingHorizontal: 16,
+                            borderBottomWidth: i < days.length - 1 ? 1 : 0,
+                            borderBottomColor: colors.border,
+                          }}
+                        >
+                          <View style={{ flex: 1 }}>
+                            <Text style={{ fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: colors.textPrimary, marginBottom: 3 }}>
+                              {fmtDay(day.date)}
+                            </Text>
+                            <Text style={{ fontSize: 12, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular' }}>
+                              spent ৳{Math.floor(day.total_spent).toLocaleString()}
+                            </Text>
+                          </View>
+                          <View style={{ alignItems: 'flex-end', marginRight: 10 }}>
+                            <Text style={{ fontSize: 13, fontFamily: 'PlusJakartaSans_600SemiBold', color: didSave ? colors.primary : colors.error }}>
+                              {didSave ? `+৳${Math.floor(daySaved).toLocaleString()}` : `-৳${Math.floor(Math.abs(daySaved)).toLocaleString()}`}
+                            </Text>
+                            <Text style={{ fontSize: 11, color: didSave ? colors.primary : colors.error, fontFamily: 'PlusJakartaSans_400Regular', marginTop: 1 }}>
+                              {didSave ? 'saved' : 'overspent'}
+                            </Text>
+                          </View>
+                          <MaterialIcons name="chevron-right" size={18} color={colors.textSecondary} />
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                )}
               </View>
-            </View>
-          ))}
+            );
+          })}
         </ScrollView>
       )}
+
+      {/* Bottom fade */}
+      <LinearGradient
+        colors={['transparent', colors.background]}
+        style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: navPillOffset + 32,
+          pointerEvents: 'none',
+        }}
+      />
 
       {/* Day detail modal */}
       <Modal visible={!!detail || loadingDetail} transparent animationType="fade" onRequestClose={() => setDetail(null)}>
