@@ -94,18 +94,14 @@ export default function LoansScreen() {
     );
   }
 
+  const navPillOffset = Math.max(insets.bottom, 16) + 76;
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <View style={{ paddingTop: insets.top + 16, paddingHorizontal: 20, paddingBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+      <View style={{ paddingTop: insets.top + 16, paddingHorizontal: 20, paddingBottom: 12 }}>
         <Text style={{ fontSize: 24, fontFamily: 'PlusJakartaSans_800ExtraBold', color: colors.textPrimary, letterSpacing: -0.5 }}>
           Loans
         </Text>
-        <Pressable
-          onPress={() => setShowAdd(true)}
-          style={{ backgroundColor: colors.primary, borderRadius: 20, paddingHorizontal: 16, paddingVertical: 8 }}
-        >
-          <Text style={{ fontSize: 14, color: '#fff', fontFamily: 'PlusJakartaSans_600SemiBold' }}>+ New</Text>
-        </Pressable>
       </View>
 
       {errorMsg ? (
@@ -115,19 +111,19 @@ export default function LoansScreen() {
       ) : null}
 
       {!hasAnyLoan ? (
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 }}>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, paddingBottom: navPillOffset }}>
           <Text style={{ fontSize: 32, marginBottom: 12 }}>💸</Text>
           <Text style={{ fontSize: 16, fontFamily: 'PlusJakartaSans_600SemiBold', color: colors.textPrimary, marginBottom: 6, textAlign: 'center' }}>
             No loans tracked yet
           </Text>
           <Text style={{ fontSize: 13, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular', textAlign: 'center', lineHeight: 20 }}>
-            Tap + New to record money you gave or received.
+            Tap + to record money you gave or received.
           </Text>
         </View>
       ) : (
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: Math.max(insets.bottom, 16) + 90 }}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: navPillOffset + 24 }}
         >
           {lentLoans.length > 0 && (
             <View style={{ marginBottom: 20 }}>
@@ -148,6 +144,29 @@ export default function LoansScreen() {
           )}
         </ScrollView>
       )}
+
+      {/* FAB */}
+      <Pressable
+        onPress={() => setShowAdd(true)}
+        style={{
+          position: 'absolute',
+          bottom: navPillOffset + 16,
+          right: 24,
+          width: 56,
+          height: 56,
+          borderRadius: 28,
+          backgroundColor: colors.primary,
+          alignItems: 'center',
+          justifyContent: 'center',
+          shadowColor: colors.primary,
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.4,
+          shadowRadius: 12,
+          elevation: 8,
+        }}
+      >
+        <Text style={{ fontSize: 28, color: '#fff', lineHeight: 32, includeFontPadding: false }}>+</Text>
+      </Pressable>
 
       <AddLoanModal
         visible={showAdd}
