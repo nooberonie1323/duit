@@ -1,6 +1,7 @@
 import { useThemeColors } from '@/contexts/theme';
 import { fromDateStr } from '@/lib/db';
 import { getAllReviewedDays, getDayEntries, type EntryRow, type ReviewedDayWithCycle } from '@/services/entryService';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, Text, View } from 'react-native';
@@ -92,6 +93,7 @@ export default function LogScreen() {
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: Math.max(insets.bottom, 16) + 76 + 24 }}
+          scrollIndicatorInsets={{ bottom: Math.max(insets.bottom, 16) + 76 }}
         >
           {groups.map((group, gi) => (
             <View key={group.cycleId} style={{ marginBottom: 24 }}>
@@ -140,6 +142,19 @@ export default function LogScreen() {
           ))}
         </ScrollView>
       )}
+
+      {/* Bottom fade */}
+      <LinearGradient
+        colors={['transparent', colors.background]}
+        style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: Math.max(insets.bottom, 16) + 76 + 32,
+          pointerEvents: 'none',
+        }}
+      />
 
       {/* Day detail modal */}
       <Modal visible={!!detail || loadingDetail} transparent animationType="fade" onRequestClose={() => setDetail(null)}>
