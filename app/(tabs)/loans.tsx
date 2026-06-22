@@ -71,6 +71,22 @@ export default function LoansScreen() {
     }
   }
 
+  async function refreshLentModal() {
+    if (!selectedLent) return;
+    try {
+      const [allLoans, receipts] = await Promise.all([
+        getLoans(db),
+        getLoanReceipts(db, selectedLent.id),
+      ]);
+      setLoans(allLoans);
+      setLentReceipts(receipts);
+      const updated = allLoans.find(l => l.id === selectedLent.id);
+      if (updated) setSelectedLent(updated);
+    } catch (e) {
+      console.error('[LoansScreen refreshLentModal]', e);
+    }
+  }
+
   async function openBorrowed(loan: LoanWithComputed) {
     try {
       const records = await getLoanRepaymentRecords(db, loan.id);
@@ -181,6 +197,7 @@ export default function LoansScreen() {
         activeCycleId={activeCycleId}
         onClose={() => setSelectedLent(null)}
         onMutated={() => { setSelectedLent(null); load(); }}
+        onResolvedPending={refreshLentModal}
         db={db}
       />
 

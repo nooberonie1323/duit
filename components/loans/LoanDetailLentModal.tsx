@@ -26,12 +26,13 @@ interface Props {
   activeCycleId: number | null;
   onClose: () => void;
   onMutated: () => void;
+  onResolvedPending: () => void;
   db: SQLiteDatabase;
 }
 
 type ModalView = 'detail' | 'return' | 'action' | 'resolve';
 
-export function LoanDetailLentModal({ loan, receipts, activeCycleId, onClose, onMutated, db }: Props) {
+export function LoanDetailLentModal({ loan, receipts, activeCycleId, onClose, onMutated, onResolvedPending, db }: Props) {
   const colors = useThemeColors();
   const [view, setView] = useState<ModalView>('detail');
   const [returnAmount, setReturnAmount] = useState('');
@@ -107,8 +108,12 @@ export function LoanDetailLentModal({ loan, receipts, activeCycleId, onClose, on
         cycleId: activeCycleId,
         reservationName: resolveAction === 'reservation' ? resolveReservationName : undefined,
       });
-      onMutated();
-      resetAndClose();
+      setResolvingReceipt(null);
+      setResolveAction(null);
+      setResolveReservationName('');
+      setError('');
+      setView('detail');
+      onResolvedPending();
     } catch (e) {
       console.error('[LoanDetailLentModal resolveConfirm]', e);
       setError('Failed to save. Please try again.');
@@ -331,23 +336,27 @@ function DetailView({
                   onPress={() => onResolvePending(r)}
                   style={{
                     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-                    paddingVertical: 10, paddingHorizontal: 10, marginHorizontal: -10,
-                    borderRadius: 10, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: colors.border,
-                    backgroundColor: `${colors.warning}18`,
+                    paddingVertical: 10,
+                    borderTopWidth: i === 0 ? 0 : 1, borderTopColor: colors.border,
                   }}
                 >
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 13, color: colors.warning, fontFamily: 'PlusJakartaSans_600SemiBold' }}>
-                      Pending · {dateStr}
-                    </Text>
-                    <Text style={{ fontSize: 11, color: colors.warning, fontFamily: 'PlusJakartaSans_400Regular', opacity: 0.8, marginTop: 1 }}>
-                      Tap to decide what to do
-                    </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, gap: 8 }}>
+                    <View style={{ width: 7, height: 7, borderRadius: 3.5, backgroundColor: colors.warning, flexShrink: 0 }} />
+                    <View>
+                      <Text style={{ fontSize: 13, color: colors.textPrimary, fontFamily: 'PlusJakartaSans_500Medium' }}>
+                        Pending · {dateStr}
+                      </Text>
+                      <Text style={{ fontSize: 11, color: colors.warning, fontFamily: 'PlusJakartaSans_400Regular', marginTop: 1 }}>
+                        Tap to resolve
+                      </Text>
+                    </View>
                   </View>
-                  <Text style={{ fontSize: 13, color: colors.warning, fontFamily: 'PlusJakartaSans_700Bold', marginRight: 6 }}>
-                    +৳{Math.floor(r.amount).toLocaleString()}
-                  </Text>
-                  <Text style={{ fontSize: 14, color: colors.warning, opacity: 0.7 }}>›</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <Text style={{ fontSize: 13, color: colors.textPrimary, fontFamily: 'PlusJakartaSans_700Bold' }}>
+                      +৳{Math.floor(r.amount).toLocaleString()}
+                    </Text>
+                    <Text style={{ fontSize: 16, color: colors.textSecondary, includeFontPadding: false }}>›</Text>
+                  </View>
                 </Pressable>
               );
             }
