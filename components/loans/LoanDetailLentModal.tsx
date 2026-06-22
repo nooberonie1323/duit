@@ -2,6 +2,7 @@ import { useThemeColors } from '@/contexts/theme';
 import {
   addLoanReceipt,
   deleteLoan,
+  resolvePendingReceipt,
   settleLoan,
   type LoanReceiptRow,
   type LoanWithComputed,
@@ -28,7 +29,7 @@ interface Props {
   db: SQLiteDatabase;
 }
 
-type ModalView = 'detail' | 'return' | 'action';
+type ModalView = 'detail' | 'return' | 'action' | 'resolve';
 
 export function LoanDetailLentModal({ loan, receipts, activeCycleId, onClose, onMutated, db }: Props) {
   const colors = useThemeColors();
@@ -39,6 +40,11 @@ export function LoanDetailLentModal({ loan, receipts, activeCycleId, onClose, on
   const [reservationName, setReservationName] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  // Resolve pending
+  const [resolvingReceipt, setResolvingReceipt] = useState<LoanReceiptRow | null>(null);
+  const [resolveAction, setResolveAction] = useState<ReceiptAction | null>(null);
+  const [resolveReservationName, setResolveReservationName] = useState('');
 
   if (!loan) return null;
 
@@ -60,8 +66,55 @@ export function LoanDetailLentModal({ loan, receipts, activeCycleId, onClose, on
     setReturnNote('');
     setSelectedAction(null);
     setReservationName('');
+    setResolvingReceipt(null);
+    setResolveAction(null);
+    setResolveReservationName('');
     setError('');
     onClose();
+  }
+
+  function handleBackdropPress() {
+    if (view !== 'detail') {
+      setView('detail');
+      setError('');
+    } else {
+      resetAndClose();
+    }
+  }
+
+  function openResolve(receipt: LoanReceiptRow) {
+    setResolvingReceipt(receipt);
+    setResolveAction(null);
+    setResolveReservationName('');
+    setError('');
+    setView('resolve');
+  }
+
+  async function handleResolveConfirm() {
+    if (!resolvingReceipt || !resolveAction || saving) return;
+    if (resolveAction === 'reservation' && !resolveReservationName.trim()) {
+      setError('Enter a reservation name.');
+      return;
+    }
+    setSaving(true);
+    setError('');
+    try {
+      await resolvePendingReceipt(db, {
+        receiptId: resolvingReceipt.id,
+        loanId: loan!.id,
+        originalAmount: loan!.original_amount,
+        newAction: resolveAction as Exclude<ReceiptAction, 'pending'>,
+        cycleId: activeCycleId,
+        reservationName: resolveAction === 'reservation' ? resolveReservationName : undefined,
+      });
+      onMutated();
+      resetAndClose();
+    } catch (e) {
+      console.error('[LoanDetailLentModal resolveConfirm]', e);
+      setError('Failed to save. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function handleConfirmAction() {
@@ -122,10 +175,10 @@ export function LoanDetailLentModal({ loan, receipts, activeCycleId, onClose, on
   }
 
   return (
-    <Modal visible transparent animationType="fade" onRequestClose={resetAndClose}>
+    <Modal visible transparent animationType="fade" onRequestClose={handleBackdropPress}>
       <Pressable
         style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center', padding: 24 }}
-        onPress={resetAndClose}
+        onPress={handleBackdropPress}
       >
         <Pressable onPress={() => {}} style={{ width: '100%', maxHeight: '88%' }}>
           <View style={{ backgroundColor: colors.card, borderRadius: 20, paddingHorizontal: 24, paddingTop: 24, paddingBottom: 20 }}>
@@ -140,7 +193,7 @@ export function LoanDetailLentModal({ loan, receipts, activeCycleId, onClose, on
                   {remaining > 0 ? ` · ৳${Math.floor(remaining).toLocaleString()} remaining` : ' · fully returned'}
                 </Text>
               </View>
-              <Pressable onPress={resetAndClose} hitSlop={8}>
+              <Pressable onPress={handleBackdropPress} hitSlop={8}>
                 <Text style={{ fontSize: 22, color: colors.textSecondary, lineHeight: 24, includeFontPadding: false }}>×</Text>
               </Pressable>
             </View>
@@ -156,6 +209,7 @@ export function LoanDetailLentModal({ loan, receipts, activeCycleId, onClose, on
                   onRecordReturn={() => { setView('return'); setError(''); }}
                   onSettle={handleSettle}
                   onDelete={handleDelete}
+                  onResolvePending={openResolve}
                   colors={colors}
                 />
               )}
@@ -190,6 +244,21 @@ export function LoanDetailLentModal({ loan, receipts, activeCycleId, onClose, on
                   colors={colors}
                 />
               )}
+              {view === 'resolve' && resolvingReceipt && (
+                <ResolveView
+                  receipt={resolvingReceipt}
+                  selectedAction={resolveAction}
+                  reservationName={resolveReservationName}
+                  saving={saving}
+                  error={error}
+                  activeCycleId={activeCycleId}
+                  onSelectAction={setResolveAction}
+                  onChangeReservationName={setResolveReservationName}
+                  onBack={() => { setView('detail'); setError(''); }}
+                  onConfirm={handleResolveConfirm}
+                  colors={colors}
+                />
+              )}
             </ScrollView>
           </View>
         </Pressable>
@@ -200,7 +269,7 @@ export function LoanDetailLentModal({ loan, receipts, activeCycleId, onClose, on
 
 function DetailView({
   loan, receipts, remaining, saving, error,
-  onRecordReturn, onSettle, onDelete, colors,
+  onRecordReturn, onSettle, onDelete, onResolvePending, colors,
 }: {
   loan: LoanWithComputed;
   receipts: LoanReceiptRow[];
@@ -210,6 +279,7 @@ function DetailView({
   onRecordReturn: () => void;
   onSettle: () => void;
   onDelete: () => void;
+  onResolvePending: (receipt: LoanReceiptRow) => void;
   colors: ReturnType<typeof useThemeColors>;
 }) {
   const isSettled = loan.status === 'settled';
@@ -252,7 +322,35 @@ function DetailView({
             History
           </Text>
           {receipts.map((r, i) => {
+            const isPending = r.action === 'pending';
             const dateStr = new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            if (isPending) {
+              return (
+                <Pressable
+                  key={r.id}
+                  onPress={() => onResolvePending(r)}
+                  style={{
+                    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+                    paddingVertical: 10, paddingHorizontal: 10, marginHorizontal: -10,
+                    borderRadius: 10, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: colors.border,
+                    backgroundColor: `${colors.warning}18`,
+                  }}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 13, color: colors.warning, fontFamily: 'PlusJakartaSans_600SemiBold' }}>
+                      Pending · {dateStr}
+                    </Text>
+                    <Text style={{ fontSize: 11, color: colors.warning, fontFamily: 'PlusJakartaSans_400Regular', opacity: 0.8, marginTop: 1 }}>
+                      Tap to decide what to do
+                    </Text>
+                  </View>
+                  <Text style={{ fontSize: 13, color: colors.warning, fontFamily: 'PlusJakartaSans_700Bold', marginRight: 6 }}>
+                    +৳{Math.floor(r.amount).toLocaleString()}
+                  </Text>
+                  <Text style={{ fontSize: 14, color: colors.warning, opacity: 0.7 }}>›</Text>
+                </Pressable>
+              );
+            }
             return (
               <View
                 key={r.id}
@@ -461,6 +559,124 @@ function ActionView({
           }
         </Pressable>
         <Pressable onPress={onBack} disabled={saving} style={{ paddingVertical: 14, alignItems: 'center', borderRadius: 14, borderWidth: 1.5, borderColor: colors.border }}>
+          <Text style={{ fontSize: 15, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_600SemiBold' }}>Go back</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+const RESOLVE_ACTION_OPTIONS: { action: Exclude<ReceiptAction, 'pending'>; label: string; description: string }[] = [
+  { action: 'pool', label: 'Add to pool', description: 'Increases your daily budget for remaining days.' },
+  { action: 'savings', label: 'Add to savings', description: 'Adds to your cycle savings balance.' },
+  { action: 'reservation', label: 'Create a reservation', description: 'Lock it away for something specific.' },
+  { action: 'used', label: 'Already used it', description: 'Mark it as accounted for.' },
+];
+
+function ResolveView({
+  receipt, selectedAction, reservationName, saving, error, activeCycleId,
+  onSelectAction, onChangeReservationName, onBack, onConfirm, colors,
+}: {
+  receipt: LoanReceiptRow;
+  selectedAction: ReceiptAction | null;
+  reservationName: string;
+  saving: boolean;
+  error: string;
+  activeCycleId: number | null;
+  onSelectAction: (a: ReceiptAction) => void;
+  onChangeReservationName: (v: string) => void;
+  onBack: () => void;
+  onConfirm: () => void;
+  colors: ReturnType<typeof useThemeColors>;
+}) {
+  const dateStr = new Date(receipt.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const available = activeCycleId !== null
+    ? RESOLVE_ACTION_OPTIONS
+    : RESOLVE_ACTION_OPTIONS.filter(o => o.action !== 'pool' && o.action !== 'savings' && o.action !== 'reservation');
+  const canConfirm =
+    selectedAction !== null &&
+    (selectedAction !== 'reservation' || reservationName.trim().length > 0);
+
+  return (
+    <View>
+      <Text style={{ fontSize: 14, fontFamily: 'PlusJakartaSans_500Medium', color: colors.textPrimary, marginBottom: 4 }}>
+        ৳{Math.floor(receipt.amount).toLocaleString()} returned on {dateStr}
+      </Text>
+      <Text style={{ fontSize: 13, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular', marginBottom: 16 }}>
+        Where should this money go?
+      </Text>
+
+      {activeCycleId === null && (
+        <View style={{ backgroundColor: colors.primaryLight, borderRadius: 10, padding: 10, marginBottom: 12 }}>
+          <Text style={{ fontSize: 12, color: colors.primary, fontFamily: 'PlusJakartaSans_500Medium' }}>
+            No active cycle — pool and savings options unavailable.
+          </Text>
+        </View>
+      )}
+
+      {available.map(opt => (
+        <Pressable
+          key={opt.action}
+          onPress={() => onSelectAction(opt.action)}
+          style={{
+            flexDirection: 'row', alignItems: 'flex-start', padding: 14, borderRadius: 12,
+            borderWidth: 1.5, marginBottom: 8,
+            borderColor: selectedAction === opt.action ? colors.primary : colors.border,
+            backgroundColor: selectedAction === opt.action ? colors.primaryLight : colors.background,
+          }}
+        >
+          <View style={{
+            width: 20, height: 20, borderRadius: 10, borderWidth: 2,
+            borderColor: selectedAction === opt.action ? colors.primary : colors.border,
+            backgroundColor: selectedAction === opt.action ? colors.primary : 'transparent',
+            marginRight: 12, marginTop: 1, flexShrink: 0,
+            alignItems: 'center', justifyContent: 'center',
+          }}>
+            {selectedAction === opt.action && <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#fff' }} />}
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: colors.textPrimary }}>{opt.label}</Text>
+            <Text style={{ fontSize: 12, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular', marginTop: 2 }}>{opt.description}</Text>
+          </View>
+        </Pressable>
+      ))}
+
+      {selectedAction === 'reservation' && (
+        <View style={{ marginBottom: 12 }}>
+          <Text style={{ fontSize: 11, fontFamily: 'PlusJakartaSans_600SemiBold', color: colors.textSecondary, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 6 }}>
+            Reservation name
+          </Text>
+          <View style={{ backgroundColor: colors.background, borderRadius: 12, borderWidth: 1.5, borderColor: reservationName.trim() ? colors.primary : colors.border, paddingHorizontal: 14, paddingVertical: 12 }}>
+            <TextInput
+              value={reservationName}
+              onChangeText={onChangeReservationName}
+              placeholder="e.g. Grocery fund"
+              placeholderTextColor={colors.textSecondary}
+              style={{ fontSize: 15, color: colors.textPrimary, fontFamily: 'PlusJakartaSans_400Regular' }}
+              maxLength={60}
+            />
+          </View>
+        </View>
+      )}
+
+      {error ? <Text style={{ fontSize: 12, color: colors.error, fontFamily: 'PlusJakartaSans_500Medium', marginBottom: 8 }}>{error}</Text> : null}
+
+      <View style={{ gap: 10, marginTop: 4 }}>
+        <Pressable
+          onPress={onConfirm}
+          disabled={!canConfirm || saving}
+          style={{ paddingVertical: 14, alignItems: 'center', borderRadius: 14, backgroundColor: colors.primary, opacity: canConfirm ? 1 : 0.4 }}
+        >
+          {saving
+            ? <ActivityIndicator color="#fff" />
+            : <Text style={{ fontSize: 15, color: '#fff', fontFamily: 'PlusJakartaSans_600SemiBold' }}>Confirm</Text>
+          }
+        </Pressable>
+        <Pressable
+          onPress={onBack}
+          disabled={saving}
+          style={{ paddingVertical: 14, alignItems: 'center', borderRadius: 14, borderWidth: 1.5, borderColor: colors.border }}
+        >
           <Text style={{ fontSize: 15, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_600SemiBold' }}>Go back</Text>
         </Pressable>
       </View>

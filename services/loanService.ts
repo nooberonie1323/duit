@@ -279,6 +279,80 @@ export async function recordRepaymentReservation(
   );
 }
 
+export interface ResolvePendingReceiptParams {
+  receiptId: number;
+  loanId: number;
+  originalAmount: number;
+  newAction: Exclude<ReceiptAction, 'pending'>;
+  cycleId: number | null;
+  reservationName?: string;
+}
+
+export async function resolvePendingReceipt(
+  db: SQLiteDatabase,
+  params: ResolvePendingReceiptParams
+): Promise<void> {
+  const { receiptId, loanId, originalAmount, newAction, cycleId, reservationName } = params;
+
+  const receipt = await db.getFirstAsync<{ amount: number }>(
+    'SELECT amount FROM loan_receipts WHERE id = ?',
+    [receiptId]
+  );
+  if (!receipt) throw new Error(`Receipt ${receiptId} not found`);
+
+  const { amount } = receipt;
+
+  await db.execAsync('BEGIN');
+  try {
+    await db.runAsync(
+      'UPDATE loan_receipts SET action = ?, cycle_id = ? WHERE id = ?',
+      [newAction, cycleId, receiptId]
+    );
+
+    if (newAction === 'pool' && cycleId !== null) {
+      const lastReview = await db.getFirstAsync<{ id: number }>(
+        `SELECT id FROM days
+         WHERE cycle_id = ? AND reviewed_at IS NOT NULL AND pool_after_review IS NOT NULL
+         ORDER BY date DESC LIMIT 1`,
+        [cycleId]
+      );
+      if (lastReview) {
+        await db.runAsync(
+          'UPDATE days SET pool_after_review = pool_after_review + ? WHERE id = ?',
+          [amount, lastReview.id]
+        );
+      }
+    }
+
+    if (newAction === 'savings' && cycleId !== null) {
+      await db.runAsync(
+        'UPDATE cycles SET savings = savings + ? WHERE id = ?',
+        [amount, cycleId]
+      );
+    }
+
+    if (newAction === 'reservation' && cycleId !== null && reservationName) {
+      await db.runAsync(
+        'INSERT INTO reservations (cycle_id, name, amount) VALUES (?, ?, ?)',
+        [cycleId, reservationName.trim(), amount]
+      );
+    }
+
+    const totalRow = await db.getFirstAsync<{ total: number }>(
+      'SELECT COALESCE(SUM(amount), 0) as total FROM loan_receipts WHERE loan_id = ?',
+      [loanId]
+    );
+    if ((totalRow?.total ?? 0) >= originalAmount) {
+      await db.runAsync("UPDATE loans SET status = 'settled' WHERE id = ?", [loanId]);
+    }
+
+    await db.execAsync('COMMIT');
+  } catch (e) {
+    await db.execAsync('ROLLBACK');
+    throw e;
+  }
+}
+
 export async function getLoanRepaymentRecords(
   db: SQLiteDatabase,
   loanId: number
