@@ -5,6 +5,7 @@ import { LoanDetailLentModal } from '@/components/loans/LoanDetailLentModal';
 import { getActiveCycle } from '@/services/cycleService';
 import {
   getLoanReceipts,
+  getLoanRepaymentRecords,
   getLoans,
   type LoanReceiptRow,
   type LoanRepaymentRecordRow,
@@ -72,10 +73,7 @@ export default function LoansScreen() {
 
   async function openBorrowed(loan: LoanWithComputed) {
     try {
-      const records = await db.getAllAsync<LoanRepaymentRecordRow>(
-        'SELECT * FROM loan_repayment_records WHERE loan_id = ? ORDER BY created_at DESC',
-        [loan.id]
-      );
+      const records = await getLoanRepaymentRecords(db, loan.id);
       setBorrowedRecords(records);
       setSelectedBorrowed(loan);
     } catch (e) {

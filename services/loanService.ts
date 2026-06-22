@@ -264,3 +264,13 @@ export async function recordRepaymentReservation(
     [loanId, cycleId, reservationId]
   );
 }
+
+export async function getLoanRepaymentRecords(
+  db: SQLiteDatabase,
+  loanId: number
+): Promise<LoanRepaymentRecordRow[]> {
+  return db.getAllAsync<LoanRepaymentRecordRow>(
+    'SELECT * FROM loan_repayment_records WHERE loan_id = ? ORDER BY created_at DESC',
+    [loanId]
+  );
+}
