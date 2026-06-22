@@ -12,7 +12,8 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, LayoutAnimation, Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import Animated, { FadeInDown, FadeOut } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 function fmtDay(dateStr: string) {
@@ -59,11 +60,6 @@ export default function LogScreen() {
 
   async function toggleCycle(cycleId: number) {
     if (expandedIds.has(cycleId)) {
-      LayoutAnimation.configureNext({
-        duration: 250,
-        update: { type: 'easeInEaseOut' },
-        delete: { type: 'easeInEaseOut', property: 'opacity' },
-      });
       setExpandedIds(prev => { const s = new Set(prev); s.delete(cycleId); return s; });
       return;
     }
@@ -78,11 +74,6 @@ export default function LogScreen() {
         setLoadingCycleId(null);
       }
     }
-    LayoutAnimation.configureNext({
-      duration: 280,
-      update: { type: 'easeInEaseOut' },
-      create: { type: 'easeInEaseOut', property: 'opacity' },
-    });
     setExpandedIds(prev => new Set(prev).add(cycleId));
   }
 
@@ -186,6 +177,10 @@ export default function LogScreen() {
 
                 {/* Expanded days list */}
                 {isExpanded && days.length > 0 && (
+                  <Animated.View
+                    entering={FadeInDown.duration(220).springify()}
+                    exiting={FadeOut.duration(180)}
+                  >
                   <View style={{
                     backgroundColor: colors.card,
                     borderBottomLeftRadius: 20,
@@ -235,6 +230,7 @@ export default function LogScreen() {
                       );
                     })}
                   </View>
+                  </Animated.View>
                 )}
               </View>
             );
