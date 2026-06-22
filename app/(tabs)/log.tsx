@@ -12,7 +12,7 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, LayoutAnimation, Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 function fmtDay(dateStr: string) {
@@ -59,6 +59,11 @@ export default function LogScreen() {
 
   async function toggleCycle(cycleId: number) {
     if (expandedIds.has(cycleId)) {
+      LayoutAnimation.configureNext({
+        duration: 250,
+        update: { type: 'easeInEaseOut' },
+        delete: { type: 'easeInEaseOut', property: 'opacity' },
+      });
       setExpandedIds(prev => { const s = new Set(prev); s.delete(cycleId); return s; });
       return;
     }
@@ -73,6 +78,11 @@ export default function LogScreen() {
         setLoadingCycleId(null);
       }
     }
+    LayoutAnimation.configureNext({
+      duration: 280,
+      update: { type: 'easeInEaseOut' },
+      create: { type: 'easeInEaseOut', property: 'opacity' },
+    });
     setExpandedIds(prev => new Set(prev).add(cycleId));
   }
 
