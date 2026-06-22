@@ -46,7 +46,6 @@ export interface ActiveCycleData {
   totalDays: number;
   leftInCycle: number;
   activeDays: number;
-  savingsWithdrawn: number;
 }
 
 export async function deleteReservation(
@@ -138,12 +137,6 @@ export async function getActiveCycle(db: SQLiteDatabase): Promise<ActiveCycleDat
   );
   const activeDays = activeDaysRow?.count ?? 0;
 
-  const withdrawalRow = await db.getFirstAsync<{ total: number }>(
-    'SELECT COALESCE(SUM(amount), 0) as total FROM savings_withdrawals WHERE cycle_id = ?',
-    [cycle.id]
-  );
-  const savingsWithdrawn = withdrawalRow?.total ?? 0;
-
   // Check if there's a reviewed day — if so, use pool_after_review for remaining calc
   const lastReview = await db.getFirstAsync<{ pool_after_review: number; date: string }>(
     'SELECT pool_after_review, date FROM days WHERE cycle_id = ? AND reviewed_at IS NOT NULL ORDER BY date DESC LIMIT 1',
@@ -175,7 +168,6 @@ export async function getActiveCycle(db: SQLiteDatabase): Promise<ActiveCycleDat
     totalDays: totalDays + 1,
     leftInCycle,
     activeDays,
-    savingsWithdrawn,
   };
 }
 

@@ -122,6 +122,7 @@ export function NormalState({
                     backgroundColor: colors.primaryLight,
                     borderWidth: fullyUsed ? 1 : 0,
                     borderColor: fullyUsed ? '#86EFAC' : 'transparent',
+                    opacity: fullyUsed ? 0.6 : 1,
                   }}
                 >
                   {fullyUsed && <Text style={{ fontSize: 11, color: colors.primary }}>✓</Text>}

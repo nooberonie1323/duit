@@ -432,7 +432,8 @@ export default function HomeScreen() {
     : null;
   const resCanSubmit = resAmountValid && !resAmountError && !resSaving;
 
-  const savingsRemaining = cycleData.cycle.savings - cycleData.savingsWithdrawn;
+  const savingsWithdrawn = data.savingsWithdrawals.reduce((s, w) => s + w.amount, 0);
+  const savingsRemaining = cycleData.cycle.savings - savingsWithdrawn;
   const savingsAmountValid = (parseFloat(savingsAmount) || 0) > 0;
   const savingsAmountError = savingsAmountValid && (parseFloat(savingsAmount) || 0) > savingsRemaining
     ? `Exceeds ৳${Math.floor(savingsRemaining).toLocaleString()} remaining`
@@ -516,8 +517,8 @@ export default function HomeScreen() {
                 {cycleData.cycle.savings > 0 && (
                   <>
                     {(() => {
-                      const remaining = cycleData.cycle.savings - cycleData.savingsWithdrawn;
-                      const label = cycleData.savingsWithdrawn > 0 ? 'Savings (partially used)' : 'Savings (untouched)';
+                      const remaining = cycleData.cycle.savings - savingsWithdrawn;
+                      const label = savingsWithdrawn > 0 ? 'Savings (partially used)' : 'Savings (untouched)';
                       return statRow(label, `৳${Math.floor(Math.max(0, remaining)).toLocaleString()}`, colors.primary);
                     })()}
                     {cycleData.reservations.length > 0 && <View style={{ height: 1, backgroundColor: colors.border }} />}
@@ -674,7 +675,7 @@ export default function HomeScreen() {
           onOpenEdit={openEdit}
           onDeleteEntry={setConfirmDeleteEntry}
           onSelectReservation={openReservation}
-          savingsWithdrawn={cycleData.savingsWithdrawn}
+          savingsWithdrawn={savingsWithdrawn}
           onPressSavings={openSavings}
         />
       )}
