@@ -8,6 +8,7 @@ import {
   type EntryRow,
   type ReviewedDay,
 } from '@/services/entryService';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useState } from 'react';
@@ -164,9 +165,12 @@ export default function LogScreen() {
                   </View>
                   {isLoadingThis
                     ? <ActivityIndicator size="small" color={colors.primary} style={{ marginLeft: 8 }} />
-                    : <Text style={{ fontSize: 18, color: colors.textSecondary, marginLeft: 8, includeFontPadding: false }}>
-                        {isExpanded ? '∨' : '›'}
-                      </Text>
+                    : <MaterialIcons
+                        name={isExpanded ? 'expand-more' : 'chevron-right'}
+                        size={22}
+                        color={colors.textSecondary}
+                        style={{ marginLeft: 4 }}
+                      />
                   }
                 </Pressable>
 
@@ -216,7 +220,7 @@ export default function LogScreen() {
                               {didSave ? 'saved' : 'overspent'}
                             </Text>
                           </View>
-                          <Text style={{ fontSize: 16, color: colors.textSecondary }}>›</Text>
+                          <MaterialIcons name="chevron-right" size={18} color={colors.textSecondary} />
                         </Pressable>
                       );
                     })}
