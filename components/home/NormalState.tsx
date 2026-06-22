@@ -18,6 +18,8 @@ interface Props {
   onOpenEdit: (entry: EntryRow) => void;
   onDeleteEntry: (entry: EntryRow) => void;
   onSelectReservation: (r: ReservationRow) => void;
+  savingsWithdrawn: number;
+  onPressSavings: () => void;
 }
 
 const ALL_SNOOZE_OPTIONS = [
@@ -31,6 +33,8 @@ export function NormalState({
   reviewAvailable, onStartReview, onSnoozeReview,
   onOpenAdd, onOpenEdit, onDeleteEntry,
   onSelectReservation,
+  savingsWithdrawn,
+  onPressSavings,
 }: Props) {
   const colors = useThemeColors();
   const [showSnoozePicker, setShowSnoozePicker] = useState(false);
@@ -105,12 +109,40 @@ export function NormalState({
             contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
             style={{ marginBottom: 12 }}
           >
-            {cycleData.cycle.savings > 0 && (
-              <View style={{ backgroundColor: colors.primaryLight, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Text style={{ fontSize: 11, color: colors.primary, fontFamily: 'PlusJakartaSans_600SemiBold' }}>Savings</Text>
-                <Text style={{ fontSize: 11, color: colors.primary, fontFamily: 'PlusJakartaSans_700Bold' }}>৳{Math.floor(cycleData.cycle.savings).toLocaleString()}</Text>
-              </View>
-            )}
+            {cycleData.cycle.savings > 0 && (() => {
+              const savingsRemaining = cycleData.cycle.savings - savingsWithdrawn;
+              const fullyUsed = savingsRemaining <= 0;
+              const partiallyUsed = savingsWithdrawn > 0 && !fullyUsed;
+              return (
+                <Pressable
+                  onPress={onPressSavings}
+                  style={{
+                    borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8,
+                    flexDirection: 'row', alignItems: 'center', gap: 6,
+                    backgroundColor: colors.primaryLight,
+                    borderWidth: fullyUsed ? 1 : 0,
+                    borderColor: fullyUsed ? '#86EFAC' : 'transparent',
+                  }}
+                >
+                  {fullyUsed && <Text style={{ fontSize: 11, color: colors.primary }}>✓</Text>}
+                  <Text style={{ fontSize: 11, color: colors.primary, fontFamily: 'PlusJakartaSans_600SemiBold' }}>Savings</Text>
+                  {partiallyUsed ? (
+                    <>
+                      <Text style={{ fontSize: 11, color: colors.primary, fontFamily: 'PlusJakartaSans_700Bold' }}>
+                        ৳{Math.floor(savingsRemaining).toLocaleString()}
+                      </Text>
+                      <Text style={{ fontSize: 11, color: colors.primary, fontFamily: 'PlusJakartaSans_400Regular', opacity: 0.6 }}>
+                        / ৳{Math.floor(cycleData.cycle.savings).toLocaleString()}
+                      </Text>
+                    </>
+                  ) : (
+                    <Text style={{ fontSize: 11, color: colors.primary, fontFamily: 'PlusJakartaSans_700Bold' }}>
+                      ৳{fullyUsed ? '0' : Math.floor(cycleData.cycle.savings).toLocaleString()}
+                    </Text>
+                  )}
+                </Pressable>
+              );
+            })()}
             {cycleData.reservations.map(r => {
               const remaining = r.amount - r.spent - r.released;
               const done = remaining <= 0;
