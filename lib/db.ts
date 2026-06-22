@@ -1,8 +1,13 @@
 import * as SQLite from 'expo-sqlite';
+import { Platform } from 'react-native';
 
 export async function migrateDb(db: SQLite.SQLiteDatabase) {
+  // WAL mode is not supported on web (SQLite WASM) — skip it there
+  if (Platform.OS !== 'web') {
+    await db.execAsync('PRAGMA journal_mode = WAL;').catch(() => {});
+  }
+
   await db.execAsync(`
-    PRAGMA journal_mode = WAL;
     PRAGMA foreign_keys = ON;
 
     CREATE TABLE IF NOT EXISTS settings (
