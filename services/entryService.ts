@@ -89,6 +89,28 @@ export interface ReviewedDayWithCycle extends ReviewedDay {
   cycle_end: string;
 }
 
+export interface CycleSummary {
+  cycle_id: number;
+  start_date: string;
+  end_date: string;
+  day_count: number;
+  total_spent: number;
+  total_budget: number;
+}
+
+export async function getCycleSummaries(db: SQLiteDatabase): Promise<CycleSummary[]> {
+  return db.getAllAsync<CycleSummary>(
+    `SELECT c.id as cycle_id, c.start_date, c.end_date,
+            COUNT(d.id) as day_count,
+            COALESCE(SUM(d.total_spent), 0) as total_spent,
+            COALESCE(SUM(d.daily_budget), 0) as total_budget
+     FROM cycles c
+     JOIN days d ON d.cycle_id = c.id AND d.reviewed_at IS NOT NULL
+     GROUP BY c.id
+     ORDER BY c.id DESC`
+  );
+}
+
 export async function getAllReviewedDays(db: SQLiteDatabase): Promise<ReviewedDayWithCycle[]> {
   return db.getAllAsync<ReviewedDayWithCycle>(
     `SELECT d.id, d.date, d.daily_budget, d.total_spent, d.reviewed_at, d.notes,
