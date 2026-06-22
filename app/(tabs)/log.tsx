@@ -91,8 +91,7 @@ export default function LogScreen() {
       ) : (
         <ScrollView
           showsVerticalScrollIndicator={false}
-          style={{ marginBottom: Math.max(insets.bottom, 16) + 76 }}
-          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16 }}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: Math.max(insets.bottom, 16) + 76 + 24 }}
         >
           {groups.map((group, gi) => (
             <View key={group.cycleId} style={{ marginBottom: 24 }}>
