@@ -1,4 +1,5 @@
 import { useThemeColors } from '@/contexts/theme';
+import { LinearGradient } from 'expo-linear-gradient';
 import { AddLoanModal } from '@/components/loans/AddLoanModal';
 import { LoanDetailBorrowedModal } from '@/components/loans/LoanDetailBorrowedModal';
 import { LoanDetailLentModal } from '@/components/loans/LoanDetailLentModal';
@@ -160,6 +161,19 @@ export default function LoansScreen() {
           )}
         </ScrollView>
       )}
+
+      {/* Bottom fade */}
+      <LinearGradient
+        colors={['transparent', colors.background]}
+        style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: navPillOffset + 32,
+          pointerEvents: 'none',
+        }}
+      />
 
       {/* FAB */}
       <Pressable

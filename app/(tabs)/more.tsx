@@ -1,4 +1,5 @@
 import { useTheme, useThemeColors } from '@/contexts/theme';
+import { LinearGradient } from 'expo-linear-gradient';
 import { getSettings, resetAppData, updateSettings, type Settings } from '@/services/settingsService';
 import { cancelReviewNotifications, requestNotificationPermission, scheduleReviewNotifications } from '@/services/notificationService';
 import { router } from 'expo-router';
@@ -486,6 +487,19 @@ export default function MoreScreen() {
           duit · v1.0.0
         </Text>
       </ScrollView>
+
+      {/* Bottom fade */}
+      <LinearGradient
+        colors={['transparent', colors.background]}
+        style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: navPillOffset + 32,
+          pointerEvents: 'none',
+        }}
+      />
 
       {/* Reset confirmation modal */}
       <Modal visible={confirmReset} transparent animationType="fade" onRequestClose={() => setConfirmReset(false)}>
