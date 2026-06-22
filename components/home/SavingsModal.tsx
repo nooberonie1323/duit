@@ -241,7 +241,7 @@ function Step2View({ amountNum, savingsRemaining, originalSavings, saving, onCon
     <View style={{ marginBottom: 8 }}>
       <View style={{ backgroundColor: '#FFFBEB', borderRadius: 12, padding: 14, marginBottom: 16, borderWidth: 1, borderColor: '#FDE68A' }}>
         <Text style={{ fontSize: 14, color: '#92400E', fontFamily: 'PlusJakartaSans_700Bold', marginBottom: 4 }}>
-          You're dipping into your savings
+          You&apos;re dipping into your savings
         </Text>
         <Text style={{ fontSize: 13, color: '#92400E', fontFamily: 'PlusJakartaSans_400Regular', lineHeight: 19 }}>
           This is recorded but does not affect your daily budget.
@@ -260,7 +260,7 @@ function Step2View({ amountNum, savingsRemaining, originalSavings, saving, onCon
         </View>
         <View style={{ height: 1, backgroundColor: colors.border }} />
         <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-          <Text style={{ fontSize: 13, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular' }}>That's</Text>
+          <Text style={{ fontSize: 13, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular' }}>That&apos;s</Text>
           <Text style={{ fontSize: 13, color: colors.warning, fontFamily: 'PlusJakartaSans_700Bold' }}>{pct}% of your savings</Text>
         </View>
       </View>

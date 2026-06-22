@@ -433,9 +433,8 @@ export default function HomeScreen() {
   const resCanSubmit = resAmountValid && !resAmountError && !resSaving;
 
   const savingsRemaining = cycleData.cycle.savings - cycleData.savingsWithdrawn;
-  const savingsAmountNum = parseFloat(savingsAmount) || 0;
-  const savingsAmountValid = savingsAmountNum > 0;
-  const savingsAmountError = savingsAmountValid && savingsAmountNum > savingsRemaining
+  const savingsAmountValid = (parseFloat(savingsAmount) || 0) > 0;
+  const savingsAmountError = savingsAmountValid && (parseFloat(savingsAmount) || 0) > savingsRemaining
     ? `Exceeds ৳${Math.floor(savingsRemaining).toLocaleString()} remaining`
     : null;
   const savingsCanContinue = savingsAmountValid && !savingsAmountError;
