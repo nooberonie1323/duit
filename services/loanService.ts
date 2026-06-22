@@ -93,7 +93,14 @@ export async function getLoans(db: SQLiteDatabase): Promise<LoanWithComputed[]> 
     );
 
     const paidRow = await db.getFirstAsync<{ count: number }>(
-      'SELECT COUNT(*) as count FROM loan_repayment_records WHERE loan_id = ? AND reservation_id IS NOT NULL',
+      `SELECT COUNT(*) as count
+       FROM loan_repayment_records rr
+       WHERE rr.loan_id = ?
+       AND EXISTS (
+         SELECT 1 FROM reservation_transactions rt
+         WHERE rt.reservation_id = rr.reservation_id
+         AND rt.type = 'spend'
+       )`,
       [loan.id]
     );
 
@@ -234,12 +241,19 @@ export async function getActiveBorrowedLoansForCycle(
        l.person_name,
        p.amount_per_month,
        p.total_months,
-       COUNT(r.id) as months_paid
+       (
+         SELECT COUNT(*)
+         FROM loan_repayment_records rr
+         WHERE rr.loan_id = l.id
+         AND EXISTS (
+           SELECT 1 FROM reservation_transactions rt
+           WHERE rt.reservation_id = rr.reservation_id
+           AND rt.type = 'spend'
+         )
+       ) as months_paid
      FROM loans l
      JOIN loan_repayment_plans p ON p.loan_id = l.id
-     LEFT JOIN loan_repayment_records r ON r.loan_id = l.id AND r.reservation_id IS NOT NULL
-     WHERE l.type = 'borrowed' AND l.status = 'active'
-     GROUP BY l.id`,
+     WHERE l.type = 'borrowed' AND l.status = 'active'`,
     []
   );
 

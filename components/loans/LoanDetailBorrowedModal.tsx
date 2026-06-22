@@ -155,16 +155,25 @@ export function LoanDetailBorrowedModal({ loan, repaymentRecords, onClose, onMut
               {error ? <Text style={{ fontSize: 12, color: colors.error, fontFamily: 'PlusJakartaSans_500Medium', marginBottom: 8 }}>{error}</Text> : null}
 
               {!isSettled ? (
-                <Pressable
-                  onPress={handleSettle}
-                  disabled={saving}
-                  style={{ paddingVertical: 14, alignItems: 'center', borderRadius: 14, borderWidth: 1.5, borderColor: colors.border, marginBottom: 10 }}
-                >
-                  {saving
-                    ? <ActivityIndicator color={colors.textSecondary} />
-                    : <Text style={{ fontSize: 15, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_600SemiBold' }}>Mark as fully settled</Text>
-                  }
-                </Pressable>
+                <View style={{ gap: 10 }}>
+                  <Pressable
+                    onPress={handleSettle}
+                    disabled={saving}
+                    style={{ paddingVertical: 14, alignItems: 'center', borderRadius: 14, borderWidth: 1.5, borderColor: colors.border }}
+                  >
+                    {saving
+                      ? <ActivityIndicator color={colors.textSecondary} />
+                      : <Text style={{ fontSize: 15, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_600SemiBold' }}>Mark as fully settled</Text>
+                    }
+                  </Pressable>
+                  <Pressable
+                    onPress={handleDelete}
+                    disabled={saving}
+                    style={{ paddingVertical: 12, alignItems: 'center', borderRadius: 12, backgroundColor: '#FEF2F2' }}
+                  >
+                    <Text style={{ fontSize: 13, color: colors.error, fontFamily: 'PlusJakartaSans_600SemiBold' }}>Delete loan</Text>
+                  </Pressable>
+                </View>
               ) : (
                 <Pressable
                   onPress={handleDelete}

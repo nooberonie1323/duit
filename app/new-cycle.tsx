@@ -286,7 +286,10 @@ export default function NewCycleScreen() {
       <View style={{ flex: 1, backgroundColor: colors.background }}>
         <View style={{ paddingTop: insets.top + 20, paddingHorizontal: 20, paddingBottom: 16 }}>
           <Pressable
-            onPress={() => setStep(hasLeftover ? 'leftover' : 'form')}
+            onPress={() => {
+              if (hasLeftover) setStep('leftover');
+              else router.back();
+            }}
             hitSlop={12}
             style={{ marginBottom: 20 }}
           >

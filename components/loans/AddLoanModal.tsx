@@ -90,7 +90,7 @@ export function AddLoanModal({ visible, onClose, onCreated, db }: Props) {
         loaned_at: toDateStr(new Date()),
         repayment_plan:
           direction === 'borrowed' && hasRepaymentPlan
-            ? { amount_per_month: monthlyNum, total_months: monthsNum }
+            ? { amount_per_month: monthlyNum, total_months: Math.ceil(monthsNum) }
             : undefined,
       });
       reset();
