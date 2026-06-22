@@ -2,9 +2,18 @@ import { CalendarModal } from '@/components/ui/CalendarModal';
 import { useThemeColors } from '@/contexts/theme';
 import { toDateStr } from '@/lib/db';
 import { archiveLeftoverAsSavings, createCycle } from '@/services/cycleService';
+import {
+  addLoanReceipt,
+  getActiveBorrowedLoansForCycle,
+  getLoans,
+  recordRepaymentReservation,
+  type ActiveBorrowedLoan,
+  type LoanWithComputed,
+  type ReceiptAction,
+} from '@/services/loanService';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -39,7 +48,16 @@ export default function NewCycleScreen() {
   const prevCycleId = params.prevCycleId ? parseInt(params.prevCycleId) : null;
   const hasLeftover = leftover > 0;
 
-  const [step, setStep] = useState<'leftover' | 'form'>(hasLeftover ? 'leftover' : 'form');
+  const [loans, setLoans] = useState<LoanWithComputed[]>([]);
+  const [activeBorrowedLoans, setActiveBorrowedLoans] = useState<ActiveBorrowedLoan[]>([]);
+  const [loansLoaded, setLoansLoaded] = useState(false);
+
+  // Per-loan receipt action state: loanId → { action, reservationName, returnAmount }
+  const [loanActions, setLoanActions] = useState<Record<number, { action: ReceiptAction; reservationName: string; returnAmount: string }>>({});
+
+  type StepType = 'leftover' | 'loans' | 'form';
+
+  const [step, setStep] = useState<StepType>(hasLeftover ? 'leftover' : 'form');
 
   // Leftover step
   const [leftoverDest, setLeftoverDest] = useState<LeftoverDest>('pool');
@@ -61,12 +79,37 @@ export default function NewCycleScreen() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
+  const loadLoans = useCallback(async () => {
+    try {
+      const [all, borrowed] = await Promise.all([
+        getLoans(db),
+        getActiveBorrowedLoansForCycle(db),
+      ]);
+      setLoans(all);
+      setActiveBorrowedLoans(borrowed);
+    } catch (e) {
+      console.error('[NewCycle loadLoans]', e);
+    } finally {
+      setLoansLoaded(true);
+    }
+  }, [db]);
+
+  useEffect(() => { loadLoans(); }, [loadLoans]);
+
+  // Once loans are loaded, set the correct initial step
+  useEffect(() => {
+    if (!loansLoaded) return;
+    const hasActive = loans.some(l => l.status === 'active') || activeBorrowedLoans.length > 0;
+    if (!hasLeftover && hasActive) setStep('loans');
+  }, [loansLoaded, loans, activeBorrowedLoans, hasLeftover]);
+
   function handleLeftoverContinue() {
     if (leftoverDest === 'reservation') {
       if (!newResName.trim()) return;
       setReservations(prev => [...prev, { name: newResName.trim(), amount: String(leftover) }]);
     }
-    setStep('form');
+    const hasActive = loans.some(l => l.status === 'active') || activeBorrowedLoans.length > 0;
+    setStep(hasActive ? 'loans' : 'form');
   }
 
   async function handleSubmit() {
@@ -97,7 +140,7 @@ export default function NewCycleScreen() {
         .filter(r => r.name.trim() && parseFloat(r.amount) > 0)
         .map(r => ({ name: r.name.trim(), amount: parseFloat(r.amount) }));
 
-      await createCycle(db, {
+      const cycleId = await createCycle(db, {
         startDate,
         endDate,
         income: incomeNum,
@@ -108,6 +151,32 @@ export default function NewCycleScreen() {
         poolLeftover,
         reservations: validReservations,
       });
+
+      // Auto-create repayment reservations for active borrowed loans with plans
+      for (const borrowed of activeBorrowedLoans) {
+        const resResult = await db.runAsync(
+          'INSERT INTO reservations (cycle_id, name, amount) VALUES (?, ?, ?)',
+          [cycleId, `৳${Math.floor(borrowed.amount_per_month).toLocaleString()} for ${borrowed.person_name} (loan repayment)`, borrowed.amount_per_month]
+        );
+        await recordRepaymentReservation(db, borrowed.loan_id, cycleId, resResult.lastInsertRowId);
+      }
+
+      // Process loan receipt actions chosen in the loans step
+      for (const [loanIdStr, actionState] of Object.entries(loanActions)) {
+        const loanId = parseInt(loanIdStr);
+        const loan = loans.find(l => l.id === loanId);
+        if (!loan || !actionState.action || actionState.action === 'pending') continue;
+        const returnNum = parseFloat(actionState.returnAmount) || 0;
+        if (returnNum <= 0) continue;
+        await addLoanReceipt(db, {
+          loanId,
+          originalAmount: loan.original_amount,
+          amount: returnNum,
+          action: actionState.action,
+          cycleId,
+          reservationName: actionState.action === 'reservation' ? actionState.reservationName : undefined,
+        });
+      }
 
       router.replace('/(tabs)');
     } catch (e) {
@@ -204,6 +273,168 @@ export default function NewCycleScreen() {
             <Text style={{ fontSize: 16, fontFamily: 'PlusJakartaSans_700Bold', color: canContinue ? '#fff' : colors.textSecondary }}>
               Continue
             </Text>
+          </Pressable>
+        </ScrollView>
+      </View>
+    );
+  }
+
+  // ── Loans step ──────────────────────────────────────────────────────────────
+  if (step === 'loans') {
+    const activeLentLoans = loans.filter(l => l.type === 'lent' && l.status === 'active');
+    const hasSomething = activeLentLoans.length > 0 || activeBorrowedLoans.length > 0;
+
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
+        <View style={{ paddingTop: insets.top + 20, paddingHorizontal: 20, paddingBottom: 16 }}>
+          <Pressable
+            onPress={() => setStep(hasLeftover ? 'leftover' : 'form')}
+            hitSlop={12}
+            style={{ marginBottom: 20 }}
+          >
+            <Text style={{ fontSize: 15, color: colors.primary, fontFamily: 'PlusJakartaSans_600SemiBold' }}>← Back</Text>
+          </Pressable>
+          <Text style={{ fontSize: 26, fontFamily: 'PlusJakartaSans_800ExtraBold', color: colors.textPrimary, letterSpacing: -0.5, marginBottom: 4 }}>
+            Your loans
+          </Text>
+          <Text style={{ fontSize: 13, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular' }}>
+            Handle any loan activity before starting your new cycle.
+          </Text>
+        </View>
+
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: Math.max(insets.bottom, 24) + 40 }}
+        >
+          {activeLentLoans.length > 0 && (
+            <View style={{ marginBottom: 20 }}>
+              <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Money owed to you</Text>
+              {activeLentLoans.map(loan => {
+                const remaining = loan.original_amount - loan.amount_returned;
+                const state = loanActions[loan.id];
+                const gotItBack = !!state?.action;
+
+                return (
+                  <View
+                    key={loan.id}
+                    style={{ backgroundColor: colors.card, borderRadius: 16, padding: 16, marginBottom: 10, ...shadowStyle }}
+                  >
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: gotItBack ? 12 : 0 }}>
+                      <View>
+                        <Text style={{ fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: colors.textPrimary }}>{loan.person_name}</Text>
+                        <Text style={{ fontSize: 12, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular' }}>
+                          ৳{Math.floor(remaining).toLocaleString()} remaining
+                        </Text>
+                      </View>
+                      <Pressable
+                        onPress={() => {
+                          if (gotItBack) {
+                            setLoanActions(prev => {
+                              const next = { ...prev };
+                              delete next[loan.id];
+                              return next;
+                            });
+                          } else {
+                            setLoanActions(prev => ({
+                              ...prev,
+                              [loan.id]: { action: 'pending', reservationName: '', returnAmount: String(Math.floor(remaining)) },
+                            }));
+                          }
+                        }}
+                        style={{
+                          borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8,
+                          backgroundColor: gotItBack ? colors.primary : colors.background,
+                          borderWidth: 1.5,
+                          borderColor: gotItBack ? colors.primary : colors.border,
+                        }}
+                      >
+                        <Text style={{ fontSize: 13, color: gotItBack ? '#fff' : colors.textSecondary, fontFamily: 'PlusJakartaSans_600SemiBold' }}>
+                          {gotItBack ? '✓ Got it back' : 'Got it back?'}
+                        </Text>
+                      </Pressable>
+                    </View>
+
+                    {gotItBack && state && (
+                      <View>
+                        <Text style={{ fontSize: 11, fontFamily: 'PlusJakartaSans_600SemiBold', color: colors.textSecondary, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 8 }}>
+                          What to do with it?
+                        </Text>
+                        {(['savings', 'reservation', 'used', 'pending'] as ReceiptAction[]).map(action => (
+                          <Pressable
+                            key={action}
+                            onPress={() => setLoanActions(prev => ({ ...prev, [loan.id]: { ...prev[loan.id], action } }))}
+                            style={{
+                              flexDirection: 'row', alignItems: 'center', paddingVertical: 10,
+                              borderBottomWidth: 1, borderBottomColor: colors.border,
+                            }}
+                          >
+                            <View style={{
+                              width: 18, height: 18, borderRadius: 9, borderWidth: 2,
+                              borderColor: state.action === action ? colors.primary : colors.border,
+                              backgroundColor: state.action === action ? colors.primary : 'transparent',
+                              marginRight: 10, flexShrink: 0,
+                              alignItems: 'center', justifyContent: 'center',
+                            }}>
+                              {state.action === action && <View style={{ width: 7, height: 7, borderRadius: 3.5, backgroundColor: '#fff' }} />}
+                            </View>
+                            <Text style={{ fontSize: 13, color: colors.textPrimary, fontFamily: 'PlusJakartaSans_500Medium' }}>
+                              {receiptActionLabel(action)}
+                            </Text>
+                          </Pressable>
+                        ))}
+                        {state.action === 'reservation' && (
+                          <View style={{ marginTop: 8, backgroundColor: colors.background, borderRadius: 10, borderWidth: 1.5, borderColor: colors.border, paddingHorizontal: 12, paddingVertical: 10 }}>
+                            <TextInput
+                              value={state.reservationName}
+                              onChangeText={v => setLoanActions(prev => ({ ...prev, [loan.id]: { ...prev[loan.id], reservationName: v } }))}
+                              placeholder="Reservation name"
+                              placeholderTextColor={colors.textSecondary}
+                              style={{ fontSize: 14, color: colors.textPrimary, fontFamily: 'PlusJakartaSans_400Regular' }}
+                              maxLength={60}
+                            />
+                          </View>
+                        )}
+                      </View>
+                    )}
+                  </View>
+                );
+              })}
+            </View>
+          )}
+
+          {activeBorrowedLoans.length > 0 && (
+            <View style={{ marginBottom: 20 }}>
+              <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Auto-reservations this cycle</Text>
+              <Text style={{ fontSize: 12, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular', marginBottom: 10, marginLeft: 4 }}>
+                These will be added as reservations automatically.
+              </Text>
+              {activeBorrowedLoans.map(bl => (
+                <View
+                  key={bl.loan_id}
+                  style={{ backgroundColor: colors.card, borderRadius: 14, padding: 14, marginBottom: 8, flexDirection: 'row', justifyContent: 'space-between', ...shadowStyle }}
+                >
+                  <Text style={{ fontSize: 14, color: colors.textPrimary, fontFamily: 'PlusJakartaSans_500Medium' }}>
+                    For {bl.person_name}
+                  </Text>
+                  <Text style={{ fontSize: 14, color: colors.primary, fontFamily: 'PlusJakartaSans_700Bold' }}>
+                    ৳{Math.floor(bl.amount_per_month).toLocaleString()}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {!hasSomething && (
+            <Text style={{ fontSize: 14, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular', textAlign: 'center', marginTop: 40 }}>
+              No active loan activity this cycle.
+            </Text>
+          )}
+
+          <Pressable
+            onPress={() => setStep('form')}
+            style={{ marginTop: 16, backgroundColor: colors.primary, borderRadius: 16, paddingVertical: 16, alignItems: 'center' }}
+          >
+            <Text style={{ fontSize: 16, fontFamily: 'PlusJakartaSans_700Bold', color: '#fff' }}>Continue</Text>
           </Pressable>
         </ScrollView>
       </View>
@@ -488,6 +719,16 @@ const shadowStyle = {
   shadowOffset: { width: 0, height: 2 },
   elevation: 2,
 };
+
+function receiptActionLabel(action: ReceiptAction): string {
+  switch (action) {
+    case 'pool': return 'Add to pool';
+    case 'savings': return 'Add to savings';
+    case 'reservation': return 'Create a reservation';
+    case 'used': return 'Already used it';
+    case 'pending': return 'Decide later';
+  }
+}
 
 const styles = {
   sectionLabel: {
