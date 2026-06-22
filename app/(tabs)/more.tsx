@@ -325,7 +325,7 @@ export default function MoreScreen() {
         </View>
 
         <Text style={{ fontSize: 12, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular', textAlign: 'center', marginTop: 28 }}>
-          Duit · v0.1.0
+          duit · v1.0.0
         </Text>
       </ScrollView>
 
