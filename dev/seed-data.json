@@ -1,0 +1,363 @@
+{
+  "cycles": [
+    {
+      "start_date": "2026-03-25",
+      "end_date": "2026-04-24",
+      "income": 35000,
+      "already_spent": 800,
+      "savings": 5000,
+      "budget_alert": 500,
+      "pool_leftover": 0,
+      "reservations": [
+        { "name": "Rent", "amount": 8000 },
+        { "name": "Internet", "amount": 700 }
+      ],
+      "days": [
+        {
+          "date": "2026-03-25",
+          "daily_budget": 872,
+          "total_spent": 620,
+          "pool_after_review": 20980,
+          "reviewed_at": "2026-03-25T22:00:00.000Z",
+          "entries": [
+            { "type": "spend", "amount": 120, "note": "Breakfast", "time": "2026-03-25T08:15:00.000Z" },
+            { "type": "spend", "amount": 280, "note": "Lunch with friend", "time": "2026-03-25T13:00:00.000Z" },
+            { "type": "spend", "amount": 130, "note": "Rickshaw", "time": "2026-03-25T17:30:00.000Z" },
+            { "type": "spend", "amount": 90, "note": "Snacks", "time": "2026-03-25T20:00:00.000Z" }
+          ]
+        },
+        {
+          "date": "2026-03-26",
+          "daily_budget": 872,
+          "total_spent": 1050,
+          "pool_after_review": 19930,
+          "reviewed_at": "2026-03-26T22:00:00.000Z",
+          "entries": [
+            { "type": "spend", "amount": 350, "note": "Grocery", "time": "2026-03-26T10:00:00.000Z" },
+            { "type": "spend", "amount": 400, "note": "Dinner out", "time": "2026-03-26T19:30:00.000Z" },
+            { "type": "spend", "amount": 300, "note": "Medicine", "time": "2026-03-26T21:00:00.000Z" }
+          ]
+        },
+        {
+          "date": "2026-03-28",
+          "daily_budget": 872,
+          "total_spent": 430,
+          "pool_after_review": 19500,
+          "reviewed_at": "2026-03-28T22:00:00.000Z",
+          "entries": [
+            { "type": "spend", "amount": 180, "note": "Lunch", "time": "2026-03-28T12:30:00.000Z" },
+            { "type": "spend", "amount": 250, "note": "Transport", "time": "2026-03-28T18:00:00.000Z" }
+          ]
+        },
+        {
+          "date": "2026-03-30",
+          "daily_budget": 872,
+          "total_spent": 780,
+          "pool_after_review": 18720,
+          "reviewed_at": "2026-03-30T22:00:00.000Z",
+          "entries": [
+            { "type": "spend", "amount": 300, "note": "Grocery", "time": "2026-03-30T09:00:00.000Z" },
+            { "type": "spend", "amount": 200, "note": "Lunch", "time": "2026-03-30T13:00:00.000Z" },
+            { "type": "spend", "amount": 280, "note": "Cafe", "time": "2026-03-30T16:00:00.000Z" }
+          ]
+        },
+        {
+          "date": "2026-04-02",
+          "daily_budget": 872,
+          "total_spent": 550,
+          "pool_after_review": 18170,
+          "reviewed_at": "2026-04-02T22:00:00.000Z",
+          "entries": [
+            { "type": "spend", "amount": 150, "note": "Breakfast", "time": "2026-04-02T08:00:00.000Z" },
+            { "type": "spend", "amount": 400, "note": "Dinner", "time": "2026-04-02T19:00:00.000Z" }
+          ]
+        },
+        {
+          "date": "2026-04-05",
+          "daily_budget": 872,
+          "total_spent": 920,
+          "pool_after_review": 17250,
+          "reviewed_at": "2026-04-05T22:00:00.000Z",
+          "entries": [
+            { "type": "spend", "amount": 450, "note": "Grocery", "time": "2026-04-05T10:30:00.000Z" },
+            { "type": "spend", "amount": 270, "note": "Lunch", "time": "2026-04-05T13:30:00.000Z" },
+            { "type": "spend", "amount": 200, "note": "Rickshaw", "time": "2026-04-05T20:00:00.000Z" }
+          ]
+        },
+        {
+          "date": "2026-04-08",
+          "daily_budget": 872,
+          "total_spent": 390,
+          "pool_after_review": 16860,
+          "reviewed_at": "2026-04-08T22:00:00.000Z",
+          "entries": [
+            { "type": "spend", "amount": 200, "note": "Lunch", "time": "2026-04-08T13:00:00.000Z" },
+            { "type": "spend", "amount": 190, "note": "Snacks and drinks", "time": "2026-04-08T17:00:00.000Z" }
+          ]
+        },
+        {
+          "date": "2026-04-12",
+          "daily_budget": 872,
+          "total_spent": 1200,
+          "pool_after_review": 15660,
+          "reviewed_at": "2026-04-12T22:00:00.000Z",
+          "entries": [
+            { "type": "spend", "amount": 600, "note": "Clothes", "time": "2026-04-12T15:00:00.000Z" },
+            { "type": "spend", "amount": 350, "note": "Dinner", "time": "2026-04-12T20:00:00.000Z" },
+            { "type": "spend", "amount": 250, "note": "Transport", "time": "2026-04-12T22:00:00.000Z" }
+          ]
+        }
+      ]
+    },
+    {
+      "start_date": "2026-04-25",
+      "end_date": "2026-05-24",
+      "income": 38000,
+      "already_spent": 0,
+      "savings": 4000,
+      "budget_alert": 600,
+      "pool_leftover": 1200,
+      "reservations": [
+        { "name": "Rent", "amount": 8000 },
+        { "name": "Phone bill", "amount": 600 }
+      ],
+      "days": [
+        {
+          "date": "2026-04-25",
+          "daily_budget": 920,
+          "total_spent": 700,
+          "pool_after_review": 26300,
+          "reviewed_at": "2026-04-25T22:00:00.000Z",
+          "entries": [
+            { "type": "spend", "amount": 350, "note": "Grocery", "time": "2026-04-25T09:00:00.000Z" },
+            { "type": "spend", "amount": 200, "note": "Lunch", "time": "2026-04-25T13:00:00.000Z" },
+            { "type": "spend", "amount": 150, "note": "Rickshaw", "time": "2026-04-25T19:00:00.000Z" }
+          ]
+        },
+        {
+          "date": "2026-04-27",
+          "daily_budget": 920,
+          "total_spent": 480,
+          "pool_after_review": 25820,
+          "reviewed_at": "2026-04-27T22:00:00.000Z",
+          "entries": [
+            { "type": "spend", "amount": 280, "note": "Lunch and coffee", "time": "2026-04-27T13:30:00.000Z" },
+            { "type": "spend", "amount": 200, "note": "Dinner", "time": "2026-04-27T20:00:00.000Z" }
+          ]
+        },
+        {
+          "date": "2026-04-29",
+          "daily_budget": 920,
+          "total_spent": 1400,
+          "pool_after_review": 24420,
+          "reviewed_at": "2026-04-29T22:00:00.000Z",
+          "entries": [
+            { "type": "spend", "amount": 700, "note": "Eid shopping", "time": "2026-04-29T14:00:00.000Z" },
+            { "type": "spend", "amount": 400, "note": "Family dinner", "time": "2026-04-29T19:30:00.000Z" },
+            { "type": "spend", "amount": 300, "note": "Gifts", "time": "2026-04-29T22:00:00.000Z" }
+          ]
+        },
+        {
+          "date": "2026-05-03",
+          "daily_budget": 920,
+          "total_spent": 320,
+          "pool_after_review": 24100,
+          "reviewed_at": "2026-05-03T22:00:00.000Z",
+          "entries": [
+            { "type": "spend", "amount": 200, "note": "Lunch", "time": "2026-05-03T13:00:00.000Z" },
+            { "type": "spend", "amount": 120, "note": "Snacks", "time": "2026-05-03T16:00:00.000Z" }
+          ]
+        },
+        {
+          "date": "2026-05-06",
+          "daily_budget": 920,
+          "total_spent": 850,
+          "pool_after_review": 23250,
+          "reviewed_at": "2026-05-06T22:00:00.000Z",
+          "entries": [
+            { "type": "spend", "amount": 400, "note": "Grocery", "time": "2026-05-06T10:00:00.000Z" },
+            { "type": "spend", "amount": 250, "note": "Lunch", "time": "2026-05-06T13:30:00.000Z" },
+            { "type": "spend", "amount": 200, "note": "Pharmacy", "time": "2026-05-06T18:00:00.000Z" }
+          ]
+        },
+        {
+          "date": "2026-05-10",
+          "daily_budget": 920,
+          "total_spent": 1100,
+          "pool_after_review": 22150,
+          "reviewed_at": "2026-05-10T22:00:00.000Z",
+          "entries": [
+            { "type": "spend", "amount": 600, "note": "Restaurant with friends", "time": "2026-05-10T19:00:00.000Z" },
+            { "type": "spend", "amount": 300, "note": "Uber", "time": "2026-05-10T22:30:00.000Z" },
+            { "type": "spend", "amount": 200, "note": "Drinks", "time": "2026-05-10T23:00:00.000Z" }
+          ]
+        },
+        {
+          "date": "2026-05-14",
+          "daily_budget": 920,
+          "total_spent": 560,
+          "pool_after_review": 21590,
+          "reviewed_at": "2026-05-14T22:00:00.000Z",
+          "entries": [
+            { "type": "spend", "amount": 360, "note": "Grocery", "time": "2026-05-14T11:00:00.000Z" },
+            { "type": "spend", "amount": 200, "note": "Lunch", "time": "2026-05-14T13:30:00.000Z" }
+          ]
+        },
+        {
+          "date": "2026-05-18",
+          "daily_budget": 920,
+          "total_spent": 740,
+          "pool_after_review": 20850,
+          "reviewed_at": "2026-05-18T22:00:00.000Z",
+          "entries": [
+            { "type": "spend", "amount": 250, "note": "Breakfast and coffee", "time": "2026-05-18T09:00:00.000Z" },
+            { "type": "spend", "amount": 290, "note": "Lunch", "time": "2026-05-18T13:00:00.000Z" },
+            { "type": "spend", "amount": 200, "note": "Rickshaw", "time": "2026-05-18T18:30:00.000Z" }
+          ]
+        },
+        {
+          "date": "2026-05-22",
+          "daily_budget": 920,
+          "total_spent": 430,
+          "pool_after_review": 20420,
+          "reviewed_at": "2026-05-22T22:00:00.000Z",
+          "entries": [
+            { "type": "spend", "amount": 230, "note": "Lunch", "time": "2026-05-22T13:00:00.000Z" },
+            { "type": "spend", "amount": 200, "note": "Grocery", "time": "2026-05-22T18:00:00.000Z" }
+          ]
+        }
+      ]
+    },
+    {
+      "start_date": "2026-05-25",
+      "end_date": "2026-06-22",
+      "income": 40000,
+      "already_spent": 1000,
+      "savings": 6000,
+      "budget_alert": 700,
+      "pool_leftover": 800,
+      "reservations": [
+        { "name": "Rent", "amount": 8500 },
+        { "name": "Gym", "amount": 1200 }
+      ],
+      "days": [
+        {
+          "date": "2026-05-25",
+          "daily_budget": 980,
+          "total_spent": 810,
+          "pool_after_review": 23390,
+          "reviewed_at": "2026-05-25T22:00:00.000Z",
+          "entries": [
+            { "type": "spend", "amount": 400, "note": "Grocery", "time": "2026-05-25T10:00:00.000Z" },
+            { "type": "spend", "amount": 210, "note": "Lunch", "time": "2026-05-25T13:00:00.000Z" },
+            { "type": "spend", "amount": 200, "note": "Transport", "time": "2026-05-25T18:00:00.000Z" }
+          ]
+        },
+        {
+          "date": "2026-05-27",
+          "daily_budget": 980,
+          "total_spent": 650,
+          "pool_after_review": 22740,
+          "reviewed_at": "2026-05-27T22:00:00.000Z",
+          "entries": [
+            { "type": "spend", "amount": 300, "note": "Lunch and tea", "time": "2026-05-27T13:30:00.000Z" },
+            { "type": "spend", "amount": 350, "note": "Dinner", "time": "2026-05-27T20:00:00.000Z" }
+          ]
+        },
+        {
+          "date": "2026-05-30",
+          "daily_budget": 980,
+          "total_spent": 1300,
+          "pool_after_review": 21440,
+          "reviewed_at": "2026-05-30T22:00:00.000Z",
+          "entries": [
+            { "type": "spend", "amount": 800, "note": "Shoes", "time": "2026-05-30T15:00:00.000Z" },
+            { "type": "spend", "amount": 300, "note": "Dinner", "time": "2026-05-30T20:00:00.000Z" },
+            { "type": "spend", "amount": 200, "note": "Rickshaw", "time": "2026-05-30T22:00:00.000Z" }
+          ]
+        },
+        {
+          "date": "2026-06-02",
+          "daily_budget": 980,
+          "total_spent": 490,
+          "pool_after_review": 20950,
+          "reviewed_at": "2026-06-02T22:00:00.000Z",
+          "entries": [
+            { "type": "spend", "amount": 290, "note": "Lunch", "time": "2026-06-02T13:00:00.000Z" },
+            { "type": "spend", "amount": 200, "note": "Snacks", "time": "2026-06-02T17:00:00.000Z" }
+          ]
+        },
+        {
+          "date": "2026-06-05",
+          "daily_budget": 980,
+          "total_spent": 870,
+          "pool_after_review": 20080,
+          "reviewed_at": "2026-06-05T22:00:00.000Z",
+          "entries": [
+            { "type": "spend", "amount": 420, "note": "Grocery", "time": "2026-06-05T10:00:00.000Z" },
+            { "type": "spend", "amount": 250, "note": "Lunch", "time": "2026-06-05T13:30:00.000Z" },
+            { "type": "spend", "amount": 200, "note": "Coffee and work", "time": "2026-06-05T16:00:00.000Z" }
+          ]
+        },
+        {
+          "date": "2026-06-08",
+          "daily_budget": 980,
+          "total_spent": 1500,
+          "pool_after_review": 18580,
+          "reviewed_at": "2026-06-08T22:00:00.000Z",
+          "entries": [
+            { "type": "spend", "amount": 900, "note": "Birthday dinner", "time": "2026-06-08T19:00:00.000Z" },
+            { "type": "spend", "amount": 400, "note": "Cake", "time": "2026-06-08T18:00:00.000Z" },
+            { "type": "spend", "amount": 200, "note": "Uber", "time": "2026-06-08T23:00:00.000Z" }
+          ]
+        },
+        {
+          "date": "2026-06-11",
+          "daily_budget": 980,
+          "total_spent": 620,
+          "pool_after_review": 17960,
+          "reviewed_at": "2026-06-11T22:00:00.000Z",
+          "entries": [
+            { "type": "spend", "amount": 320, "note": "Grocery", "time": "2026-06-11T10:30:00.000Z" },
+            { "type": "spend", "amount": 300, "note": "Lunch", "time": "2026-06-11T13:00:00.000Z" }
+          ]
+        },
+        {
+          "date": "2026-06-14",
+          "daily_budget": 980,
+          "total_spent": 750,
+          "pool_after_review": 17210,
+          "reviewed_at": "2026-06-14T22:00:00.000Z",
+          "entries": [
+            { "type": "spend", "amount": 250, "note": "Breakfast", "time": "2026-06-14T08:30:00.000Z" },
+            { "type": "spend", "amount": 300, "note": "Lunch", "time": "2026-06-14T13:00:00.000Z" },
+            { "type": "spend", "amount": 200, "note": "Rickshaw", "time": "2026-06-14T19:00:00.000Z" }
+          ]
+        },
+        {
+          "date": "2026-06-17",
+          "daily_budget": 980,
+          "total_spent": 430,
+          "pool_after_review": 16780,
+          "reviewed_at": "2026-06-17T22:00:00.000Z",
+          "entries": [
+            { "type": "spend", "amount": 230, "note": "Lunch", "time": "2026-06-17T13:30:00.000Z" },
+            { "type": "spend", "amount": 200, "note": "Snacks", "time": "2026-06-17T17:00:00.000Z" }
+          ]
+        },
+        {
+          "date": "2026-06-20",
+          "daily_budget": 980,
+          "total_spent": 980,
+          "pool_after_review": 15800,
+          "reviewed_at": "2026-06-20T22:00:00.000Z",
+          "entries": [
+            { "type": "spend", "amount": 480, "note": "Grocery", "time": "2026-06-20T10:00:00.000Z" },
+            { "type": "spend", "amount": 300, "note": "Dinner", "time": "2026-06-20T19:30:00.000Z" },
+            { "type": "spend", "amount": 200, "note": "Transport", "time": "2026-06-20T22:00:00.000Z" }
+          ]
+        }
+      ]
+    }
+  ]
+}
