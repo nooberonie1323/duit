@@ -26,6 +26,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type LeftoverDest = 'pool' | 'savings' | 'reservation';
+type StepType = 'leftover' | 'loans' | 'form';
 
 interface FormReservation {
   name: string;
@@ -54,8 +55,6 @@ export default function NewCycleScreen() {
 
   // Per-loan receipt action state: loanId → { action, reservationName, returnAmount }
   const [loanActions, setLoanActions] = useState<Record<number, { action: ReceiptAction; reservationName: string; returnAmount: string }>>({});
-
-  type StepType = 'leftover' | 'loans' | 'form';
 
   const [step, setStep] = useState<StepType>(hasLeftover ? 'leftover' : 'form');
 
@@ -282,7 +281,6 @@ export default function NewCycleScreen() {
   // ── Loans step ──────────────────────────────────────────────────────────────
   if (step === 'loans') {
     const activeLentLoans = loans.filter(l => l.type === 'lent' && l.status === 'active');
-    const hasSomething = activeLentLoans.length > 0 || activeBorrowedLoans.length > 0;
 
     return (
       <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -424,12 +422,6 @@ export default function NewCycleScreen() {
             </View>
           )}
 
-          {!hasSomething && (
-            <Text style={{ fontSize: 14, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular', textAlign: 'center', marginTop: 40 }}>
-              No active loan activity this cycle.
-            </Text>
-          )}
-
           <Pressable
             onPress={() => setStep('form')}
             style={{ marginTop: 16, backgroundColor: colors.primary, borderRadius: 16, paddingVertical: 16, alignItems: 'center' }}
@@ -449,7 +441,12 @@ export default function NewCycleScreen() {
     >
       <View style={{ paddingTop: insets.top + 20, paddingHorizontal: 20, paddingBottom: 16 }}>
         <Pressable
-          onPress={() => (hasLeftover ? setStep('leftover') : router.back())}
+          onPress={() => {
+            const hasActive = loans.some(l => l.status === 'active') || activeBorrowedLoans.length > 0;
+            if (hasActive) setStep('loans');
+            else if (hasLeftover) setStep('leftover');
+            else router.back();
+          }}
           hitSlop={12}
           style={{ marginBottom: 20 }}
         >
