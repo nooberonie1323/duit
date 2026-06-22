@@ -5,6 +5,12 @@ import { MissedReviewState } from '@/components/home/MissedReviewState';
 import { NormalState } from '@/components/home/NormalState';
 import { ReservationModal } from '@/components/home/ReservationModal';
 import { ReviewState } from '@/components/home/ReviewState';
+import { SavingsModal } from '@/components/home/SavingsModal';
+import {
+  addSavingsWithdrawal,
+  getSavingsWithdrawals,
+  type SavingsWithdrawalRow,
+} from '@/services/savingsService';
 import { SpendModal } from '@/components/home/SpendModal';
 import {
   deleteReservation,
@@ -52,6 +58,7 @@ interface HomeData {
   todayReviewed: boolean;
   missedDays: MissedDay[];
   missedEntries: EntryRow[];
+  savingsWithdrawals: SavingsWithdrawalRow[];
 }
 
 interface EditingEntry {
@@ -105,6 +112,13 @@ export default function HomeScreen() {
   const [modalSaving, setModalSaving] = useState(false);
   const [confirmDeleteEntry, setConfirmDeleteEntry] = useState<EntryRow | null>(null);
 
+  // Savings modal
+  const [showSavingsModal, setShowSavingsModal] = useState(false);
+  const [savingsStep, setSavingsStep] = useState<1 | 2>(1);
+  const [savingsAmount, setSavingsAmount] = useState('');
+  const [savingsNote, setSavingsNote] = useState('');
+  const [savingsSaving, setSavingsSaving] = useState(false);
+
   // Reservation modal
   const [selectedReservation, setSelectedReservation] = useState<ReservationRow | null>(null);
   const [resTransactions, setResTransactions] = useState<ReservationTransactionRow[]>([]);
@@ -132,7 +146,7 @@ export default function HomeScreen() {
   const load = useCallback(async () => {
     const [settings, cycleData] = await Promise.all([getSettings(db), getActiveCycle(db)]);
     if (!settings || !cycleData) { setData(null); setLoading(false); return; }
-    const [entries, cycleTotalSpent, todayDay, missedDays] = await Promise.all([
+    const [entries, cycleTotalSpent, todayDay, missedDays, savingsWithdrawals] = await Promise.all([
       getTodayEntries(db, cycleData.cycle.id),
       getCycleTotalSpent(db, cycleData.cycle.id),
       db.getFirstAsync<{ reviewed_at: string | null }>(
@@ -140,6 +154,7 @@ export default function HomeScreen() {
         [cycleData.cycle.id, toDateStr(new Date())]
       ),
       getMissedDays(db, cycleData.cycle.id),
+      getSavingsWithdrawals(db, cycleData.cycle.id),
     ]);
     const missedEntries = await getMissedEntries(db, missedDays.map(d => d.id));
     const todayReviewed = !!(todayDay?.reviewed_at);
@@ -147,7 +162,7 @@ export default function HomeScreen() {
     if (settings.notifications_enabled === 1 && (!snooze || new Date() >= snooze)) {
       scheduleReviewNotifications(settings.review_time).catch(() => {});
     }
-    setData({ name: settings.name, reviewTime: settings.review_time, cycleData, entries, cycleTotalSpent, todayReviewed, missedDays, missedEntries });
+    setData({ name: settings.name, reviewTime: settings.review_time, cycleData, entries, cycleTotalSpent, todayReviewed, missedDays, missedEntries, savingsWithdrawals });
     setLoading(false);
   }, [db]);
 
@@ -332,6 +347,38 @@ export default function HomeScreen() {
     }
   }
 
+  // ── Savings handlers ────────────────────────────────────────────────────────
+  function openSavings() {
+    setSavingsStep(1);
+    setSavingsAmount('');
+    setSavingsNote('');
+    setShowSavingsModal(true);
+  }
+
+  function closeSavings() {
+    setShowSavingsModal(false);
+    setSavingsStep(1);
+    setSavingsAmount('');
+    setSavingsNote('');
+  }
+
+  async function handleSavingsWithdraw() {
+    if (!data || savingsSaving) return;
+    const amount = parseFloat(savingsAmount);
+    if (!amount || amount <= 0) return;
+    setSavingsSaving(true);
+    try {
+      await addSavingsWithdrawal(db, data.cycleData.cycle.id, amount, savingsNote);
+      await load();
+      closeSavings();
+    } catch (e) {
+      console.error('[savings withdraw error]', e);
+      showError('Failed to record savings use. Please try again.');
+    } finally {
+      setSavingsSaving(false);
+    }
+  }
+
   // ── Loading / no data ───────────────────────────────────────────────────────
   if (loading) {
     return (
@@ -384,6 +431,14 @@ export default function HomeScreen() {
     ? `Exceeds ৳${Math.floor(resRemaining).toLocaleString()} remaining`
     : null;
   const resCanSubmit = resAmountValid && !resAmountError && !resSaving;
+
+  const savingsRemaining = cycleData.cycle.savings - cycleData.savingsWithdrawn;
+  const savingsAmountNum = parseFloat(savingsAmount) || 0;
+  const savingsAmountValid = savingsAmountNum > 0;
+  const savingsAmountError = savingsAmountValid && savingsAmountNum > savingsRemaining
+    ? `Exceeds ৳${Math.floor(savingsRemaining).toLocaleString()} remaining`
+    : null;
+  const savingsCanContinue = savingsAmountValid && !savingsAmountError;
 
   // ── Inline state helpers ────────────────────────────────────────────────────
   function statRow(label: string, value: string, valueColor: string = colors.textPrimary) {
@@ -461,7 +516,11 @@ export default function HomeScreen() {
               <View style={cardShadow}>
                 {cycleData.cycle.savings > 0 && (
                   <>
-                    {statRow('Savings (untouched)', `৳${Math.floor(cycleData.cycle.savings).toLocaleString()}`, colors.primary)}
+                    {(() => {
+                      const remaining = cycleData.cycle.savings - cycleData.savingsWithdrawn;
+                      const label = cycleData.savingsWithdrawn > 0 ? 'Savings (partially used)' : 'Savings (untouched)';
+                      return statRow(label, `৳${Math.floor(Math.max(0, remaining)).toLocaleString()}`, colors.primary);
+                    })()}
                     {cycleData.reservations.length > 0 && <View style={{ height: 1, backgroundColor: colors.border }} />}
                   </>
                 )}
@@ -616,6 +675,8 @@ export default function HomeScreen() {
           onOpenEdit={openEdit}
           onDeleteEntry={setConfirmDeleteEntry}
           onSelectReservation={openReservation}
+          savingsWithdrawn={cycleData.savingsWithdrawn}
+          onPressSavings={openSavings}
         />
       )}
 
@@ -662,6 +723,24 @@ export default function HomeScreen() {
         onUseFullAmount={() => setResAmount(String(resRemaining))}
         onUndoLast={handleResUndoLast}
         onDeleteReservation={handleResDelete}
+      />
+      <SavingsModal
+        visible={showSavingsModal}
+        onClose={closeSavings}
+        originalSavings={cycleData.cycle.savings}
+        savingsRemaining={savingsRemaining}
+        withdrawals={data.savingsWithdrawals}
+        step={savingsStep}
+        amount={savingsAmount}
+        note={savingsNote}
+        onChangeAmount={setSavingsAmount}
+        onChangeNote={setSavingsNote}
+        amountError={savingsAmountError}
+        canContinue={savingsCanContinue}
+        saving={savingsSaving}
+        onContinue={() => setSavingsStep(2)}
+        onBack={() => setSavingsStep(1)}
+        onConfirm={handleSavingsWithdraw}
       />
       <ErrorToast
         message={errorMsg}
