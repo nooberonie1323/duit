@@ -17,6 +17,7 @@ type IconName = ComponentProps<typeof MaterialIcons>['name'];
 const TABS: { name: string; label: string; icon: IconName }[] = [
   { name: 'index', label: 'Home', icon: 'home' },
   { name: 'log', label: 'Log', icon: 'receipt' },
+  { name: 'loans', label: 'Loans', icon: 'handshake' },
   { name: 'more', label: 'More', icon: 'tune' },
 ];
 

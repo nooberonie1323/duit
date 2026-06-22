@@ -8,6 +8,7 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   Switch,
@@ -16,6 +17,43 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+interface SeedEntry {
+  type: 'spend' | 'extra_cash';
+  amount: number;
+  note: string;
+  time: string;
+}
+
+interface SeedDay {
+  date: string;
+  daily_budget: number;
+  total_spent: number;
+  pool_after_review: number;
+  reviewed_at: string | null;
+  entries: SeedEntry[];
+}
+
+interface SeedReservation {
+  name: string;
+  amount: number;
+}
+
+interface SeedCycle {
+  start_date: string;
+  end_date: string;
+  income: number;
+  already_spent: number;
+  savings: number;
+  budget_alert: number;
+  pool_leftover: number;
+  reservations: SeedReservation[];
+  days: SeedDay[];
+}
+
+interface SeedFile {
+  cycles: SeedCycle[];
+}
 
 const REVIEW_TIMES = [
   { label: '8 PM', value: 20 },
@@ -42,6 +80,8 @@ export default function MoreScreen() {
   const [confirmReset, setConfirmReset] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [updateStatus, setUpdateStatus] = useState<'idle' | 'checking' | 'up-to-date' | 'available' | 'downloading' | 'ready'>('idle');
+  const [seedStatus, setSeedStatus] = useState<'idle' | 'seeding' | 'done' | 'error'>('idle');
+  const [seedMessage, setSeedMessage] = useState('');
 
   const load = useCallback(async () => {
     const s = await getSettings(db);
@@ -148,6 +188,92 @@ export default function MoreScreen() {
   }
 
   const navPillOffset = Math.max(insets.bottom, 16) + 76;
+
+  async function seedFromJson(json: SeedFile) {
+    setSeedStatus('seeding');
+    setSeedMessage('Seeding…');
+    let cyclesInserted = 0;
+    let daysInserted = 0;
+    let entriesInserted = 0;
+    try {
+      for (const cycle of json.cycles) {
+        await db.execAsync('BEGIN');
+        try {
+          const cycleResult = await db.runAsync(
+            `INSERT INTO cycles (start_date, end_date, income, already_spent, savings, budget_alert, start_from_today, pool_leftover)
+             VALUES (?, ?, ?, ?, ?, ?, 1, ?)`,
+            [cycle.start_date, cycle.end_date, cycle.income, cycle.already_spent ?? 0, cycle.savings ?? 0, cycle.budget_alert ?? 0, cycle.pool_leftover ?? 0]
+          );
+          const cycleId = cycleResult.lastInsertRowId;
+
+          for (const res of cycle.reservations ?? []) {
+            await db.runAsync(
+              'INSERT INTO reservations (cycle_id, name, amount) VALUES (?, ?, ?)',
+              [cycleId, res.name, res.amount]
+            );
+          }
+
+          for (const day of cycle.days ?? []) {
+            const dayResult = await db.runAsync(
+              `INSERT INTO days (cycle_id, date, daily_budget, total_spent, pool_after_review, reviewed_at)
+               VALUES (?, ?, ?, ?, ?, ?)`,
+              [cycleId, day.date, day.daily_budget, day.total_spent, day.pool_after_review ?? null, day.reviewed_at ?? null]
+            );
+            const dayId = dayResult.lastInsertRowId;
+            daysInserted++;
+
+            for (const entry of day.entries ?? []) {
+              await db.runAsync(
+                `INSERT INTO entries (day_id, type, amount, note, time, staged)
+                 VALUES (?, ?, ?, ?, ?, 0)`,
+                [dayId, entry.type, entry.amount, entry.note ?? '', entry.time]
+              );
+              entriesInserted++;
+            }
+          }
+
+          await db.execAsync('COMMIT');
+          cyclesInserted++;
+        } catch (e) {
+          await db.execAsync('ROLLBACK');
+          throw e;
+        }
+      }
+      setSeedStatus('done');
+      setSeedMessage(`✓ Inserted ${cyclesInserted} cycles, ${daysInserted} days, ${entriesInserted} entries`);
+    } catch (e) {
+      console.error('[DevSeed]', e);
+      setSeedStatus('error');
+      setSeedMessage('Error seeding data — check console.');
+    }
+  }
+
+  function handlePickSeedFile() {
+    if (Platform.OS !== 'web') {
+      setSeedStatus('error');
+      setSeedMessage('File seed only available on web.');
+      return;
+    }
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json,application/json';
+    input.onchange = () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        try {
+          const parsed = JSON.parse(evt.target?.result as string) as SeedFile;
+          seedFromJson(parsed);
+        } catch {
+          setSeedStatus('error');
+          setSeedMessage('Invalid JSON file.');
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  }
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -324,8 +450,40 @@ export default function MoreScreen() {
           </Pressable>
         </View>
 
+        {__DEV__ && (
+          <>
+            <Text style={[styles.sectionLabel, { color: colors.warning }]}>Developer</Text>
+            <View style={[styles.card, { backgroundColor: colors.card }]}>
+              <Pressable
+                onPress={handlePickSeedFile}
+                disabled={seedStatus === 'seeding'}
+                style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16 }}
+              >
+                <Text style={{ flex: 1, fontSize: 14, fontFamily: 'PlusJakartaSans_500Medium', color: colors.warning }}>
+                  {seedStatus === 'seeding' ? 'Seeding…' : 'Seed data from JSON'}
+                </Text>
+                {seedStatus === 'seeding'
+                  ? <ActivityIndicator size="small" color={colors.warning} />
+                  : <Text style={{ fontSize: 13, color: colors.warning, fontFamily: 'PlusJakartaSans_600SemiBold' }}>↑ Upload</Text>
+                }
+              </Pressable>
+              {seedMessage ? (
+                <View style={{ paddingHorizontal: 16, paddingBottom: 12 }}>
+                  <Text style={{
+                    fontSize: 12,
+                    fontFamily: 'PlusJakartaSans_400Regular',
+                    color: seedStatus === 'error' ? colors.error : seedStatus === 'done' ? colors.primary : colors.textSecondary,
+                  }}>
+                    {seedMessage}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+          </>
+        )}
+
         <Text style={{ fontSize: 12, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular', textAlign: 'center', marginTop: 28 }}>
-          Duit · v0.1.0
+          duit · v1.0.0
         </Text>
       </ScrollView>
 
