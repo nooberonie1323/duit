@@ -131,7 +131,7 @@ export default function LoansScreen() {
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, paddingBottom: navPillOffset }}>
           <Text style={{ fontSize: 32, marginBottom: 12 }}>💸</Text>
           <Text style={{ fontSize: 16, fontFamily: 'PlusJakartaSans_600SemiBold', color: colors.textPrimary, marginBottom: 6, textAlign: 'center' }}>
-            No loans tracked yet
+            Staying clean is always better
           </Text>
           <Text style={{ fontSize: 13, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular', textAlign: 'center', lineHeight: 20 }}>
             Tap + to record money you gave or received.
