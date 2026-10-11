@@ -29,6 +29,7 @@ import {
 } from '@/services/entryService';
 import { scheduleReviewNotifications, scheduleSnoozeNotification } from '@/services/notificationService';
 import {
+  backfillMissingDays,
   confirmCatchUpReview,
   confirmReview,
   getMissedDays,
@@ -146,6 +147,9 @@ export default function HomeScreen() {
   const load = useCallback(async () => {
     const [settings, cycleData] = await Promise.all([getSettings(db), getActiveCycle(db)]);
     if (!settings || !cycleData) { setData(null); setLoading(false); return; }
+    // Ensure every past calendar date in this cycle has a day row before
+    // missed-day detection — otherwise dates with zero activity are invisible.
+    await backfillMissingDays(db, cycleData.cycle.id, cycleData.cycle.start_date, cycleData.dailyBudget);
     const [entries, cycleTotalSpent, todayDay, missedDays, savingsWithdrawals] = await Promise.all([
       getTodayEntries(db, cycleData.cycle.id),
       getCycleTotalSpent(db, cycleData.cycle.id),

@@ -1,4 +1,4 @@
-import { toDateStr } from '@/lib/db';
+import { fromDateStr, toDateStr } from '@/lib/db';
 import type { SQLiteDatabase } from 'expo-sqlite';
 import { getOrCreateTodayDay, type EntryRow } from '@/services/entryService';
 
@@ -28,6 +28,53 @@ export async function getMissedEntries(
     `SELECT * FROM entries WHERE day_id IN (${placeholders}) AND type = 'spend' ORDER BY id ASC`,
     dayIds
   );
+}
+
+// Day rows are created lazily (first spend logged or review confirmed), so a
+// date with zero activity has no row. To enforce review-in-order, every
+// calendar date from cycle start through yesterday must exist as a row,
+// otherwise missed-day detection silently skips it.
+export async function backfillMissingDays(
+  db: SQLiteDatabase,
+  cycleId: number,
+  startDateStr: string,
+  dailyBudget: number
+): Promise<void> {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayStr = toDateStr(today);
+  // Cycle starts today or in the future — nothing can be missed yet.
+  if (startDateStr >= todayStr) return;
+
+  const existing = await db.getAllAsync<{ date: string }>(
+    'SELECT date FROM days WHERE cycle_id = ? AND date < ?',
+    [cycleId, todayStr]
+  );
+  const existingDates = new Set(existing.map(r => r.date));
+
+  const missing: string[] = [];
+  const cursor = fromDateStr(startDateStr);
+  cursor.setHours(0, 0, 0, 0);
+  while (cursor < today) {
+    const cursorStr = toDateStr(cursor);
+    if (!existingDates.has(cursorStr)) missing.push(cursorStr);
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  if (missing.length === 0) return;
+
+  await db.execAsync('BEGIN');
+  try {
+    for (const dateStr of missing) {
+      await db.runAsync(
+        'INSERT INTO days (cycle_id, date, daily_budget) VALUES (?, ?, ?)',
+        [cycleId, dateStr, dailyBudget]
+      );
+    }
+    await db.execAsync('COMMIT');
+  } catch (e) {
+    await db.execAsync('ROLLBACK');
+    throw e;
+  }
 }
 
 export async function confirmCatchUpReview(

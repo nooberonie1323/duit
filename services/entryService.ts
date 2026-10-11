@@ -99,13 +99,15 @@ export interface CycleSummary {
 }
 
 export async function getCycleSummaries(db: SQLiteDatabase): Promise<CycleSummary[]> {
+  // LEFT JOIN so the active cycle appears even with zero reviewed days.
+  // Only reviewed days count toward day_count / totals.
   return db.getAllAsync<CycleSummary>(
     `SELECT c.id as cycle_id, c.start_date, c.end_date,
-            COUNT(d.id) as day_count,
-            COALESCE(SUM(d.total_spent), 0) as total_spent,
-            COALESCE(SUM(d.daily_budget), 0) as total_budget
+            COUNT(CASE WHEN d.reviewed_at IS NOT NULL THEN 1 END) as day_count,
+            COALESCE(SUM(CASE WHEN d.reviewed_at IS NOT NULL THEN d.total_spent ELSE 0 END), 0) as total_spent,
+            COALESCE(SUM(CASE WHEN d.reviewed_at IS NOT NULL THEN d.daily_budget ELSE 0 END), 0) as total_budget
      FROM cycles c
-     JOIN days d ON d.cycle_id = c.id AND d.reviewed_at IS NOT NULL
+     LEFT JOIN days d ON d.cycle_id = c.id
      GROUP BY c.id
      ORDER BY c.id DESC`
   );

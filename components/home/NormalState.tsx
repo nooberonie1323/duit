@@ -1,4 +1,5 @@
 import { useThemeColors } from '@/contexts/theme';
+import { fromDateStr } from '@/lib/db';
 import type { ActiveCycleData, ReservationRow } from '@/services/cycleService';
 import type { EntryRow } from '@/services/entryService';
 import { useState } from 'react';
@@ -46,6 +47,9 @@ export function NormalState({
   const leftToday = cycleData.dailyBudget - totalSpent;
   const overspentBy = totalSpent > cycleData.dailyBudget ? totalSpent - cycleData.dailyBudget : 0;
   const dateStr = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  const cycleStart = fromDateStr(cycleData.cycle.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const cycleEnd = fromDateStr(cycleData.cycle.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const cycleRange = `${cycleStart} – ${cycleEnd}`;
 
   const card = {
     backgroundColor: colors.card,
@@ -67,7 +71,10 @@ export function NormalState({
             <View style={{ position: 'absolute', top: -35, right: -35, width: 150, height: 150, borderRadius: 75, backgroundColor: 'rgba(255,255,255,0.07)' }} />
             <View style={{ position: 'absolute', bottom: -55, left: -25, width: 200, height: 200, borderRadius: 100, backgroundColor: 'rgba(255,255,255,0.05)' }} />
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
-              <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: 13, fontFamily: 'PlusJakartaSans_500Medium' }}>{dateStr}</Text>
+              <View>
+                <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: 13, fontFamily: 'PlusJakartaSans_500Medium' }}>{dateStr}</Text>
+                <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, fontFamily: 'PlusJakartaSans_400Regular', marginTop: 2 }}>{cycleRange}</Text>
+              </View>
               <View style={{ backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5 }}>
                 <Text style={{ color: 'rgba(255,255,255,0.9)', fontSize: 11, fontFamily: 'PlusJakartaSans_600SemiBold' }}>
                   {cycleData.daysLeft} {cycleData.daysLeft === 1 ? 'day' : 'days'} left
