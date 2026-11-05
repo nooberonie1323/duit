@@ -1,6 +1,6 @@
 # Carryover & Savings Balance — Build Plan
 
-Status: plan approved, Phase 1 complete.
+Status: plan approved, Phases 1–2 complete.
 
 ## Progress
 
@@ -9,7 +9,7 @@ Last updated: 2026-11-06
 | Phase | Status |
 | --- | --- |
 | 1 — Foundation | Done |
-| 2 — Close cycle & leftovers | Not started |
+| 2 — Close cycle & leftovers | Done |
 | 3 — New cycle plan & apply | Not started |
 | 4 — Screens, hardening, rollout | Not started |
 
@@ -24,9 +24,21 @@ Last updated: 2026-11-06
 - No screen or service reads the new model yet, so app behaviour is unchanged.
 - `npx tsc --noEmit` and `expo lint` pass.
 
+### Phase 2 — done
+
+- Added a Close cycle screen that opens from the ended state and the pay-delayed state.
+- Unreviewed days must be settled with the existing catch-up review before leftovers show.
+- Leftovers show the pocket pool, each reservation's remaining amount, and remaining savings.
+- Every item gets four choices: pool, savings, reservation, or "I already spent it."
+- Savings defaults to staying in savings; reservations default to carrying forward by name.
+- Duplicate reservation names prompt merge or rename.
+- Choices save as a draft plan only. No money moves; the old cycle stays unchanged.
+- Reopening the screen restores the saved choices.
+- `npx tsc --noEmit` and `expo lint` pass.
+
 ### Next
 
-Phase 2 — add the Close cycle step, force catch-up reviews, and build the leftovers screen with destinations. No money moves until confirmation.
+Phase 3 — rework the new-cycle form to use the saved plan, show a live pool preview, validate the numbers, handle late starts, and apply everything in one save.
 
 ## 1. Purpose
 

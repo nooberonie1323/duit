@@ -481,10 +481,10 @@ export default function HomeScreen() {
             Come back when your pay arrives to start a new cycle.
           </Text>
           <Pressable
-            onPress={() => router.push({ pathname: '/new-cycle', params: { leftover: String(Math.floor(cycleData.leftInCycle)), prevCycleId: String(cycleData.cycle.id) } })}
+            onPress={() => router.push('/close-cycle')}
             style={{ backgroundColor: colors.primary, borderRadius: 16, paddingVertical: 16, paddingHorizontal: 40, alignItems: 'center' }}
           >
-            <Text style={{ color: '#fff', fontSize: 16, fontFamily: 'PlusJakartaSans_700Bold' }}>Pay arrived — start new cycle</Text>
+            <Text style={{ color: '#fff', fontSize: 16, fontFamily: 'PlusJakartaSans_700Bold' }}>Pay arrived — close cycle</Text>
           </Pressable>
         </View>
       )}
@@ -542,10 +542,10 @@ export default function HomeScreen() {
               </View>
             )}
             <Pressable
-              onPress={() => router.push({ pathname: '/new-cycle', params: { leftover: String(cycleData.leftInCycle > 0 ? Math.floor(cycleData.leftInCycle) : 0), prevCycleId: String(cycleData.cycle.id) } })}
+              onPress={() => router.push('/close-cycle')}
               style={{ backgroundColor: colors.primary, borderRadius: 16, paddingVertical: 16, alignItems: 'center', marginBottom: 12 }}
             >
-              <Text style={{ color: '#fff', fontSize: 16, fontFamily: 'PlusJakartaSans_700Bold' }}>Start new cycle</Text>
+              <Text style={{ color: '#fff', fontSize: 16, fontFamily: 'PlusJakartaSans_700Bold' }}>Close cycle</Text>
             </Pressable>
             <Pressable
               onPress={() => setIsPayDelayed(true)}
