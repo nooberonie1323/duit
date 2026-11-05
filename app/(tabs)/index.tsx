@@ -42,7 +42,9 @@ import {
   getReservationTransactions,
   type ReservationTransactionRow,
 } from '@/services/reservationService';
+import { getOpenCyclePlan, type OpenCyclePlan } from '@/services/newCycleService';
 import { getSettings } from '@/services/settingsService';
+import { useFocusEffect } from '@react-navigation/native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -60,6 +62,7 @@ interface HomeData {
   missedDays: MissedDay[];
   missedEntries: EntryRow[];
   savingsWithdrawals: SavingsWithdrawalRow[];
+  openPlan: OpenCyclePlan | null;
 }
 
 interface EditingEntry {
@@ -68,19 +71,21 @@ interface EditingEntry {
   amount: number;
 }
 
-type HomeStateType = 'normal' | 'waiting' | 'ended' | 'review' | 'post_review' | 'missed_review';
+type HomeStateType = 'normal' | 'waiting' | 'ended' | 'review' | 'post_review' | 'missed_review' | 'pending';
 
 function getHomeState(
   cycleData: ActiveCycleData,
   todayReviewed: boolean,
   isReviewMode: boolean,
   hasMissedDays: boolean,
+  hasPendingPlan: boolean,
   devState?: string
 ): HomeStateType {
   if (devState === 'ended') return 'ended';
   if (devState === 'waiting') return 'waiting';
   if (devState === 'review') return 'review';
   if (devState === 'postReview') return 'post_review';
+  if (hasPendingPlan) return 'pending';
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const start = fromDateStr(cycleData.cycle.start_date); start.setHours(0, 0, 0, 0);
   const end = fromDateStr(cycleData.cycle.end_date); end.setHours(0, 0, 0, 0);
@@ -145,7 +150,11 @@ export default function HomeScreen() {
   const [deletingEntry, setDeletingEntry] = useState(false);
 
   const load = useCallback(async () => {
-    const [settings, cycleData] = await Promise.all([getSettings(db), getActiveCycle(db)]);
+    const [settings, cycleData, openPlan] = await Promise.all([
+      getSettings(db),
+      getActiveCycle(db),
+      getOpenCyclePlan(db),
+    ]);
     if (!settings || !cycleData) { setData(null); setLoading(false); return; }
     // Ensure every past calendar date in this cycle has a day row before
     // missed-day detection — otherwise dates with zero activity are invisible.
@@ -166,11 +175,12 @@ export default function HomeScreen() {
     if (settings.notifications_enabled === 1 && (!snooze || new Date() >= snooze)) {
       scheduleReviewNotifications(settings.review_time).catch(() => {});
     }
-    setData({ name: settings.name, reviewTime: settings.review_time, cycleData, entries, cycleTotalSpent, todayReviewed, missedDays, missedEntries, savingsWithdrawals });
+    setData({ name: settings.name, reviewTime: settings.review_time, cycleData, entries, cycleTotalSpent, todayReviewed, missedDays, missedEntries, savingsWithdrawals, openPlan });
     setLoading(false);
   }, [db]);
 
-  useEffect(() => { load(); }, [load]);
+  // Returning from the close/plan screens must refresh the home state.
+  useFocusEffect(useCallback(() => { load(); }, [load]));
 
   // Pre-fill catch-up amount with staged entries total so user doesn't have to retype what they already logged
   useEffect(() => {
@@ -405,7 +415,9 @@ export default function HomeScreen() {
   // ── Derived values ──────────────────────────────────────────────────────────
   const { cycleData, entries, todayReviewed, missedDays, missedEntries, cycleTotalSpent } = data;
   const navPillOffset = Math.max(insets.bottom, 16) + 76;
-  const homeState = getHomeState(cycleData, todayReviewed, isReviewMode, missedDays.length > 0, devState);
+  const hasPendingPlan = data.openPlan?.status === 'pending_confirmation';
+  const draftPlan = data.openPlan?.status === 'draft' ? data.openPlan : null;
+  const homeState = getHomeState(cycleData, todayReviewed, isReviewMode, missedDays.length > 0, hasPendingPlan, devState);
   const snoozed = reviewSnoozedUntil !== null && new Date() < reviewSnoozedUntil;
   const reviewAvailable = new Date().getHours() >= data.reviewTime && !todayReviewed && homeState === 'normal' && !snoozed;
 
@@ -542,18 +554,70 @@ export default function HomeScreen() {
               </View>
             )}
             <Pressable
-              onPress={() => router.push('/close-cycle')}
+              onPress={() =>
+                draftPlan
+                  ? router.push({ pathname: '/new-cycle', params: { planId: String(draftPlan.id) } })
+                  : router.push('/close-cycle')
+              }
               style={{ backgroundColor: colors.primary, borderRadius: 16, paddingVertical: 16, alignItems: 'center', marginBottom: 12 }}
             >
-              <Text style={{ color: '#fff', fontSize: 16, fontFamily: 'PlusJakartaSans_700Bold' }}>Close cycle</Text>
+              <Text style={{ color: '#fff', fontSize: 16, fontFamily: 'PlusJakartaSans_700Bold' }}>
+                {draftPlan ? 'Continue new cycle' : 'Close cycle'}
+              </Text>
             </Pressable>
             <Pressable
-              onPress={() => setIsPayDelayed(true)}
+              onPress={() => (draftPlan ? router.push('/close-cycle') : setIsPayDelayed(true))}
               style={{ borderRadius: 16, paddingVertical: 16, alignItems: 'center', borderWidth: 1.5, borderColor: colors.border }}
             >
-              <Text style={{ color: colors.textSecondary, fontSize: 16, fontFamily: 'PlusJakartaSans_600SemiBold' }}>Wait — pay was delayed</Text>
+              <Text style={{ color: colors.textSecondary, fontSize: 16, fontFamily: 'PlusJakartaSans_600SemiBold' }}>
+                {draftPlan ? 'Change leftover choices' : 'Wait — pay was delayed'}
+              </Text>
             </Pressable>
           </ScrollView>
+        );
+      })()}
+
+      {/* Planned but waiting for its start date */}
+      {homeState === 'pending' && data.openPlan && (() => {
+        const pendingPlan = data.openPlan;
+        const start = fromDateStr(pendingPlan.startDate); start.setHours(0, 0, 0, 0);
+        const end = fromDateStr(pendingPlan.endDate);
+        const now = new Date(); now.setHours(0, 0, 0, 0);
+        const isDue = start <= now;
+        const daysUntil = Math.round((start.getTime() - now.getTime()) / 86400000);
+        const startFmt = start.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+        const endFmt = end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        return (
+          <View style={{ flex: 1, paddingTop: insets.top, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 }}>
+            <Text style={{ fontSize: 40, marginBottom: 16 }}>{isDue ? '🚀' : '🗓️'}</Text>
+            <Text style={{ fontSize: 26, fontFamily: 'PlusJakartaSans_800ExtraBold', color: colors.textPrimary, textAlign: 'center', letterSpacing: -0.5, marginBottom: 12 }}>
+              {isDue ? 'Ready when you are.' : 'Your cycle is planned.'}
+            </Text>
+            <Text style={{ fontSize: 14, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular', textAlign: 'center', lineHeight: 22, marginBottom: 8 }}>
+              {isDue
+                ? 'Confirm your plan to start the daily cycle.'
+                : `It starts ${startFmt}. Open the app then to confirm.`}
+            </Text>
+            <Text style={{ fontSize: 13, color: colors.primary, fontFamily: 'PlusJakartaSans_600SemiBold', textAlign: 'center', marginBottom: 8 }}>
+              {startFmt} – {endFmt}
+            </Text>
+            {!isDue && (
+              <Text style={{ fontSize: 12, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular', textAlign: 'center', marginBottom: 8 }}>
+                {daysUntil} {daysUntil === 1 ? 'day' : 'days'} to go
+              </Text>
+            )}
+            <Text style={{ fontSize: 12, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular', textAlign: 'center', marginBottom: 32 }}>
+              Carried in: ৳{Math.floor(pendingPlan.carryPool).toLocaleString()} pool · ৳{Math.floor(pendingPlan.carrySavings).toLocaleString()} savings
+            </Text>
+            <Pressable
+              onPress={() => router.push({ pathname: '/new-cycle', params: { planId: String(pendingPlan.id) } })}
+              style={{ backgroundColor: colors.primary, borderRadius: 16, paddingVertical: 16, paddingHorizontal: 40, alignItems: 'center' }}
+            >
+              <Text style={{ color: '#fff', fontSize: 16, fontFamily: 'PlusJakartaSans_700Bold' }}>
+                {isDue ? 'Confirm & start cycle' : 'Review plan'}
+              </Text>
+            </Pressable>
+          </View>
         );
       })()}
 
@@ -575,12 +639,9 @@ export default function HomeScreen() {
             <Text style={{ fontSize: 13, color: colors.primary, fontFamily: 'PlusJakartaSans_600SemiBold', textAlign: 'center', marginBottom: 40 }}>
               Cycle starts {startFmt} · {daysUntil} {daysUntil === 1 ? 'day' : 'days'} away
             </Text>
-            <Pressable
-              onPress={() => router.push({ pathname: '/new-cycle', params: { leftover: '0', prevCycleId: String(cycleData.cycle.id) } })}
-              style={{ backgroundColor: colors.primary, borderRadius: 16, paddingVertical: 16, paddingHorizontal: 40, alignItems: 'center' }}
-            >
-              <Text style={{ color: '#fff', fontSize: 16, fontFamily: 'PlusJakartaSans_700Bold' }}>Start new cycle</Text>
-            </Pressable>
+            <Text style={{ fontSize: 12, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular', textAlign: 'center' }}>
+              Nothing to do until then — we&apos;ll be here.
+            </Text>
           </View>
         );
       })()}

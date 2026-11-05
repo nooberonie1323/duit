@@ -1,6 +1,6 @@
 # Carryover & Savings Balance — Build Plan
 
-Status: plan approved, Phases 1–2 complete.
+Status: plan approved, Phases 1–3 complete.
 
 ## Progress
 
@@ -10,7 +10,7 @@ Last updated: 2026-11-06
 | --- | --- |
 | 1 — Foundation | Done |
 | 2 — Close cycle & leftovers | Done |
-| 3 — New cycle plan & apply | Not started |
+| 3 — New cycle plan & apply | Done |
 | 4 — Screens, hardening, rollout | Not started |
 
 ### Phase 1 — done
@@ -36,9 +36,23 @@ Last updated: 2026-11-06
 - Reopening the screen restores the saved choices.
 - `npx tsc --noEmit` and `expo lint` pass.
 
+### Phase 3 — done
+
+- The new-cycle form now builds on the saved close plan instead of the old leftover step.
+- Carried pool, savings, and reservations are shown and included in the maths.
+- Live preview: available cash, savings total, reservations total, already spent, new pool, daily budget.
+- Blocks already spent above income, and blocks savings/reservations above available cash.
+- Warns (but allows) when the daily budget falls below the budget alert.
+- Duplicate reservation names prompt merge or rename, including against carried reservations.
+- Future start dates save the plan and put home in a "planned" state; the app asks for confirmation on or after the start date.
+- A late confirmation starts the cycle on the confirmation day; the end date stays editable.
+- Applying creates the cycle, reservations, savings balance, close record, and old-cycle settlements in one transaction.
+- Home reloads on focus, so it reflects the close/plan screens immediately.
+- `npx tsc --noEmit` and `expo lint` pass.
+
 ### Next
 
-Phase 3 — rework the new-cycle form to use the saved plan, show a live pool preview, validate the numbers, handle late starts, and apply everything in one save.
+Phase 4 — switch the savings pill/modal and end screen to the running balance, seed onboarding savings into it, exclude auto loan-repayment reservations from carryover, cover edge cases, run the phone checklist, and roll out.
 
 ## 1. Purpose
 

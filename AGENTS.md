@@ -29,7 +29,7 @@ npx eas build -p android --profile preview
 - `app/index.tsx` — redirect: new users → onboarding, returning → `(tabs)`
 - `app/(tabs)/` — Home, Log, More tabs (+ hidden Stats); custom `NavPill` tab bar
 - `app/onboarding/` — multi-step setup; state in `contexts/onboarding.tsx` + `onboarding_state` table
-- `app/new-cycle.tsx` — form; receives `leftover` + `prevCycleId` params when cycle ends
+- `app/new-cycle.tsx` — plan-based form; receives a `planId` from the close-cycle step
 
 **Database layer** (`lib/db.ts` + `services/`):
 All DB access via services — **screens never call SQLite directly**.
@@ -42,6 +42,8 @@ All DB access via services — **screens never call SQLite directly**.
 | `reservationService`  | Reservation transactions (spend/release) with undo                                          |
 | `savingsService`      | Savings withdrawals                                                                         |
 | `settingsService`     | Single-row `settings` table (name, review_time, theme, notifications)                       |
+| `closeCycleService`   | Close-cycle leftovers and saved carryover choices                                           |
+| `newCycleService`     | Editable cycle plans; validates and applies a plan (or saves it for a future start)         |
 | `notificationService` | Daily review reminder via expo-notifications                                                |
 | `loanService`         | Loans (lent/borrowed), repayments, receipts                                                 |
 

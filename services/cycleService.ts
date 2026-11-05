@@ -56,17 +56,6 @@ export async function deleteReservation(
   await db.runAsync('DELETE FROM reservations WHERE id = ?', [reservationId]);
 }
 
-export async function archiveLeftoverAsSavings(
-  db: SQLiteDatabase,
-  cycleId: number,
-  amount: number
-): Promise<void> {
-  await db.runAsync(
-    'INSERT INTO archived_savings (cycle_id, amount) VALUES (?, ?)',
-    [cycleId, amount]
-  );
-}
-
 export async function createCycle(db: SQLiteDatabase, input: CreateCycleInput): Promise<number> {
   let cycleId = 0;
   await db.execAsync('BEGIN');

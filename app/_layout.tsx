@@ -50,6 +50,7 @@ export default function RootLayout() {
             <Stack.Screen name="onboarding" />
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="new-cycle" />
+            <Stack.Screen name="close-cycle" />
           </Stack>
           <ThemedStatusBar />
         </ThemeProvider>

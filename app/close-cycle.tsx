@@ -366,13 +366,20 @@ export default function CloseCycleScreen() {
           Choices saved.
         </Text>
         <Text style={{ fontSize: 14, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular', textAlign: 'center', lineHeight: 22, marginBottom: 32 }}>
-          Nothing has moved yet. Your plan is saved and you can change it until you start the new cycle.
+          Nothing has moved yet. Next, plan the new cycle and confirm the numbers.
         </Text>
         <Pressable
-          onPress={() => router.back()}
-          style={{ backgroundColor: colors.primary, borderRadius: 16, paddingVertical: 16, paddingHorizontal: 40, alignItems: 'center' }}
+          onPress={() =>
+            savedPlanId !== null
+              ? router.replace({ pathname: '/new-cycle', params: { planId: String(savedPlanId) } })
+              : router.back()
+          }
+          style={{ backgroundColor: colors.primary, borderRadius: 16, paddingVertical: 16, paddingHorizontal: 40, alignItems: 'center', marginBottom: 12 }}
         >
-          <Text style={{ color: '#fff', fontSize: 16, fontFamily: 'PlusJakartaSans_700Bold' }}>Back to home</Text>
+          <Text style={{ color: '#fff', fontSize: 16, fontFamily: 'PlusJakartaSans_700Bold' }}>Plan the new cycle</Text>
+        </Pressable>
+        <Pressable onPress={() => router.back()} style={{ paddingVertical: 12 }}>
+          <Text style={{ fontSize: 14, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_500Medium' }}>Back to home</Text>
         </Pressable>
       </View>
     );
