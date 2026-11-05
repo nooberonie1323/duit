@@ -8,8 +8,9 @@ import { ReviewState } from '@/components/home/ReviewState';
 import { SavingsModal } from '@/components/home/SavingsModal';
 import {
   addSavingsWithdrawal,
-  getSavingsWithdrawals,
-  type SavingsWithdrawalRow,
+  getSavingsBalance,
+  getSavingsHistory,
+  type SavingsLedgerRow,
 } from '@/services/savingsService';
 import { SpendModal } from '@/components/home/SpendModal';
 import {
@@ -61,7 +62,8 @@ interface HomeData {
   todayReviewed: boolean;
   missedDays: MissedDay[];
   missedEntries: EntryRow[];
-  savingsWithdrawals: SavingsWithdrawalRow[];
+  savingsBalance: number;
+  savingsHistory: SavingsLedgerRow[];
   openPlan: OpenCyclePlan | null;
 }
 
@@ -150,16 +152,18 @@ export default function HomeScreen() {
   const [deletingEntry, setDeletingEntry] = useState(false);
 
   const load = useCallback(async () => {
-    const [settings, cycleData, openPlan] = await Promise.all([
+    const [settings, cycleData, openPlan, savingsBalance, savingsHistory] = await Promise.all([
       getSettings(db),
       getActiveCycle(db),
       getOpenCyclePlan(db),
+      getSavingsBalance(db),
+      getSavingsHistory(db),
     ]);
     if (!settings || !cycleData) { setData(null); setLoading(false); return; }
     // Ensure every past calendar date in this cycle has a day row before
     // missed-day detection — otherwise dates with zero activity are invisible.
     await backfillMissingDays(db, cycleData.cycle.id, cycleData.cycle.start_date, cycleData.dailyBudget);
-    const [entries, cycleTotalSpent, todayDay, missedDays, savingsWithdrawals] = await Promise.all([
+    const [entries, cycleTotalSpent, todayDay, missedDays] = await Promise.all([
       getTodayEntries(db, cycleData.cycle.id),
       getCycleTotalSpent(db, cycleData.cycle.id),
       db.getFirstAsync<{ reviewed_at: string | null }>(
@@ -167,7 +171,6 @@ export default function HomeScreen() {
         [cycleData.cycle.id, toDateStr(new Date())]
       ),
       getMissedDays(db, cycleData.cycle.id),
-      getSavingsWithdrawals(db, cycleData.cycle.id),
     ]);
     const missedEntries = await getMissedEntries(db, missedDays.map(d => d.id));
     const todayReviewed = !!(todayDay?.reviewed_at);
@@ -175,7 +178,7 @@ export default function HomeScreen() {
     if (settings.notifications_enabled === 1 && (!snooze || new Date() >= snooze)) {
       scheduleReviewNotifications(settings.review_time).catch(() => {});
     }
-    setData({ name: settings.name, reviewTime: settings.review_time, cycleData, entries, cycleTotalSpent, todayReviewed, missedDays, missedEntries, savingsWithdrawals, openPlan });
+    setData({ name: settings.name, reviewTime: settings.review_time, cycleData, entries, cycleTotalSpent, todayReviewed, missedDays, missedEntries, savingsBalance, savingsHistory, openPlan });
     setLoading(false);
   }, [db]);
 
@@ -387,7 +390,7 @@ export default function HomeScreen() {
       closeSavings();
     } catch (e) {
       console.error('[savings withdraw error]', e);
-      showError('Failed to record savings use. Please try again.');
+      showError(e instanceof Error ? e.message : 'Failed to record savings use. Please try again.');
     } finally {
       setSavingsSaving(false);
     }
@@ -448,11 +451,10 @@ export default function HomeScreen() {
     : null;
   const resCanSubmit = resAmountValid && !resAmountError && !resSaving;
 
-  const savingsWithdrawn = data.savingsWithdrawals.reduce((s, w) => s + w.amount, 0);
-  const savingsRemaining = cycleData.cycle.savings - savingsWithdrawn;
+  const savingsBalance = data.savingsBalance;
   const savingsAmountValid = (parseFloat(savingsAmount) || 0) > 0;
-  const savingsAmountError = savingsAmountValid && (parseFloat(savingsAmount) || 0) > savingsRemaining
-    ? `Exceeds ৳${Math.floor(savingsRemaining).toLocaleString()} remaining`
+  const savingsAmountError = savingsAmountValid && (parseFloat(savingsAmount) || 0) > savingsBalance
+    ? `Exceeds ৳${Math.floor(savingsBalance).toLocaleString()} available`
     : null;
   const savingsCanContinue = savingsAmountValid && !savingsAmountError;
 
@@ -509,7 +511,7 @@ export default function HomeScreen() {
         const avgPerDay = cycleData.totalDays > 0 ? cycleTotalSpent / cycleData.totalDays : 0;
         const netAmount = spendable - cycleTotalSpent;
         const didSave = netAmount >= 0;
-        const hasProtected = cycleData.cycle.savings > 0 || cycleData.reservations.length > 0;
+        const hasProtected = savingsBalance > 0 || cycleData.reservations.length > 0;
         return (
           <ScrollView contentContainerStyle={{ paddingTop: insets.top + 24, paddingBottom: Math.max(insets.bottom, 32), paddingHorizontal: 20 }} showsVerticalScrollIndicator={false}>
             <Text style={{ fontSize: 11, fontFamily: 'PlusJakartaSans_600SemiBold', color: colors.textSecondary, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6, marginLeft: 4 }}>
@@ -530,13 +532,9 @@ export default function HomeScreen() {
             </View>
             {hasProtected && (
               <View style={cardShadow}>
-                {cycleData.cycle.savings > 0 && (
+                {savingsBalance > 0 && (
                   <>
-                    {(() => {
-                      const remaining = cycleData.cycle.savings - savingsWithdrawn;
-                      const label = savingsWithdrawn > 0 ? 'Savings (partially used)' : 'Savings (untouched)';
-                      return statRow(label, `৳${Math.floor(Math.max(0, remaining)).toLocaleString()}`, colors.primary);
-                    })()}
+                    {statRow('Savings', `৳${Math.floor(savingsBalance).toLocaleString()}`, colors.primary)}
                     {cycleData.reservations.length > 0 && <View style={{ height: 1, backgroundColor: colors.border }} />}
                   </>
                 )}
@@ -740,7 +738,7 @@ export default function HomeScreen() {
           onOpenEdit={openEdit}
           onDeleteEntry={setConfirmDeleteEntry}
           onSelectReservation={openReservation}
-          savingsWithdrawn={savingsWithdrawn}
+          savingsBalance={savingsBalance}
           onPressSavings={openSavings}
         />
       )}
@@ -792,9 +790,8 @@ export default function HomeScreen() {
       <SavingsModal
         visible={showSavingsModal}
         onClose={closeSavings}
-        originalSavings={cycleData.cycle.savings}
-        savingsRemaining={savingsRemaining}
-        withdrawals={data.savingsWithdrawals}
+        savingsBalance={savingsBalance}
+        history={data.savingsHistory}
         step={savingsStep}
         amount={savingsAmount}
         note={savingsNote}

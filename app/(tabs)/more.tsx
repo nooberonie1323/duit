@@ -2,6 +2,7 @@ import { useTheme, useThemeColors } from '@/contexts/theme';
 import { LinearGradient } from 'expo-linear-gradient';
 import { getSettings, resetAppData, updateSettings, type Settings } from '@/services/settingsService';
 import { cancelReviewNotifications, requestNotificationPermission, scheduleReviewNotifications } from '@/services/notificationService';
+import { syncSavingsFromLatestCycle } from '@/services/savingsService';
 import { router } from 'expo-router';
 import * as Updates from 'expo-updates';
 import { useSQLiteContext } from 'expo-sqlite';
@@ -239,6 +240,9 @@ export default function MoreScreen() {
           await db.execAsync('ROLLBACK');
           throw e;
         }
+      }
+      if (cyclesInserted > 0) {
+        await syncSavingsFromLatestCycle(db);
       }
       setSeedStatus('done');
       setSeedMessage(`✓ Inserted ${cyclesInserted} cycles, ${daysInserted} days, ${entriesInserted} entries`);

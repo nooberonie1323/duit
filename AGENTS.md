@@ -40,7 +40,7 @@ All DB access via services — **screens never call SQLite directly**.
 | `entryService`        | Spend entries; `getOrCreateTodayDay` creates `days` row on first entry; `getCycleSummaries` LEFT JOINs `days` so the active cycle shows even with 0 reviewed days |
 | `reviewService`       | `confirmReview` / `confirmCatchUpReview` — stamps `reviewed_at`, writes `pool_after_review`; `backfillMissingDays` inserts rows for past dates with zero activity to enforce review-in-order |
 | `reservationService`  | Reservation transactions (spend/release) with undo                                          |
-| `savingsService`      | Savings withdrawals                                                                         |
+| `savingsService`      | Running savings balance + ledger; withdrawals, opening balance, legacy sync                |
 | `settingsService`     | Single-row `settings` table (name, review_time, theme, notifications)                       |
 | `closeCycleService`   | Close-cycle leftovers and saved carryover choices                                           |
 | `newCycleService`     | Editable cycle plans; validates and applies a plan (or saves it for a future start)         |

@@ -408,6 +408,27 @@ export async function applyPlan(
           );
         }
       }
+
+      // Auto loan-repayment reservations are rebuilt by the loan plan, so the
+      // remaining amount is released instead of being carried twice.
+      const autoLoanReservations = await db.getAllAsync<{ id: number; remaining: number }>(
+        `SELECT r.id as id,
+                r.amount - COALESCE(SUM(CASE WHEN rt.type IN ('spend', 'release') THEN rt.amount ELSE 0 END), 0) as remaining
+         FROM reservations r
+         JOIN loan_repayment_records lrr ON lrr.reservation_id = r.id
+         LEFT JOIN reservation_transactions rt ON rt.reservation_id = r.id
+         WHERE r.cycle_id = ?
+         GROUP BY r.id`,
+        [plan.source_cycle_id]
+      );
+      for (const auto of autoLoanReservations) {
+        if (auto.remaining <= MONEY_EPSILON) continue;
+        await db.runAsync(
+          `INSERT INTO reservation_transactions (reservation_id, type, amount, note)
+           VALUES (?, 'release', ?, ?)`,
+          [auto.id, auto.remaining, 'Unused loan repayment returned at cycle close']
+        );
+      }
     }
 
     await db.runAsync(

@@ -1,3 +1,4 @@
+import { reconcileLegacySavingsBalance } from '@/services/savingsService';
 import * as SQLite from 'expo-sqlite';
 import { Platform } from 'react-native';
 
@@ -216,6 +217,7 @@ export async function migrateDb(db: SQLite.SQLiteDatabase) {
   await db.execAsync('ALTER TABLE cycles ADD COLUMN model_version INTEGER NOT NULL DEFAULT 1').catch(() => {});
 
   await initializeSavingsAccount(db);
+  await reconcileLegacySavingsBalance(db);
 }
 
 async function initializeSavingsAccount(db: SQLite.SQLiteDatabase): Promise<void> {

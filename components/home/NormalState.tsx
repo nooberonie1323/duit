@@ -19,7 +19,7 @@ interface Props {
   onOpenEdit: (entry: EntryRow) => void;
   onDeleteEntry: (entry: EntryRow) => void;
   onSelectReservation: (r: ReservationRow) => void;
-  savingsWithdrawn: number;
+  savingsBalance: number;
   onPressSavings: () => void;
 }
 
@@ -34,7 +34,7 @@ export function NormalState({
   reviewAvailable, onStartReview, onSnoozeReview,
   onOpenAdd, onOpenEdit, onDeleteEntry,
   onSelectReservation,
-  savingsWithdrawn,
+  savingsBalance,
   onPressSavings,
 }: Props) {
   const colors = useThemeColors();
@@ -109,48 +109,28 @@ export function NormalState({
         <View style={{ height: 12 }} />
 
         {/* Reservations row */}
-        {(cycleData.reservations.length > 0 || cycleData.cycle.savings > 0) && (
+        {(cycleData.reservations.length > 0 || savingsBalance > 0) && (
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
             style={{ marginBottom: 12 }}
           >
-            {cycleData.cycle.savings > 0 && (() => {
-              const savingsRemaining = cycleData.cycle.savings - savingsWithdrawn;
-              const fullyUsed = savingsRemaining <= 0;
-              const partiallyUsed = savingsWithdrawn > 0 && !fullyUsed;
-              return (
-                <Pressable
-                  onPress={onPressSavings}
-                  style={{
-                    borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8,
-                    flexDirection: 'row', alignItems: 'center', gap: 6,
-                    backgroundColor: colors.primaryLight,
-                    borderWidth: fullyUsed ? 1 : 0,
-                    borderColor: fullyUsed ? '#86EFAC' : 'transparent',
-                    opacity: fullyUsed ? 0.6 : 1,
-                  }}
-                >
-                  {fullyUsed && <Text style={{ fontSize: 11, color: colors.primary }}>✓</Text>}
-                  <Text style={{ fontSize: 11, color: colors.primary, fontFamily: 'PlusJakartaSans_600SemiBold' }}>Savings</Text>
-                  {partiallyUsed ? (
-                    <>
-                      <Text style={{ fontSize: 11, color: colors.primary, fontFamily: 'PlusJakartaSans_700Bold' }}>
-                        ৳{Math.floor(savingsRemaining).toLocaleString()}
-                      </Text>
-                      <Text style={{ fontSize: 11, color: colors.primary, fontFamily: 'PlusJakartaSans_400Regular', opacity: 0.6 }}>
-                        / ৳{Math.floor(cycleData.cycle.savings).toLocaleString()}
-                      </Text>
-                    </>
-                  ) : (
-                    <Text style={{ fontSize: 11, color: colors.primary, fontFamily: 'PlusJakartaSans_700Bold' }}>
-                      ৳{fullyUsed ? '0' : Math.floor(cycleData.cycle.savings).toLocaleString()}
-                    </Text>
-                  )}
-                </Pressable>
-              );
-            })()}
+            {savingsBalance > 0 && (
+              <Pressable
+                onPress={onPressSavings}
+                style={{
+                  borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8,
+                  flexDirection: 'row', alignItems: 'center', gap: 6,
+                  backgroundColor: colors.primaryLight,
+                }}
+              >
+                <Text style={{ fontSize: 11, color: colors.primary, fontFamily: 'PlusJakartaSans_600SemiBold' }}>Savings</Text>
+                <Text style={{ fontSize: 11, color: colors.primary, fontFamily: 'PlusJakartaSans_700Bold' }}>
+                  ৳{Math.floor(savingsBalance).toLocaleString()}
+                </Text>
+              </Pressable>
+            )}
             {cycleData.reservations.map(r => {
               const remaining = r.amount - r.spent - r.released;
               const done = remaining <= 0;

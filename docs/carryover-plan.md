@@ -1,6 +1,6 @@
 # Carryover & Savings Balance — Build Plan
 
-Status: plan approved, Phases 1–3 complete.
+Status: plan approved, Phases 1–4 complete.
 
 ## Progress
 
@@ -11,7 +11,7 @@ Last updated: 2026-11-06
 | 1 — Foundation | Done |
 | 2 — Close cycle & leftovers | Done |
 | 3 — New cycle plan & apply | Done |
-| 4 — Screens, hardening, rollout | Not started |
+| 4 — Screens, hardening, rollout | Done |
 
 ### Phase 1 — done
 
@@ -50,9 +50,29 @@ Last updated: 2026-11-06
 - Home reloads on focus, so it reflects the close/plan screens immediately.
 - `npx tsc --noEmit` and `expo lint` pass.
 
+### Phase 4 — done
+
+- The savings pill, savings modal, and cycle-end screen now show the one running balance.
+- Withdrawals are limited to the full savings balance and update the balance plus the ledger together.
+- The savings modal shows the signed ledger history instead of only this cycle's withdrawals.
+- Onboarding savings become the opening balance for the new account.
+- Loan money sent to savings adds to both the running balance and this cycle's protected savings.
+- Auto loan-repayment reservations are no longer offered as leftovers. Their unused amount returns to the pool, and they are released from the old cycle when the new one starts, so they are not carried twice.
+- The dev seed re-syncs the running balance from the latest seeded cycle.
+- Existing (model version 1) cycles keep their account in step with savings minus withdrawals until they end.
+- Edge cases checked: zero leftovers, no reviewed days, fully spent reservations, duplicate names, tiny rounding remainders, and a start date already in the past.
+- `npx tsc --noEmit` and `expo lint` pass.
+
+### Rollout
+
+1. Send the Phase 2–4 update because Phase 1 is already installed.
+2. Run the phone checklist below.
+3. If anything is wrong, roll back with `npx eas update:republish` to the previous update. Schema changes are additive, so rollback is safe.
+4. The active (model version 1) cycle keeps the old maths until it ends; the new flow starts with the next cycle.
+
 ### Next
 
-Phase 4 — switch the savings pill/modal and end screen to the running balance, seed onboarding savings into it, exclude auto loan-repayment reservations from carryover, cover edge cases, run the phone checklist, and roll out.
+Manual phone testing, then send the EAS update when the owner is ready. No further build phases.
 
 ## 1. Purpose
 
@@ -220,12 +240,17 @@ After the Phase 1 update:
 
 After the Phase 2–4 update:
 
-1. Let or force a cycle to end and run Close cycle.
-2. Confirm unreviewed days are settled first.
-3. Try each leftover destination.
-4. Check the new cycle's pool and daily budget against a calculator.
-5. Set a future start date, then reopen before and after it to confirm the prompt.
-6. Confirm rejecting or backing out applies nothing.
+1. Open savings: the pill, modal, and end screen show the same running balance.
+2. Use part of savings, then check the balance drops by exactly that amount and the history shows it.
+3. Try to use more than the balance; it should be blocked.
+4. Let or force a cycle to end and run Close cycle.
+5. Confirm unreviewed days are settled first.
+6. Try each leftover destination.
+7. Check the new cycle's pool and daily budget against a calculator.
+8. Set a future start date, then reopen before and after it to confirm the prompt.
+9. Confirm rejecting or backing out applies nothing.
+10. If a borrowed loan has an auto reservation, confirm it does not appear as a leftover and that the unused amount is back in the pool.
+11. If a lent loan is returned to savings, confirm the running balance increases.
 
 ## 9. Out of scope
 

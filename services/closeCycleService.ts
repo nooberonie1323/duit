@@ -1,3 +1,4 @@
+import { getSavingsBalance } from '@/services/savingsService';
 import { toDateStr } from '@/lib/db';
 import type { SQLiteDatabase } from 'expo-sqlite';
 
@@ -86,10 +87,14 @@ export async function getCloseCycleData(
     amount: number;
     spent: number;
     released: number;
+    is_auto_loan: number;
   }>(
     `SELECT r.id, r.name, r.amount,
             COALESCE(SUM(CASE WHEN rt.type = 'spend' THEN rt.amount ELSE 0 END), 0) as spent,
-            COALESCE(SUM(CASE WHEN rt.type = 'release' THEN rt.amount ELSE 0 END), 0) as released
+            COALESCE(SUM(CASE WHEN rt.type = 'release' THEN rt.amount ELSE 0 END), 0) as released,
+            CASE WHEN EXISTS (
+              SELECT 1 FROM loan_repayment_records lrr WHERE lrr.reservation_id = r.id
+            ) THEN 1 ELSE 0 END as is_auto_loan
      FROM reservations r
      LEFT JOIN reservation_transactions rt ON rt.reservation_id = r.id
      WHERE r.cycle_id = ?
@@ -98,7 +103,15 @@ export async function getCloseCycleData(
     [cycle.id]
   );
 
+  // Auto loan-repayment reservations are rebuilt by the loan plan in the next
+  // cycle, so they are not offered as leftovers. Any unused amount goes back to
+  // the pool instead of disappearing.
+  const autoLoanLeftover = reservationRows
+    .filter(row => row.is_auto_loan === 1)
+    .reduce((sum, row) => sum + Math.max(0, row.amount - row.spent - row.released), 0);
+
   const reservations = reservationRows
+    .filter(row => row.is_auto_loan === 0)
     .map(row => ({
       reservationId: row.id,
       name: row.name,
@@ -106,11 +119,7 @@ export async function getCloseCycleData(
     }))
     .filter(row => row.amount > 0);
 
-  const withdrawals = await db.getFirstAsync<{ total: number }>(
-    'SELECT COALESCE(SUM(amount), 0) as total FROM savings_withdrawals WHERE cycle_id = ?',
-    [cycle.id]
-  );
-  const savingsRemaining = Math.max(0, cycle.savings - (withdrawals?.total ?? 0));
+  const savingsRemaining = Math.max(0, await getSavingsBalance(db));
 
   // Closing forces every day to be reviewed, so the last review holds the final pool.
   let poolLeftover = Math.max(0, lastReview?.pool_after_review ?? 0);
@@ -130,6 +139,9 @@ export async function getCloseCycleData(
       cycle.income - cycle.already_spent + cycle.pool_leftover - cycle.savings - reservationsTotal;
     poolLeftover = Math.max(0, spendable - (spentRow?.total ?? 0));
   }
+
+  // Unused auto loan repayment reservations return to the pool.
+  poolLeftover += autoLoanLeftover;
 
   return {
     cycleId: cycle.id,

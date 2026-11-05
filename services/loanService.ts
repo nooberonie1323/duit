@@ -1,3 +1,4 @@
+import { recordSavingsMovement } from '@/services/savingsService';
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 export type LoanType = 'lent' | 'borrowed';
@@ -196,11 +197,19 @@ export async function addLoanReceipt(
       }
     }
 
-    if (action === 'savings' && cycleId !== null) {
-      await db.runAsync(
-        'UPDATE cycles SET savings = savings + ? WHERE id = ?',
-        [amount, cycleId]
-      );
+    if (action === 'savings') {
+      if (cycleId !== null) {
+        await db.runAsync(
+          'UPDATE cycles SET savings = savings + ? WHERE id = ?',
+          [amount, cycleId]
+        );
+      }
+      await recordSavingsMovement(db, {
+        cycleId,
+        type: 'contribution',
+        amount,
+        note: 'Loan money returned to savings',
+      });
     }
 
     if (action === 'reservation' && cycleId !== null && reservationName) {
@@ -324,11 +333,19 @@ export async function resolvePendingReceipt(
       }
     }
 
-    if (newAction === 'savings' && cycleId !== null) {
-      await db.runAsync(
-        'UPDATE cycles SET savings = savings + ? WHERE id = ?',
-        [amount, cycleId]
-      );
+    if (newAction === 'savings') {
+      if (cycleId !== null) {
+        await db.runAsync(
+          'UPDATE cycles SET savings = savings + ? WHERE id = ?',
+          [amount, cycleId]
+        );
+      }
+      await recordSavingsMovement(db, {
+        cycleId,
+        type: 'contribution',
+        amount,
+        note: 'Loan money returned to savings',
+      });
     }
 
     if (newAction === 'reservation' && cycleId !== null && reservationName) {

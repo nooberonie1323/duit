@@ -1,4 +1,5 @@
 import { toDateStr } from '@/lib/db';
+import { setOpeningSavingsBalance } from '@/services/savingsService';
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 export interface CycleRow {
@@ -61,8 +62,8 @@ export async function createCycle(db: SQLiteDatabase, input: CreateCycleInput): 
   await db.execAsync('BEGIN');
   try {
     const result = await db.runAsync(
-      `INSERT INTO cycles (start_date, end_date, income, already_spent, savings, budget_alert, start_from_today, pool_leftover)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO cycles (start_date, end_date, income, already_spent, savings, budget_alert, start_from_today, pool_leftover, model_version)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 2)`,
       [
         toDateStr(input.startDate),
         toDateStr(input.endDate),
@@ -81,6 +82,13 @@ export async function createCycle(db: SQLiteDatabase, input: CreateCycleInput): 
         [cycleId, r.name, r.amount]
       );
     }
+    // First cycle: the savings chosen during onboarding is the opening balance.
+    await setOpeningSavingsBalance(
+      db,
+      cycleId,
+      input.savings,
+      'Savings set at setup'
+    );
     await db.execAsync('COMMIT');
   } catch (e) {
     await db.execAsync('ROLLBACK');

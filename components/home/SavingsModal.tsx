@@ -1,5 +1,5 @@
 import { useThemeColors } from '@/contexts/theme';
-import type { SavingsWithdrawalRow } from '@/services/savingsService';
+import type { SavingsLedgerRow, SavingsLedgerType } from '@/services/savingsService';
 import { ActivityIndicator, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 const NOTE_MAX_LENGTH = 60;
@@ -7,9 +7,8 @@ const NOTE_MAX_LENGTH = 60;
 interface Props {
   visible: boolean;
   onClose: () => void;
-  originalSavings: number;
-  savingsRemaining: number;
-  withdrawals: SavingsWithdrawalRow[];
+  savingsBalance: number;
+  history: SavingsLedgerRow[];
   step: 1 | 2;
   amount: string;
   note: string;
@@ -23,33 +22,45 @@ interface Props {
   onConfirm: () => void;
 }
 
-function WithdrawalHistory({ withdrawals }: { withdrawals: SavingsWithdrawalRow[] }) {
+function ledgerLabel(type: SavingsLedgerType): string {
+  switch (type) {
+    case 'opening_balance': return 'Opening balance';
+    case 'contribution': return 'Added to savings';
+    case 'withdrawal': return 'Used';
+    case 'carry_in': return 'Carried in';
+    case 'carry_out': return 'Moved out';
+    case 'spent': return 'Spent from savings';
+  }
+}
+
+function SavingsHistory({ history }: { history: SavingsLedgerRow[] }) {
   const colors = useThemeColors();
-  if (withdrawals.length === 0) return null;
+  if (history.length === 0) return null;
   return (
     <View style={{ marginTop: 20 }}>
       <Text style={{ fontSize: 11, fontFamily: 'PlusJakartaSans_600SemiBold', color: colors.textSecondary, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 8 }}>
         History
       </Text>
-      {withdrawals.map((w, i) => {
-        const dateStr = new Date(w.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      {history.map((entry, i) => {
+        const dateStr = new Date(entry.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        const isIncrease = entry.amount > 0;
         return (
           <View
-            key={w.id}
+            key={entry.id}
             style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: colors.border }}
           >
             <View style={{ flex: 1, marginRight: 8 }}>
               <Text style={{ fontSize: 13, fontFamily: 'PlusJakartaSans_500Medium', color: colors.textPrimary }}>
-                Used · {dateStr}
+                {ledgerLabel(entry.type)} · {dateStr}
               </Text>
-              {w.note ? (
+              {entry.note ? (
                 <Text style={{ fontSize: 12, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular', marginTop: 1 }}>
-                  {w.note}
+                  {entry.note}
                 </Text>
               ) : null}
             </View>
-            <Text style={{ fontSize: 13, fontFamily: 'PlusJakartaSans_700Bold', color: colors.warning }}>
-              −৳{Math.floor(w.amount).toLocaleString()}
+            <Text style={{ fontSize: 13, fontFamily: 'PlusJakartaSans_700Bold', color: isIncrease ? colors.primary : colors.warning }}>
+              {isIncrease ? '+' : '−'}৳{Math.floor(Math.abs(entry.amount)).toLocaleString()}
             </Text>
           </View>
         );
@@ -60,7 +71,7 @@ function WithdrawalHistory({ withdrawals }: { withdrawals: SavingsWithdrawalRow[
 
 export function SavingsModal({
   visible, onClose,
-  originalSavings, savingsRemaining, withdrawals,
+  savingsBalance, history,
   step, amount, note,
   onChangeAmount, onChangeNote,
   amountError, canContinue, saving,
@@ -68,11 +79,11 @@ export function SavingsModal({
 }: Props) {
   const colors = useThemeColors();
   const amountNum = parseFloat(amount) || 0;
-  const fullyUsed = savingsRemaining <= 0;
+  const fullyUsed = savingsBalance <= 0;
 
   const headerSubtitle = fullyUsed
-    ? 'Fully used this cycle'
-    : `৳${Math.floor(savingsRemaining).toLocaleString()} of ৳${Math.floor(originalSavings).toLocaleString()} remaining`;
+    ? 'No savings yet'
+    : `৳${Math.floor(savingsBalance).toLocaleString()} available`;
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -98,16 +109,16 @@ export function SavingsModal({
 
             <ScrollView showsVerticalScrollIndicator={false}>
               {fullyUsed ? (
-                <FullyUsedView withdrawals={withdrawals} />
+                <EmptySavingsView history={history} />
               ) : step === 1 ? (
                 <Step1View
-                  savingsRemaining={savingsRemaining}
+                  savingsBalance={savingsBalance}
                   amount={amount}
                   note={note}
                   amountNum={amountNum}
                   amountError={amountError}
                   canContinue={canContinue}
-                  withdrawals={withdrawals}
+                  history={history}
                   onChangeAmount={onChangeAmount}
                   onChangeNote={onChangeNote}
                   onContinue={onContinue}
@@ -115,8 +126,7 @@ export function SavingsModal({
               ) : (
                 <Step2View
                   amountNum={amountNum}
-                  savingsRemaining={savingsRemaining}
-                  originalSavings={originalSavings}
+                  savingsBalance={savingsBalance}
                   saving={saving}
                   onConfirm={onConfirm}
                   onBack={onBack}
@@ -130,36 +140,36 @@ export function SavingsModal({
   );
 }
 
-function FullyUsedView({ withdrawals }: { withdrawals: SavingsWithdrawalRow[] }) {
+function EmptySavingsView({ history }: { history: SavingsLedgerRow[] }) {
   const colors = useThemeColors();
   return (
     <View style={{ marginBottom: 8 }}>
       <View style={{ backgroundColor: colors.primaryLight, borderRadius: 12, padding: 14, marginBottom: 4 }}>
         <Text style={{ fontSize: 13, color: colors.primary, fontFamily: 'PlusJakartaSans_600SemiBold' }}>
-          ✓ Fully used this cycle
+          Your savings balance is empty
         </Text>
       </View>
-      <WithdrawalHistory withdrawals={withdrawals} />
+      <SavingsHistory history={history} />
     </View>
   );
 }
 
 interface Step1ViewProps {
-  savingsRemaining: number;
+  savingsBalance: number;
   amount: string;
   note: string;
   amountNum: number;
   amountError: string | null;
   canContinue: boolean;
-  withdrawals: SavingsWithdrawalRow[];
+  history: SavingsLedgerRow[];
   onChangeAmount: (v: string) => void;
   onChangeNote: (v: string) => void;
   onContinue: () => void;
 }
 
 function Step1View({
-  savingsRemaining, amount, note, amountNum, amountError,
-  canContinue, withdrawals, onChangeAmount, onChangeNote, onContinue,
+  savingsBalance, amount, note, amountNum, amountError,
+  canContinue, history, onChangeAmount, onChangeNote, onContinue,
 }: Step1ViewProps) {
   const colors = useThemeColors();
   return (
@@ -183,9 +193,9 @@ function Step1View({
         <Text style={{ fontSize: 11, fontFamily: 'PlusJakartaSans_600SemiBold', color: colors.textSecondary, letterSpacing: 0.8, textTransform: 'uppercase' }}>
           Amount
         </Text>
-        <Pressable onPress={() => onChangeAmount(String(Math.floor(savingsRemaining)))} hitSlop={8}>
+        <Pressable onPress={() => onChangeAmount(String(Math.floor(savingsBalance)))} hitSlop={8}>
           <Text style={{ fontSize: 12, color: colors.primary, fontFamily: 'PlusJakartaSans_600SemiBold' }}>
-            Use full ৳{Math.floor(savingsRemaining).toLocaleString()}
+            Use full ৳{Math.floor(savingsBalance).toLocaleString()}
           </Text>
         </Pressable>
       </View>
@@ -218,24 +228,23 @@ function Step1View({
         <Text style={{ fontSize: 15, color: '#fff', fontFamily: 'PlusJakartaSans_600SemiBold' }}>Continue →</Text>
       </Pressable>
 
-      <WithdrawalHistory withdrawals={withdrawals} />
+      <SavingsHistory history={history} />
     </View>
   );
 }
 
 interface Step2ViewProps {
   amountNum: number;
-  savingsRemaining: number;
-  originalSavings: number;
+  savingsBalance: number;
   saving: boolean;
   onConfirm: () => void;
   onBack: () => void;
 }
 
-function Step2View({ amountNum, savingsRemaining, originalSavings, saving, onConfirm, onBack }: Step2ViewProps) {
+function Step2View({ amountNum, savingsBalance, saving, onConfirm, onBack }: Step2ViewProps) {
   const colors = useThemeColors();
-  const remainingAfter = savingsRemaining - amountNum;
-  const pct = originalSavings > 0 ? Math.round((amountNum / originalSavings) * 100) : 0;
+  const remainingAfter = savingsBalance - amountNum;
+  const pct = savingsBalance > 0 ? Math.round((amountNum / savingsBalance) * 100) : 0;
 
   return (
     <View style={{ marginBottom: 8 }}>
