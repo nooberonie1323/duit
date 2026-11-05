@@ -69,6 +69,12 @@ Home `load()` runs `backfillMissingDays` before missed-day detection so dates wi
 - `devState` query param on home forces state for testing (e.g. `?devState=ended`)
 - Multi-step DB mutations wrapped in `BEGIN` / `COMMIT` / `ROLLBACK`
 
+## Communication Preferences
+
+- Keep replies concise, beginner-friendly, and in small chunks — no walls of text
+- Avoid code and file references unless the user needs them to act
+- At the end of each build phase, update the progress note in `docs/carryover-plan.md`, report briefly, then wait
+
 ## Code Quality & Guidelines
 
 - No empty catch blocks — handle/surface errors meaningfully; validate at boundary; money paths (cycle/savings/reservations) fail loud and safe

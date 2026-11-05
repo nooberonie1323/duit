@@ -27,11 +27,22 @@ export async function getSettings(db: SQLiteDatabase): Promise<Settings | null> 
 export async function resetAppData(db: SQLiteDatabase): Promise<void> {
   await db.execAsync('BEGIN');
   try {
+    await db.execAsync('DELETE FROM cycle_close_spends');
+    await db.execAsync('DELETE FROM cycle_closings');
+    await db.execAsync('DELETE FROM carryover_choices');
+    await db.execAsync('DELETE FROM cycle_plan_reservations');
+    await db.execAsync('DELETE FROM cycle_plans');
+    await db.execAsync('DELETE FROM savings_ledger');
+    await db.execAsync('DELETE FROM savings_account');
     await db.execAsync('DELETE FROM entries');
     await db.execAsync('DELETE FROM days');
     await db.execAsync('DELETE FROM reservations');
     await db.execAsync('DELETE FROM archived_savings');
     await db.execAsync('DELETE FROM cycles');
+    await db.execAsync(
+      `INSERT INTO savings_account (id, balance, is_initialized, updated_at)
+       VALUES (1, 0, 1, datetime('now'))`
+    );
     await db.execAsync('DELETE FROM settings');
     await db.execAsync('DELETE FROM onboarding_state');
     await db.execAsync('COMMIT');

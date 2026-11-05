@@ -11,6 +11,7 @@ export interface CycleRow {
   budget_alert: number;
   start_from_today: number;
   pool_leftover: number;
+  model_version: number;
   created_at: string;
 }
 
