@@ -162,7 +162,13 @@ export default function HomeScreen() {
     if (!settings || !cycleData) { setData(null); setLoading(false); return; }
     // Ensure every past calendar date in this cycle has a day row before
     // missed-day detection — otherwise dates with zero activity are invisible.
-    await backfillMissingDays(db, cycleData.cycle.id, cycleData.cycle.start_date, cycleData.dailyBudget);
+    await backfillMissingDays(
+      db,
+      cycleData.cycle.id,
+      cycleData.cycle.start_date,
+      cycleData.cycle.end_date,
+      cycleData.dailyBudget
+    );
     const [entries, cycleTotalSpent, todayDay, missedDays] = await Promise.all([
       getTodayEntries(db, cycleData.cycle.id),
       getCycleTotalSpent(db, cycleData.cycle.id),
@@ -170,7 +176,7 @@ export default function HomeScreen() {
         'SELECT reviewed_at FROM days WHERE cycle_id = ? AND date = ?',
         [cycleData.cycle.id, toDateStr(new Date())]
       ),
-      getMissedDays(db, cycleData.cycle.id),
+      getMissedDays(db, cycleData.cycle.id, cycleData.cycle.end_date),
     ]);
     const missedEntries = await getMissedEntries(db, missedDays.map(d => d.id));
     const todayReviewed = !!(todayDay?.reviewed_at);

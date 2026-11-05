@@ -13,6 +13,13 @@ Last updated: 2026-11-06
 | 3 — New cycle plan & apply | Done |
 | 4 — Screens, hardening, rollout | Done |
 
+### Pre-push audit fixes — done
+
+- Delayed close no longer creates day rows past the cycle's end date, so unreviewed-day catch-up stays inside the cycle.
+- Plan apply now moves the savings balance by each carry choice instead of overwriting it, and writes a `carry_in` history row for pool/reservation money sent to savings.
+- Carried reservations can be edited or removed on the new-cycle form before the cycle starts.
+- The one-time savings sync runs for any cycle model, not only model version 1.
+
 ### Phase 1 — done
 
 - Added `model_version` to `cycles` (default 1) so existing cycles keep the old maths.
@@ -89,7 +96,7 @@ The core rule:
 - Pool, reservations, and savings each carry over separately.
 - The user is asked about every leftover item.
 - Savings defaults to staying in savings.
-- Reservations are always asked about; there is no default.
+- Reservations default to carrying forward by name; they can be edited or removed before the cycle starts.
 - Destinations per item: spending pool, savings, reservation, or "I already spent it."
 - "I already spent it" records the money as spent rather than silently dropping it.
 - Savings is a safe, separate from pocket money.
@@ -215,7 +222,8 @@ Goal: make the rest of the app agree with the new model.
 - Rounding: carry exact amounts; round only for display. Treat tiny remainders as zero.
 - If there are no leftovers, skip the leftovers screen.
 - If a reservation is fully spent, it does not appear in the leftovers list.
-- If a carried reservation is already used in the new cycle, it is locked.
+- If a carried reservation is already used in the new cycle, it is locked. Before the
+  cycle starts it can be edited or removed on the plan form.
 - If the app crashes during confirmation, the single transaction rolls back.
 - If the update misbehaves, rolling back the update is safe because schema changes
   are additive.
@@ -245,12 +253,14 @@ After the Phase 2–4 update:
 3. Try to use more than the balance; it should be blocked.
 4. Let or force a cycle to end and run Close cycle.
 5. Confirm unreviewed days are settled first.
-6. Try each leftover destination.
-7. Check the new cycle's pool and daily budget against a calculator.
-8. Set a future start date, then reopen before and after it to confirm the prompt.
-9. Confirm rejecting or backing out applies nothing.
-10. If a borrowed loan has an auto reservation, confirm it does not appear as a leftover and that the unused amount is back in the pool.
-11. If a lent loan is returned to savings, confirm the running balance increases.
+6. Close a cycle at least two days late and confirm the catch-up only lists days inside the cycle.
+7. Try each leftover destination. After moving pool or reservation money to savings, open savings and confirm the history shows a carried-in row.
+8. On the new-cycle form, edit and remove a carried reservation, then check the preview updates.
+9. Check the new cycle's pool and daily budget against a calculator.
+10. Set a future start date, then reopen before and after it to confirm the prompt.
+11. Confirm rejecting or backing out applies nothing.
+12. If a borrowed loan has an auto reservation, confirm it does not appear as a leftover and that the unused amount is back in the pool.
+13. If a lent loan is returned to savings, confirm the running balance increases.
 
 ## 9. Out of scope
 

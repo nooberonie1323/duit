@@ -1,4 +1,5 @@
 import { toDateStr } from '@/lib/db';
+import { getSavingsBalance } from '@/services/savingsService';
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 export interface PlanReservation {
@@ -282,6 +283,22 @@ export async function applyPlan(
       throw new Error('Savings and reservations are more than the money available');
     }
 
+    // Move savings by each choice instead of overwriting the balance, so money
+    // added between closing and confirming is never lost.
+    const savingsMovingIn = choices
+      .filter(choice => choice.item_type !== 'savings' && choice.destination === 'savings')
+      .reduce((sum, choice) => sum + choice.amount, 0);
+    const savingsMovingOut = choices
+      .filter(choice => choice.item_type === 'savings' && choice.destination !== 'savings')
+      .reduce((sum, choice) => sum + choice.amount, 0);
+    const currentSavings = await getSavingsBalance(db);
+    const projectedSavings =
+      currentSavings + input.savingsContribution + savingsMovingIn - savingsMovingOut;
+    if (projectedSavings < -MONEY_EPSILON) {
+      throw new Error('Savings balance would go below zero');
+    }
+    const newSavingsBalance = Math.max(0, projectedSavings);
+
     const cycleResult = await db.runAsync(
       `INSERT INTO cycles
          (start_date, end_date, income, already_spent, savings, budget_alert,
@@ -310,7 +327,7 @@ export async function applyPlan(
       `INSERT INTO savings_account (id, balance, is_initialized, updated_at)
        VALUES (1, ?, 1, datetime('now'))
        ON CONFLICT(id) DO UPDATE SET balance = excluded.balance, is_initialized = 1, updated_at = datetime('now')`,
-      [savingsTotal]
+      [newSavingsBalance]
     );
     if (input.savingsContribution > 0) {
       await db.runAsync(
@@ -319,6 +336,13 @@ export async function applyPlan(
       );
     }
     for (const choice of choices) {
+      if (choice.item_type !== 'savings' && choice.destination === 'savings') {
+        await db.runAsync(
+          `INSERT INTO savings_ledger (cycle_id, type, amount, note) VALUES (?, 'carry_in', ?, ?)`,
+          [cycleId, choice.amount, 'Leftover moved to savings at cycle close']
+        );
+        continue;
+      }
       if (choice.item_type !== 'savings' || choice.destination === 'savings') continue;
       const isSpent = choice.destination === 'spent';
       await db.runAsync(

@@ -9,12 +9,16 @@ export interface MissedDay {
 
 export async function getMissedDays(
   db: SQLiteDatabase,
-  cycleId: number
+  cycleId: number,
+  endDateStr: string
 ): Promise<MissedDay[]> {
   const today = toDateStr(new Date());
+  // A closed cycle never needs reviews for dates after its end date.
   return db.getAllAsync<MissedDay>(
-    `SELECT id, date FROM days WHERE cycle_id = ? AND date < ? AND reviewed_at IS NULL ORDER BY date ASC`,
-    [cycleId, today]
+    `SELECT id, date FROM days
+     WHERE cycle_id = ? AND date < ? AND date <= ? AND reviewed_at IS NULL
+     ORDER BY date ASC`,
+    [cycleId, today, endDateStr]
   );
 }
 
@@ -38,6 +42,7 @@ export async function backfillMissingDays(
   db: SQLiteDatabase,
   cycleId: number,
   startDateStr: string,
+  endDateStr: string,
   dailyBudget: number
 ): Promise<void> {
   const today = new Date();
@@ -45,6 +50,14 @@ export async function backfillMissingDays(
   const todayStr = toDateStr(today);
   // Cycle starts today or in the future — nothing can be missed yet.
   if (startDateStr >= todayStr) return;
+
+  // Stop at the cycle's end date. Closing a cycle late must not create day
+  // rows for calendar dates that were never part of the cycle.
+  const endDate = fromDateStr(endDateStr);
+  endDate.setHours(0, 0, 0, 0);
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const fillUntil = endDate < yesterday ? endDate : yesterday;
 
   const existing = await db.getAllAsync<{ date: string }>(
     'SELECT date FROM days WHERE cycle_id = ? AND date < ?',
@@ -55,7 +68,7 @@ export async function backfillMissingDays(
   const missing: string[] = [];
   const cursor = fromDateStr(startDateStr);
   cursor.setHours(0, 0, 0, 0);
-  while (cursor < today) {
+  while (cursor <= fillUntil) {
     const cursorStr = toDateStr(cursor);
     if (!existingDates.has(cursorStr)) missing.push(cursorStr);
     cursor.setDate(cursor.getDate() + 1);

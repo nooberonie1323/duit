@@ -185,11 +185,12 @@ export default function CloseCycleScreen() {
       db,
       active.cycle.id,
       active.cycle.start_date,
+      active.cycle.end_date,
       active.dailyBudget
     );
 
     const [missed, data, savedPlan] = await Promise.all([
-      getMissedDays(db, active.cycle.id),
+      getMissedDays(db, active.cycle.id, active.cycle.end_date),
       getCloseCycleData(db),
       getSavedClosePlan(db, active.cycle.id),
     ]);

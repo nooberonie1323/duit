@@ -140,26 +140,25 @@ export async function syncSavingsFromLatestCycle(db: SQLiteDatabase): Promise<vo
   );
 }
 
-// Runs once after this update. Older (model version 1) cycles were created
-// before the running balance existed, so their account may be missing recent
-// withdrawals. After this one-time sync, normal movements keep it correct.
+// Runs once after this update. Cycles created before the running balance
+// existed may have an account that is missing recent withdrawals. After this
+// one-time sync, normal movements keep it correct.
 export async function reconcileLegacySavingsBalance(db: SQLiteDatabase): Promise<void> {
   const versionRow = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
   if ((versionRow?.user_version ?? 0) >= 1) return;
 
   const latest = await db.getFirstAsync<{
     id: number;
-    model_version: number;
     savings: number;
     withdrawn: number;
   }>(
-    `SELECT c.id as id, c.model_version, c.savings,
+    `SELECT c.id as id, c.savings,
             COALESCE((SELECT SUM(w.amount) FROM savings_withdrawals w WHERE w.cycle_id = c.id), 0) as withdrawn
      FROM cycles c
      ORDER BY c.id DESC LIMIT 1`
   );
 
-  if (latest && latest.model_version === 1) {
+  if (latest) {
     const expected = Math.max(0, latest.savings - latest.withdrawn);
     const balance = await getSavingsBalance(db);
     const difference = expected - balance;

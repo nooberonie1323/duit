@@ -499,7 +499,11 @@ export default function NewCycleScreen() {
   }
 
   // ── Form step ──────────────────────────────────────────────────────────────
-  const hasCarried = carryPool > 0 || carrySavings > 0 || carryReservations > 0;
+  const carriedReservationsTotal = reservations
+    .filter(reservation => reservation.isCarried)
+    .reduce((sum, reservation) => sum + (parseFloat(reservation.amount) || 0), 0);
+  const hasCarried =
+    carryPool > 0 || carrySavings > 0 || carriedReservationsTotal > 0;
 
   return (
     <KeyboardAvoidingView
@@ -544,7 +548,7 @@ export default function NewCycleScreen() {
                   <View style={[styles.divider, { backgroundColor: colors.border }]} />
                 </>
               )}
-              {carryReservations > 0 && summaryRow('Reservations kept', carryReservations, colors.textSecondary, colors.textSecondary)}
+              {carriedReservationsTotal > 0 && summaryRow('Reservations kept', carriedReservationsTotal, colors.textSecondary, colors.textSecondary)}
             </View>
           </>
         )}
@@ -667,44 +671,33 @@ export default function NewCycleScreen() {
             {reservations.map((reservation, index) => (
               <View key={reservation.id}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 16 }}>
-                  {reservation.isCarried ? (
-                    <>
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 14, fontFamily: 'PlusJakartaSans_500Medium', color: colors.textPrimary }} numberOfLines={1}>
-                          {reservation.name}
-                        </Text>
-                        <Text style={{ fontSize: 11, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular', marginTop: 2 }}>
-                          Carried from last cycle
-                        </Text>
-                      </View>
-                      <Text style={{ fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: colors.textPrimary }}>
-                        ৳{Math.floor(parseFloat(reservation.amount) || 0).toLocaleString()}
+                  <View style={{ flex: 1 }}>
+                    <TextInput
+                      value={reservation.name}
+                      onChangeText={value => updateReservation(reservation.id, { name: value })}
+                      placeholder="Name (e.g. Rent)"
+                      placeholderTextColor={colors.textSecondary}
+                      style={{ fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: colors.textPrimary }}
+                      maxLength={60}
+                    />
+                    {reservation.isCarried && (
+                      <Text style={{ fontSize: 11, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular', marginTop: 2 }}>
+                        Carried from last cycle
                       </Text>
-                    </>
-                  ) : (
-                    <>
-                      <TextInput
-                        value={reservation.name}
-                        onChangeText={value => updateReservation(reservation.id, { name: value })}
-                        placeholder="Name (e.g. Rent)"
-                        placeholderTextColor={colors.textSecondary}
-                        style={{ flex: 1, fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: colors.textPrimary }}
-                        maxLength={60}
-                      />
-                      <Text style={{ fontSize: 14, color: colors.textSecondary, marginHorizontal: 6, fontFamily: 'PlusJakartaSans_400Regular' }}>৳</Text>
-                      <TextInput
-                        value={reservation.amount}
-                        onChangeText={value => updateReservation(reservation.id, { amount: value.replace(/[^0-9.]/g, '') })}
-                        keyboardType="numeric"
-                        placeholder="0"
-                        placeholderTextColor={colors.textSecondary}
-                        style={{ width: 80, textAlign: 'right', fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: colors.textPrimary }}
-                      />
-                      <Pressable onPress={() => removeReservation(reservation.id)} hitSlop={8} style={{ marginLeft: 12 }}>
-                        <Text style={{ fontSize: 20, color: colors.error, lineHeight: 22 }}>×</Text>
-                      </Pressable>
-                    </>
-                  )}
+                    )}
+                  </View>
+                  <Text style={{ fontSize: 14, color: colors.textSecondary, marginHorizontal: 6, fontFamily: 'PlusJakartaSans_400Regular' }}>৳</Text>
+                  <TextInput
+                    value={reservation.amount}
+                    onChangeText={value => updateReservation(reservation.id, { amount: value.replace(/[^0-9.]/g, '') })}
+                    keyboardType="numeric"
+                    placeholder="0"
+                    placeholderTextColor={colors.textSecondary}
+                    style={{ width: 80, textAlign: 'right', fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: colors.textPrimary }}
+                  />
+                  <Pressable onPress={() => removeReservation(reservation.id)} hitSlop={8} style={{ marginLeft: 12 }}>
+                    <Text style={{ fontSize: 20, color: colors.error, lineHeight: 22 }}>×</Text>
+                  </Pressable>
                 </View>
                 {index < reservations.length - 1 && <View style={[styles.divider, { backgroundColor: colors.border }]} />}
               </View>
