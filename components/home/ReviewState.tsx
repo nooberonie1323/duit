@@ -51,6 +51,15 @@ export function ReviewState({
             <Text style={{ fontSize: 13, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular' }}>{dateStr}</Text>
           </View>
 
+          <View style={{ marginHorizontal: 16, marginBottom: 12 }}>
+            <MoneySnapshot
+              poolLeft={poolLeft}
+              savingsBalance={savingsBalance}
+              reservations={cycleData.reservations}
+              dailyBudgetAfter={dailyBudgetAfter}
+            />
+          </View>
+
           <View style={{ marginHorizontal: 16, backgroundColor: colors.card, borderRadius: 20, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2, marginBottom: 12 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.border }}>
               <Text style={{ fontSize: 14, fontFamily: 'PlusJakartaSans_700Bold', color: colors.textPrimary }}>Spending</Text>
@@ -80,15 +89,6 @@ export function ReviewState({
               <Text style={{ fontSize: 20, color: colors.primary, lineHeight: 22, includeFontPadding: false }}>+</Text>
               <Text style={{ fontSize: 14, color: colors.primary, fontFamily: 'PlusJakartaSans_600SemiBold' }}>Add spend</Text>
             </Pressable>
-          </View>
-
-          <View style={{ marginHorizontal: 16, marginBottom: 12 }}>
-            <MoneySnapshot
-              poolLeft={poolLeft}
-              savingsBalance={savingsBalance}
-              reservations={cycleData.reservations}
-              dailyBudgetAfter={dailyBudgetAfter}
-            />
           </View>
 
           <View style={{ marginHorizontal: 16, backgroundColor: colors.card, borderRadius: 20, padding: 16, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 }}>

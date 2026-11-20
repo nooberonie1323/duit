@@ -334,7 +334,7 @@ Keep the existing `BEGIN` / `COMMIT` / `ROLLBACK` structure. No other service ch
 - Add `savingsBalance: number` to props.
 - Compute `todayTotal`, `poolLeft = Math.max(0, cycleData.leftInCycle - todayTotal)`,
   `dailyBudgetAfter = cycleData.daysLeft > 0 ? poolLeft / cycleData.daysLeft : 0`.
-- Insert between the spending card and the notes card:
+- Insert directly under the screen heading, above the spending card:
 
   ```tsx
   <View style={{ marginHorizontal: 16, marginBottom: 12 }}>
