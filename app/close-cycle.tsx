@@ -159,7 +159,6 @@ export default function CloseCycleScreen() {
   const [missedDays, setMissedDays] = useState<MissedDay[]>([]);
   const [missedEntries, setMissedEntries] = useState<EntryRow[]>([]);
 
-  const [catchUpAmount, setCatchUpAmount] = useState('');
   const [catchUpNote, setCatchUpNote] = useState('');
   const [confirmingCatchUp, setConfirmingCatchUp] = useState(false);
 
@@ -218,8 +217,7 @@ export default function CloseCycleScreen() {
 
   async function handleConfirmCatchUp() {
     if (!activeData || missedDays.length === 0 || confirmingCatchUp) return;
-    const stagedTotal = missedEntries.reduce((sum, entry) => sum + entry.amount, 0);
-    const total = parseFloat(catchUpAmount) || stagedTotal;
+    const total = missedEntries.reduce((sum, entry) => sum + entry.amount, 0);
     setConfirmingCatchUp(true);
     try {
       await confirmCatchUpReview(
@@ -229,7 +227,6 @@ export default function CloseCycleScreen() {
         activeData.leftInCycle,
         catchUpNote
       );
-      setCatchUpAmount('');
       setCatchUpNote('');
       await load();
     } catch (error) {
@@ -341,16 +338,18 @@ export default function CloseCycleScreen() {
           </Pressable>
         </View>
         <MissedReviewState
+          cycleData={activeData}
+          savingsBalance={closeData?.savingsRemaining ?? 0}
           missedDays={missedDays}
           missedEntries={missedEntries}
           navPillOffset={0}
           insets={insets}
-          catchUpAmount={catchUpAmount}
-          onChangeAmount={setCatchUpAmount}
-          catchUpNote={catchUpNote}
+          note={catchUpNote}
           onChangeNote={setCatchUpNote}
           confirming={confirmingCatchUp}
           onConfirm={handleConfirmCatchUp}
+          onReload={load}
+          onError={setErrorMsg}
         />
         <ErrorToast message={errorMsg} onDismiss={() => setErrorMsg(null)} />
       </View>

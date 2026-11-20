@@ -101,13 +101,21 @@ export async function confirmCatchUpReview(
   const now = new Date().toISOString();
   const poolAfter = Math.max(0, leftInCycle - totalSpent);
 
+  // Spread the combined total evenly so Log and Stats show a sane per-day
+  // figure. The last day absorbs the rounding remainder.
+  const dayCount = missedDays.length;
+  const perDay = Math.floor(totalSpent / dayCount);
+  const shares = missedDays.map((_, i) =>
+    i === dayCount - 1 ? totalSpent - perDay * (dayCount - 1) : perDay
+  );
+
   await db.execAsync('BEGIN');
   try {
     for (let i = 0; i < missedDays.length; i++) {
       const isLast = i === missedDays.length - 1;
       await db.runAsync(
         `UPDATE days SET total_spent = ?, reviewed_at = ?, pool_after_review = ?, notes = ? WHERE id = ?`,
-        [isLast ? totalSpent : 0, now, isLast ? poolAfter : null, isLast ? (note.trim() || null) : null, missedDays[i].id]
+        [shares[i], now, isLast ? poolAfter : null, isLast ? (note.trim() || null) : null, missedDays[i].id]
       );
       await db.runAsync('UPDATE entries SET staged = 0 WHERE day_id = ?', [missedDays[i].id]);
     }

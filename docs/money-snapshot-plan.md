@@ -1,8 +1,6 @@
 # Money snapshot card + editable catch-up
 
-Status: **planned, not implemented**. This document is the single source of truth for
-the feature. It was written before any app code changed, so an implementation session
-can resume from it alone.
+Status: **implemented**. This document is the single source of truth for the feature.
 
 Branch: `feat/money-snapshot`, created from `main` at `7417abd` (the fast-forward
 merge of `docs/agents-session-learnings`, which was already live on the preview
@@ -421,5 +419,5 @@ On the phone (after push + `npx eas update --channel preview`):
 
 - [x] Plan and spec agreed
 - [x] Branch created from merged main
-- [ ] Implementation
-- [ ] Typecheck, lint, commit
+- [x] Implementation
+- [x] Typecheck, lint, commit

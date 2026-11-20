@@ -1,3 +1,4 @@
+import { MoneySnapshot } from '@/components/home/MoneySnapshot';
 import { useThemeColors } from '@/contexts/theme';
 import type { ActiveCycleData } from '@/services/cycleService';
 import type { EntryRow } from '@/services/entryService';
@@ -6,6 +7,7 @@ import type { EdgeInsets } from 'react-native-safe-area-context';
 
 interface Props {
   cycleData: ActiveCycleData;
+  savingsBalance: number;
   entries: EntryRow[];
   navPillOffset: number;
   insets: EdgeInsets;
@@ -19,7 +21,7 @@ interface Props {
 }
 
 export function ReviewState({
-  cycleData, entries,
+  cycleData, savingsBalance, entries,
   navPillOffset, insets,
   reviewNote, onChangeNote,
   confirming, onConfirm,
@@ -27,6 +29,8 @@ export function ReviewState({
 }: Props) {
   const colors = useThemeColors();
   const totalSpent = entries.reduce((s, e) => s + e.amount, 0);
+  const poolLeft = Math.max(0, cycleData.leftInCycle - totalSpent);
+  const dailyBudgetAfter = cycleData.daysLeft > 0 ? poolLeft / cycleData.daysLeft : 0;
   const dateStr = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
 
   return (
@@ -76,6 +80,15 @@ export function ReviewState({
               <Text style={{ fontSize: 20, color: colors.primary, lineHeight: 22, includeFontPadding: false }}>+</Text>
               <Text style={{ fontSize: 14, color: colors.primary, fontFamily: 'PlusJakartaSans_600SemiBold' }}>Add spend</Text>
             </Pressable>
+          </View>
+
+          <View style={{ marginHorizontal: 16, marginBottom: 12 }}>
+            <MoneySnapshot
+              poolLeft={poolLeft}
+              savingsBalance={savingsBalance}
+              reservations={cycleData.reservations}
+              dailyBudgetAfter={dailyBudgetAfter}
+            />
           </View>
 
           <View style={{ marginHorizontal: 16, backgroundColor: colors.card, borderRadius: 20, padding: 16, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 }}>

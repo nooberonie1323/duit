@@ -2,6 +2,7 @@ import { useThemeColors } from '@/contexts/theme';
 import { fromDateStr, toDateStr } from '@/lib/db';
 import { DeleteConfirmModal } from '@/components/home/DeleteConfirmModal';
 import { MissedReviewState } from '@/components/home/MissedReviewState';
+import { MoneySnapshot } from '@/components/home/MoneySnapshot';
 import { NormalState } from '@/components/home/NormalState';
 import { ReservationModal } from '@/components/home/ReservationModal';
 import { ReviewState } from '@/components/home/ReviewState';
@@ -136,7 +137,6 @@ export default function HomeScreen() {
   const [resConfirmingRelease, setResConfirmingRelease] = useState(false);
 
   // Catch-up
-  const [catchUpAmount, setCatchUpAmount] = useState('');
   const [catchUpNote, setCatchUpNote] = useState('');
   const [confirmingCatchUp, setConfirmingCatchUp] = useState(false);
 
@@ -190,13 +190,6 @@ export default function HomeScreen() {
 
   // Returning from the close/plan screens must refresh the home state.
   useFocusEffect(useCallback(() => { load(); }, [load]));
-
-  // Pre-fill catch-up amount with staged entries total so user doesn't have to retype what they already logged
-  useEffect(() => {
-    if (!data || data.missedEntries.length === 0 || catchUpAmount !== '') return;
-    const staged = Math.floor(data.missedEntries.reduce((s, e) => s + e.amount, 0));
-    if (staged > 0) setCatchUpAmount(String(staged));
-  }, [data, catchUpAmount]);
 
   useEffect(() => {
     const sub = AppState.addEventListener('change', state => { if (state === 'active') load(); });
@@ -288,12 +281,10 @@ export default function HomeScreen() {
 
   async function handleConfirmCatchUp() {
     if (!data || confirmingCatchUp) return;
-    const stagedTotal = data.missedEntries.reduce((s, e) => s + e.amount, 0);
-    const total = parseFloat(catchUpAmount) || stagedTotal;
+    const total = data.missedEntries.reduce((s, e) => s + e.amount, 0);
     setConfirmingCatchUp(true);
     try {
       await confirmCatchUpReview(db, data.missedDays, total, data.cycleData.leftInCycle, catchUpNote);
-      setCatchUpAmount('');
       setCatchUpNote('');
       await load();
     } catch (e) {
@@ -653,16 +644,18 @@ export default function HomeScreen() {
       {/* Missed review */}
       {homeState === 'missed_review' && (
         <MissedReviewState
+          cycleData={cycleData}
+          savingsBalance={data.savingsBalance}
           missedDays={missedDays}
           missedEntries={missedEntries}
           navPillOffset={navPillOffset}
           insets={insets}
-          catchUpAmount={catchUpAmount}
-          onChangeAmount={setCatchUpAmount}
-          catchUpNote={catchUpNote}
+          note={catchUpNote}
           onChangeNote={setCatchUpNote}
           confirming={confirmingCatchUp}
           onConfirm={handleConfirmCatchUp}
+          onReload={load}
+          onError={showError}
         />
       )}
 
@@ -670,6 +663,7 @@ export default function HomeScreen() {
       {homeState === 'review' && (
         <ReviewState
           cycleData={cycleData}
+          savingsBalance={data.savingsBalance}
           entries={entries}
           navPillOffset={navPillOffset}
           insets={insets}
@@ -703,6 +697,13 @@ export default function HomeScreen() {
               <Text style={{ fontSize: 15, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular', marginBottom: 32 }}>
                 See you tomorrow.
               </Text>
+              <View style={{ marginBottom: 16 }}>
+                <MoneySnapshot
+                  poolLeft={Math.max(0, cycleData.leftInCycle)}
+                  savingsBalance={savingsBalance}
+                  reservations={cycleData.reservations}
+                />
+              </View>
               <View style={{ backgroundColor: colors.card, borderRadius: 20, paddingHorizontal: 16, marginBottom: 16, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 13 }}>
                   <Text style={{ fontSize: 14, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular' }}>Spent today</Text>
@@ -717,11 +718,6 @@ export default function HomeScreen() {
                     </View>
                   </>
                 )}
-                <View style={{ height: 1, backgroundColor: colors.border }} />
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 13 }}>
-                  <Text style={{ fontSize: 14, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular' }}>New daily budget</Text>
-                  <Text style={{ fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: colors.textPrimary }}>৳{Math.floor(cycleData.dailyBudget).toLocaleString()}</Text>
-                </View>
               </View>
               <Text style={{ fontSize: 12, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular', textAlign: 'center' }}>{countdown}</Text>
             </ScrollView>
