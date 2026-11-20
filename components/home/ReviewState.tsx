@@ -76,9 +76,10 @@ export function ReviewState({
                   <Text style={{ flex: 1, fontSize: 14, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular' }} numberOfLines={1}>
                     {entry.note || 'general spending'}
                   </Text>
-                  <Text style={{ fontSize: 14, color: colors.textPrimary, fontFamily: 'PlusJakartaSans_600SemiBold', marginRight: 4 }}>
+                  <Text style={{ fontSize: 14, color: colors.textPrimary, fontFamily: 'PlusJakartaSans_600SemiBold', marginRight: 6 }}>
                     ৳{entry.amount.toLocaleString()}
                   </Text>
+                  <Text style={{ fontSize: 16, color: colors.textSecondary, lineHeight: 18, includeFontPadding: false }}>›</Text>
                 </Pressable>
                 <Pressable onPress={() => onDeleteEntry(entry)} hitSlop={8} style={{ paddingVertical: 13, paddingRight: 16, paddingLeft: 8 }}>
                   <Text style={{ fontSize: 18, color: colors.error, lineHeight: 20, includeFontPadding: false }}>×</Text>

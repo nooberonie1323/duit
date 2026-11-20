@@ -132,7 +132,7 @@ export function MissedReviewState({
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView
-        contentContainerStyle={{ paddingTop: insets.top + 24, paddingHorizontal: 20, paddingBottom: Math.max(insets.bottom, 24) + navPillOffset }}
+        contentContainerStyle={{ paddingTop: insets.top + 24, paddingHorizontal: 20, paddingBottom: Math.max(insets.bottom, 24) + navPillOffset + 80 }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
@@ -162,7 +162,7 @@ export function MissedReviewState({
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.border }}>
             <Text style={{ fontSize: 14, fontFamily: 'PlusJakartaSans_700Bold', color: colors.textPrimary }}>Spending</Text>
             <Text style={{ fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: missedTotal > 0 ? colors.textPrimary : colors.textSecondary }}>
-              {money(missedTotal)}
+              ৳{missedTotal.toLocaleString()}
             </Text>
           </View>
           {missedEntries.map(entry => (
@@ -174,9 +174,10 @@ export function MissedReviewState({
                 <Text style={{ flex: 1, fontSize: 14, color: colors.textSecondary, fontFamily: 'PlusJakartaSans_400Regular' }} numberOfLines={1}>
                   {entry.note || 'general spending'}
                 </Text>
-                <Text style={{ fontSize: 14, color: colors.textPrimary, fontFamily: 'PlusJakartaSans_600SemiBold', marginRight: 4 }}>
-                  {money(entry.amount)}
+                <Text style={{ fontSize: 14, color: colors.textPrimary, fontFamily: 'PlusJakartaSans_600SemiBold', marginRight: 6 }}>
+                  ৳{entry.amount.toLocaleString()}
                 </Text>
+                <Text style={{ fontSize: 16, color: colors.textSecondary, lineHeight: 18, includeFontPadding: false }}>›</Text>
               </Pressable>
               <Pressable onPress={() => setConfirmDeleteEntry(entry)} hitSlop={8} style={{ paddingVertical: 13, paddingRight: 16, paddingLeft: 8 }}>
                 <Text style={{ fontSize: 18, color: colors.error, lineHeight: 20, includeFontPadding: false }}>×</Text>
@@ -209,6 +210,9 @@ export function MissedReviewState({
           />
         </View>
 
+      </ScrollView>
+
+      <View style={{ position: 'absolute', bottom: navPillOffset + 8, left: 20, right: 20 }}>
         <Pressable
           onPress={onConfirm}
           disabled={confirming}
@@ -219,7 +223,7 @@ export function MissedReviewState({
             : <Text style={{ color: '#fff', fontSize: 16, fontFamily: 'PlusJakartaSans_700Bold' }}>Confirm & continue</Text>
           }
         </Pressable>
-      </ScrollView>
+      </View>
 
       <SpendModal
         visible={showModal}

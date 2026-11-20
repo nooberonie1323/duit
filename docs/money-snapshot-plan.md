@@ -27,9 +27,9 @@ Today the user cannot:
 
 | Topic | Decision |
 | --- | --- |
-| Card placement | Top of the content on three screens: catch-up, daily review, post-review. The whole screen scrolls; only the existing confirm button stays pinned |
+| Card placement | Top of the content on three screens: catch-up, daily review, post-review. The whole screen scrolls; the confirm buttons stay pinned |
 | Card's main number | **Total across everything**, large and extra-bold; breakdown in small secondary rows underneath |
-| Card contents | Left to spend, Savings (hidden if 0), each reservation with money left (hidden if 0), Total, then "Daily budget after" |
+| Card contents | Left in cycle, Savings (hidden if 0), each reservation with money left (hidden if 0), Total, then "Daily budget after" |
 | Total maths | `left to spend + savings balance + reservation remainders` |
 | Catch-up total | No input box. The total is the sum of the listed spends and updates live |
 | Catch-up list | Editable: tap to edit, `×` to delete, `+ Add spend` to add |
@@ -37,7 +37,7 @@ Today the user cannot:
 | One day missed | That day stores the sum of its items |
 | Several days missed | The total is spread evenly across the missed days on confirm; the last day absorbs rounding; a `≈ per day` line previews it |
 | Savings / reservations | Untouched. Shown separately on the card. No footnote, no change to their maths |
-| Negative numbers | "Left to spend" clamps at 0, matching the home screen |
+| Negative numbers | "Left in cycle" clamps at 0, matching the home screen |
 | Database | No schema changes, no migrations, no new dependencies |
 | Post-review screen | Card omits the daily-budget row; the old summary card loses its duplicate "New daily budget" row |
 
@@ -52,7 +52,7 @@ Today the user cannot:
 │ ৳9,540                            │  <- large, extra-bold
 │ Total across everything           │
 │ ───────────────────────────────── │
-│ Left to spend          ৳4,240     │
+│ Left in cycle          ৳4,240     │
 │ Savings                ৳1,500     │
 │ Rent (reserved)        ৳3,000     │
 │ Loan (reserved)          ৳800     │
@@ -97,7 +97,7 @@ anything you forgot.
 │ ৳9,540                            │
 │ Total across everything           │
 │ ───────────────────────────────── │
-│ Left to spend          ৳4,240     │
+│ Left in cycle          ৳4,240     │
 │ Savings                ৳1,500     │
 │ Rent (reserved)        ৳3,000     │
 │ Loan (reserved)          ৳800     │
@@ -136,7 +136,7 @@ See you tomorrow.
 │ ৳9,790                            │
 │ Total across everything           │
 │ ───────────────────────────────── │
-│ Left to spend          ৳4,490     │
+│ Left in cycle          ৳4,490     │
 │ Savings                ৳1,500     │
 │ Rent (reserved)        ৳3,000     │
 │ Loan (reserved)          ৳800     │
@@ -171,7 +171,7 @@ Render order inside one card:
 3. `Total across everything` — 12pt `400Regular`, `colors.textSecondary`.
 4. Divider: 1px `colors.border`, ~14pt vertical margin.
 5. Rows (flex row, space-between, ~6pt vertical padding):
-   - `Left to spend` — label 13pt `600SemiBold` `textPrimary`; value 13pt
+   - `Left in cycle` — label 13pt `600SemiBold` `textPrimary`; value 13pt
      `600SemiBold` `textPrimary`.
    - `Savings` — only when `savingsBalance > 0`; label 13pt `400Regular`
      `textSecondary`; value 13pt `600SemiBold` `textPrimary`.
@@ -236,15 +236,18 @@ paddings: `paddingTop: insets.top + 24`, `paddingHorizontal: 20`,
 4. `MoneySnapshot` (wrapper `marginBottom: 16`).
 5. Spending card, visually identical to the daily review's card:
    - Header row `Spending` + right-aligned total (both as in `ReviewState`).
-   - One row per entry: `entry.note || 'general spending'` on the left, amount, then
-     a `×` that opens the delete confirmation. The row body is `Pressable` -> edit.
+   - One row per entry: `entry.note || 'general spending'` on the left, amount, a
+     secondary `›` chevron marking the row as editable, then a `×` that opens the
+     delete confirmation. The row body is `Pressable` -> edit. Amounts keep the app's
+     normal formatting (no flooring).
    - Footer `+ Add spend`.
    - Empty list: header still shows `৳0`, footer still shows `+ Add spend`.
 6. When `missedDays.length > 1`, a line under the card:
    `৳{missedTotal} over {n} days ≈ ৳{Math.floor(missedTotal / n)}/day`
    (12pt `textSecondary`).
 7. Note field: unchanged label `NOTE (OPTIONAL)` and styling.
-8. `Confirm & continue` button (unchanged).
+8. `Confirm & continue` button pinned to the bottom of the screen (same pattern as
+   `ReviewState`), with extra scroll padding so the note field is never hidden.
 
 Behaviour:
 
@@ -402,8 +405,8 @@ On the phone (after push + `npx eas update --channel preview`):
 1. Close and reopen the app to pick up the update.
 2. Normal home before review time: unchanged.
 3. Force a missed review by moving the phone's date forward a day or two, then reopening.
-4. Catch-up screen: card on top with the big total; compare wallet with `Left to spend`;
-   tap `+ Add spend` with the difference and watch the big number and `Left to spend`
+4. Catch-up screen: card on top with the big total; compare wallet with `Left in cycle`;
+   tap `+ Add spend` with the difference and watch the big number and `Left in cycle`
    drop live.
 5. Edit one item and delete another; numbers follow every change.
 6. With two or more missed days: the `≈ ৳X/day` line appears; after confirming, Log shows

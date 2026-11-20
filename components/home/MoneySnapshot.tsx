@@ -57,7 +57,7 @@ export function MoneySnapshot({ poolLeft, savingsBalance, reservations, dailyBud
 
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6 }}>
         <Text style={{ fontSize: 13, fontFamily: 'PlusJakartaSans_600SemiBold', color: colors.textPrimary }}>
-          Left to spend
+          Left in cycle
         </Text>
         <Text style={{ fontSize: 13, fontFamily: 'PlusJakartaSans_600SemiBold', color: colors.textPrimary }}>
           {money(poolLeft)}
